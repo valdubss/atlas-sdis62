@@ -244,3 +244,4 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
 - Captures : Chrome headless applique `backdrop-filter` (style calculé vérifié) mais ne le composite pas toujours dans les PNG ; le flou est visible dans un navigateur réel.
 - Sondage (`PollCard`) : options en boutons `--bg-2` 44 px ; résultats en barres `--text-1` à 10 % sur `--bg-2`, choix de l'agent en `--red-text` (unique rouge de la carte).
 - Galerie (`GalleryGrid`) : grille 3 colonnes, vignettes carrées, 3 px d'espace, lightbox partagée avec légende en verre.
+- Notifications (`NotificationSettings`, `SettingsPanel`) : rangées à interrupteur façon Réglages, aucune icône, chiffres du studio en cartes `--bg-1`.

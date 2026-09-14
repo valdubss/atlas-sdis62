@@ -7,7 +7,7 @@ interagissent (réactions, commentaires, favoris).
 - **Stack** : Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · Supabase
   (Postgres, Auth, RLS, Realtime) · stockage S3 compatible (Scaleway / R2) · Vercel.
 - **Architecture** : voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération et gestion des utilisateurs. Lot (d) : stories. Lot (f) : sondages à choix unique (résultats après le vote ou à la clôture) et galerie de toutes les photos publiées avec lightbox.
+- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération et gestion des utilisateurs. Lot (d) : stories. Lot (f) : sondages et galerie. Lot (g) : application installable (PWA), notifications push Web (VAPID) à chaque publication, résumé hebdomadaire par e-mail (Resend ou SMTP), page Paramètres du studio.
 
 ---
 
@@ -88,6 +88,7 @@ redirige vers `/login`.
 | `0003_feed.sql` | fil paginé, recherche, réactions, favoris, commentaires temps réel, statistiques studio |
 | `0004_stories.sql` | bandeau de stories, viewer, vues, à-la-une |
 | `0005_polls_gallery.sql` | vote de sondage, galerie paginée |
+| `0006_push_digest.sql` | file de notifications à la publication, statistiques push, préférence « nouvelles publications » |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -299,6 +300,30 @@ scripts/extract-colors.mjs extraction des couleurs du logo
 docs/ARCHITECTURE.md       plan d'architecture
 ```
 
+## 7b. Notifications push, PWA et digest
+
+- **PWA** : `app/manifest.ts`, icônes dans `public/icons/`, service worker `public/sw.js`
+  (cache de l'interface, jamais des médias ; page `/offline`). Sur iPhone, l'agent doit
+  d'abord ajouter ATLAS à l'écran d'accueil depuis Safari pour recevoir des push.
+- **Push** : clés VAPID générées par `npm run vapid` (→ `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`). Un trigger SQL enfile une notification à chaque
+  mise en ligne ; l'envoi part juste après la publication, puis `/api/cron/dispatch`
+  (Vercel Cron toutes les 5 min, `vercel.json`) reprend ce qui resterait. Sur l'offre
+  Vercel Hobby (cron quotidien), configurez plutôt **pg_cron + pg_net** dans Supabase :
+
+```sql
+select cron.schedule('atlas-dispatch', '*/5 * * * *', $$
+  select net.http_get(url := 'https://<votre-domaine>/api/cron/dispatch?secret=<CRON_SECRET>')
+$$);
+```
+
+- **Digest** : `/api/cron/digest` le lundi (Vercel Cron), activable par un administrateur
+  dans Studio → Paramètres, avec envoi de test. Transport : `RESEND_API_KEY` (compte
+  gratuit sur resend.com ; sans domaine vérifié, seule l'adresse du compte peut recevoir)
+  ou `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS`.
+- **Préférences** (profil) : notifications sur cet appareil, nouvelles publications,
+  publications épinglées, résumé hebdomadaire.
+
 ## 8. Stockage des médias (Supabase Storage ou bucket S3)
 
 Les photos et vidéos partent **directement du navigateur** vers le stockage
@@ -376,3 +401,4 @@ variables de `.env.local` dans **Settings → Environment Variables**, définir
 | `npm run db:types` | régénère les types TypeScript depuis la base |
 | `npm run db:reset` | (local uniquement) recrée la base locale + seed |
 | `npm run screenshots` | captures de référence Playwright (dev server lancé) |
+| `npm run vapid` | génère une paire de clés VAPID pour les push |
