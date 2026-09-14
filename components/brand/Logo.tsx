@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { Ecg } from "./Ecg";
-import { APP_NAME } from "@/lib/config";
+import { APP_NAME, APP_WORDMARK } from "@/lib/config";
 
 const LOGO_FILE = "logo-sdis62.png";
 // Évalué une fois au démarrage du serveur : le fichier est-il présent dans public/ ?
@@ -14,7 +14,7 @@ export function hasLogo() {
 
 /**
  * Logo SDIS 62 (public/logo-sdis62.png), toujours sur fond blanc, jamais
- * déformé ni recoloré. Si le fichier est absent, le mot-symbole « FLASH 62 »
+ * déformé ni recoloré. Si le fichier est absent, le mot-symbole « ATLAS 62 »
  * prend le relais. Composant serveur : aucun JS envoyé au client.
  */
 export function Logo({ height = 36, className }: { height?: number; className?: string }) {
@@ -39,7 +39,6 @@ export function Logo({ height = 36, className }: { height?: number; className?: 
 }
 
 export function Wordmark({ height = 36, className }: { height?: number; className?: string }) {
-  const [word, num] = APP_NAME.split(/\s+(?=\d)/);
   return (
     <span
       className={["inline-flex items-end gap-1 font-display uppercase leading-none", className]
@@ -48,8 +47,8 @@ export function Wordmark({ height = 36, className }: { height?: number; classNam
       style={{ fontSize: height * 0.75 }}
       aria-label={APP_NAME}
     >
-      <span className="font-bold text-navy">{word}</span>
-      <span className="font-extrabold text-red">{num}</span>
+      <span className="font-bold text-navy">{APP_WORDMARK.word}</span>
+      <span className="font-extrabold text-red">{APP_WORDMARK.accent}</span>
       <Ecg className="mb-1 h-[0.5em] w-[1.6em] text-red" strokeWidth={2.5} />
     </span>
   );

@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* -----------------------------------------------------------------------------
-   Tokens Flash 62 — identité SDIS 62
+   Tokens ATLAS — identité SDIS 62
    Valeurs provisoires : à ajuster avec `node scripts/extract-colors.mjs`
    une fois public/logo-sdis62.png déposé.
    Rouge = action (boutons, réactions actives, anneau de story non vue).

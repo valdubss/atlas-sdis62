@@ -1,4 +1,4 @@
-# Flash 62 — plateforme d'actualités interne du SDIS 62
+# ATLAS — plateforme d'actualités interne du SDIS 62
 
 Application web (PWA) de diffusion descendante : le service communication publie
 (posts, stories, articles, galeries, vidéos, sondages), les agents consultent et
@@ -54,7 +54,7 @@ L'application est disponible sur <http://localhost:3000>. Sans session, toute pa
 redirige vers `/login`.
 
 > **Logo** : déposez `logo-sdis62.png` dans `public/`. Tant qu'il est absent, un
-> mot-symbole « FLASH 62 » s'affiche à la place. Pour caler les couleurs sur le
+> mot-symbole « ATLAS 62 » s'affiche à la place. Pour caler les couleurs sur le
 > logo : `node scripts/extract-colors.mjs` (nécessite `sharp`, installé au lot c).
 
 ## 3. Créer le projet Supabase
@@ -108,7 +108,7 @@ une, jamais de modification d'une migration déjà appliquée.
 par exemple :
 
 ```html
-<h2>Connexion à Flash 62</h2>
+<h2>Connexion à ATLAS</h2>
 <p>Cliquez sur le lien ci-dessous pour vous connecter (valable 1 heure) :</p>
 <p><a href="{{ .ConfirmationURL }}">Me connecter</a></p>
 <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>
@@ -125,21 +125,41 @@ Le contrôle est fait à deux niveaux, gardez-les alignés :
 
 | Où | Valeur | Rôle |
 |---|---|---|
-| `.env.local` → `ALLOWED_EMAIL_DOMAINS=sdis62.fr` | liste séparée par des virgules | message immédiat sur la page de connexion |
-| base → `app_settings.allowed_email_domains` | `["sdis62.fr"]` | le trigger `handle_new_user` refuse la création de tout compte hors domaine, même via l'API |
+| `.env.local` → `ALLOWED_EMAIL_DOMAINS=sdis62.fr` | domaines, séparés par des virgules | message immédiat sur la page de connexion |
+| `.env.local` → `ALLOWED_EMAILS=…` | adresses individuelles hors domaine (ex. un administrateur externe) | idem |
+| base → `app_settings.allowed_email_domains` | `["sdis62.fr"]` | le trigger `handle_new_user` refuse la création de tout compte non autorisé, même via l'API |
+| base → `app_settings.allowed_emails` | `["prenom.nom@exemple.fr"]` | idem, pour les adresses individuelles |
 
-Pour ajouter un domaine en base :
+Une adresse individuelle autorisée n'ouvre **pas** son domaine : `contact@gmail.com`
+autorisé ne laisse entrer aucun autre compte `@gmail.com`.
+
+Pour modifier les listes en base :
 
 ```sql
 update public.app_settings
 set value = '["sdis62.fr", "autre-domaine.fr"]'
 where key = 'allowed_email_domains';
+
+update public.app_settings
+set value = '["contact.vdubois@gmail.com"]'
+where key = 'allowed_emails';
 ```
+
+### 3.5 Connexion par mot de passe (optionnelle)
+
+Le lien magique est le mode par défaut. Un utilisateur peut aussi **définir un mot
+de passe** depuis sa page Profil (10 caractères minimum) ; l'onglet « Mot de passe »
+de la page de connexion devient alors utilisable. Aucun réglage Supabase
+supplémentaire n'est nécessaire (le provider Email couvre les deux). Pour renforcer
+la sécurité : **Authentication → Providers → Email → Password requirements** et
+activer la détection des mots de passe compromis (offre Pro).
 
 ## 4. Créer le premier administrateur
 
 1. Connectez-vous une première fois avec votre adresse (lien magique) : le profil
-   est créé automatiquement avec le rôle `reader`.
+   est créé automatiquement avec le rôle `reader`. Si l'adresse est hors domaine,
+   ajoutez-la d'abord à `allowed_emails` (voir 3.4 ; `seed.sql` le fait pour
+   l'administrateur initial).
 2. Dans **SQL Editor** :
 
 ```sql
@@ -149,7 +169,8 @@ where email = 'prenom.nom@sdis62.fr';
 ```
 
 3. Déconnectez-vous puis reconnectez-vous : le bouton **Studio** apparaît dans
-   l'en-tête et sur la page Profil. Les administrateurs pourront ensuite changer
+   l'en-tête et sur la page Profil. Vous pouvez alors définir un mot de passe
+   depuis la page Profil pour les connexions suivantes. Les administrateurs pourront ensuite changer
    les rôles depuis le studio (lot e).
 
 ## 5. Vérifier que tout fonctionne

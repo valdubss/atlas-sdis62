@@ -2,7 +2,9 @@
  * Constantes produit. Le nom de l'app est modifiable ici (et dans app_settings
  * côté base pour les e-mails / notifications).
  */
-export const APP_NAME = "Flash 62";
+export const APP_NAME = "ATLAS";
+/** Mot-symbole : nom en marine + « 62 » en rouge comme élément graphique. */
+export const APP_WORDMARK = { word: "ATLAS", accent: "62" } as const;
 export const APP_TAGLINE = "L'actualité interne du SDIS 62";
 export const ORG_NAME = "SDIS 62";
 export const ORG_LONG_NAME =
@@ -16,6 +18,7 @@ export const LIMITS = {
   commentMaxLength: 1000,
   pinnedMax: 3,
   tagsMax: 10,
+  passwordMinLength: 10,
 } as const;
 
 export const REACTIONS = [

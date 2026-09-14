@@ -1,4 +1,4 @@
-# Flash 62 — Plan d'architecture
+# ATLAS — Plan d'architecture
 
 > Plateforme d'actualités interne du SDIS 62. Diffusion descendante : le service communication publie, les agents consultent et réagissent.
 > Statut : **proposition à valider avant tout code**. Version du 14/09/2026.
@@ -245,7 +245,7 @@ components/
               Cropper, AltTextField, PostForm, StoryForm, PhonePreview,
               StatsCards, TopPosts, ModerationTable, UserTable, RefTable
 lib/
-  config.ts             APP_NAME = "Flash 62", limites, set de réactions
+  config.ts             APP_NAME = "ATLAS", limites, set de réactions
   supabase/             client.ts, server.ts, middleware.ts, types.ts (généré)
   auth/                 domains.ts, providers.ts (extension SSO)
   s3/                   client.ts, keys.ts, presign.ts
