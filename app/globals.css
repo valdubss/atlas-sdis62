@@ -1,26 +1,129 @@
 @import "tailwindcss";
 
+/* -----------------------------------------------------------------------------
+   Tokens Flash 62 — identité SDIS 62
+   Valeurs provisoires : à ajuster avec `node scripts/extract-colors.mjs`
+   une fois public/logo-sdis62.png déposé.
+   Rouge = action (boutons, réactions actives, anneau de story non vue).
+   Marine = titres, navigation, textes forts. Aucune autre couleur hors
+   succès / erreur système.
+----------------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  color-scheme: light;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --red: #c8102e;
+  --red-hover: #a80d27;
+  --red-text: #b30e29; /* rouge lisible en texte sur fond clair (AA) */
+  --navy: #1b2d5c;
+  --navy-hover: #142347;
+
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --ink: #1b2d5c;      /* titres */
+  --body: #1f2937;     /* texte courant */
+  --muted: #5b6472;    /* texte secondaire (AA sur blanc : 5.6:1) */
+  --line: #e3e6ec;
+
+  --success: #1e7f4f;
+  --danger: #b42318;
+
+  --radius-card: 16px;
+  --shadow-soft: 0 1px 2px rgb(27 45 92 / 0.06), 0 8px 24px -12px rgb(27 45 92 / 0.18);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --red: #d5203c;
+    --red-hover: #e6394f;
+    --red-text: #ff6b7a;
+    --navy: #8ea4dc;   /* marine éclairci pour rester lisible sur fond sombre */
+    --navy-hover: #a9bbe8;
+    --bg: #0f1523;
+    --surface: #161d2e;
+    --surface-2: #1f2840;
+    --ink: #f3f4f6;
+    --body: #d7dbe3;
+    --muted: #9aa3b2;
+    --line: #2a3450;
+    --success: #4ade80;
+    --danger: #f87171;
+    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
   }
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --red: #d5203c;
+  --red-hover: #e6394f;
+  --red-text: #ff6b7a;
+  --navy: #8ea4dc;
+  --navy-hover: #a9bbe8;
+  --bg: #0f1523;
+  --surface: #161d2e;
+  --surface-2: #1f2840;
+  --ink: #f3f4f6;
+  --body: #d7dbe3;
+  --muted: #9aa3b2;
+  --line: #2a3450;
+  --success: #4ade80;
+  --danger: #f87171;
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+}
+
+@theme inline {
+  --color-red: var(--red);
+  --color-red-hover: var(--red-hover);
+  --color-red-text: var(--red-text);
+  --color-navy: var(--navy);
+  --color-navy-hover: var(--navy-hover);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-barlow), "Arial Narrow", Impact, sans-serif;
+
+  --radius-card: var(--radius-card);
+  --shadow-soft: var(--shadow-soft);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--body);
+  font-family: var(--font-sans);
+  min-height: 100dvh;
+}
+
+/* Focus visible uniforme (accessibilité) */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+
+/* Animation du tracé ECG (loader) */
+.ecg-animate {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: ecg-draw 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@keyframes ecg-draw {
+  0% { stroke-dashoffset: 1; opacity: 1; }
+  65% { stroke-dashoffset: 0; opacity: 1; }
+  85% { stroke-dashoffset: 0; opacity: 0; }
+  100% { stroke-dashoffset: 1; opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ecg-animate { animation: none; stroke-dashoffset: 0; }
 }
