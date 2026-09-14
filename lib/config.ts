@@ -1,0 +1,41 @@
+/**
+ * Constantes produit. Le nom de l'app est modifiable ici (et dans app_settings
+ * côté base pour les e-mails / notifications).
+ */
+export const APP_NAME = "Flash 62";
+export const APP_TAGLINE = "L'actualité interne du SDIS 62";
+export const ORG_NAME = "SDIS 62";
+export const ORG_LONG_NAME =
+  "Service Départemental d'Incendie et de Secours du Pas-de-Calais";
+
+export const LIMITS = {
+  imagesPerPost: 20,
+  videoMaxBytes: 200 * 1024 * 1024,
+  imageMaxBytes: 30 * 1024 * 1024,
+  storyVideoMaxSeconds: 30,
+  commentMaxLength: 1000,
+  pinnedMax: 3,
+  tagsMax: 10,
+} as const;
+
+export const REACTIONS = [
+  { kind: "clap", emoji: "👏", label: "Bravo" },
+  { kind: "fire", emoji: "🔥", label: "Au top" },
+  { kind: "heart", emoji: "❤️", label: "J'adore" },
+  { kind: "muscle", emoji: "💪", label: "Courage" },
+] as const;
+
+export type ReactionKind = (typeof REACTIONS)[number]["kind"];
+
+export const NAV_ITEMS = [
+  { href: "/", label: "Fil", icon: "feed" },
+  { href: "/galerie", label: "Galerie", icon: "gallery" },
+  { href: "/favoris", label: "Favoris", icon: "bookmark" },
+  { href: "/profil", label: "Profil", icon: "user" },
+] as const;
+
+export const ROLE_LABELS = {
+  admin: "Administrateur",
+  editor: "Éditeur",
+  reader: "Agent",
+} as const;
