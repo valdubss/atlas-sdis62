@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { LIMITS } from "@/lib/config";
+import { fromLocalInput } from "@/lib/time";
 
 const optionalText = (max: number) =>
   z
@@ -113,14 +114,14 @@ export const postSchema = z
       if (v.poll_options.length < 2) ctx.addIssue({ code: "custom", path: ["poll_options"], message: "Au moins deux options." });
       if (new Set(v.poll_options.map((o) => o.toLowerCase())).size !== v.poll_options.length) ctx.addIssue({ code: "custom", path: ["poll_options"], message: "Deux options sont identiques." });
       if (v.media.length > 0) ctx.addIssue({ code: "custom", path: ["media"], message: "Un sondage ne contient pas de média." });
-      if (v.poll_closes_at && Number.isNaN(new Date(v.poll_closes_at).getTime())) ctx.addIssue({ code: "custom", path: ["poll_closes_at"], message: "Date de clôture invalide." });
+      if (v.poll_closes_at && !fromLocalInput(v.poll_closes_at)) ctx.addIssue({ code: "custom", path: ["poll_closes_at"], message: "Date de clôture invalide." });
     }
     if (v.type === "text" && v.media.length > 0) {
       ctx.addIssue({ code: "custom", path: ["media"], message: "Une annonce ne contient pas de média : choisissez Photos ou Vidéo." });
     }
     if (v.action === "schedule") {
-      const d = v.scheduled_at ? new Date(v.scheduled_at) : null;
-      if (!d || Number.isNaN(d.getTime())) {
+      const d = fromLocalInput(v.scheduled_at);
+      if (!d) {
         ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "Date de publication invalide." });
       } else if (d.getTime() < Date.now() + 60_000) {
         ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "La date doit être dans le futur." });

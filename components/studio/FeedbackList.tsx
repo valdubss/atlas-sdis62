@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { setFeedbackStatus } from "@/app/(app)/profil/signaler/actions";
@@ -38,6 +39,7 @@ function shortUa(ua = "") {
 }
 
 export function FeedbackList({ rows, statut }: { rows: FeedbackRow[]; statut: string }) {
+  const router = useRouter();
   const [pending, start] = useTransition();
   const [open, setOpen] = useState<FeedbackRow | null>(null);
   const toast = useToast();
@@ -46,7 +48,7 @@ export function FeedbackList({ rows, statut }: { rows: FeedbackRow[]; statut: st
     start(async () => {
       const r = await setFeedbackStatus(row.id, status);
       toast(r.ok ? `Marqué « ${FEEDBACK_STATUS[status]} »` : r.error);
-      if (r.ok) window.location.reload();
+      if (r.ok) router.refresh();
     });
   }
 

@@ -37,12 +37,18 @@ export function Comments({
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const toast = useToast();
+  // Le rappel du parent change à chaque rendu : on le garde dans une référence
+  // pour ne pas réabonner le canal temps réel en boucle.
+  const countRef = useRef(onCountChange);
+  useEffect(() => {
+    countRef.current = onCountChange;
+  }, [onCountChange]);
 
   const reload = useCallback(async () => {
     const list = await fetchComments(postId);
     setItems(list);
-    onCountChange?.(list.filter((c) => c.status === "visible").length);
-  }, [postId, onCountChange]);
+    countRef.current?.(list.filter((c) => c.status === "visible").length);
+  }, [postId]);
 
   useEffect(() => {
     reload();

@@ -19,6 +19,7 @@ export const reportSchema = z.object({
 /** Traduit les erreurs Postgres levées par les triggers en message lisible. */
 export function friendlyDbError(message: string | undefined): string {
   if (!message) return "Une erreur est survenue.";
+  if (typeof window === "undefined") console.error("[db]", message);
   if (message.includes("LIMITE_ATTEINTE")) return "Doucement ! Réessayez dans quelques minutes.";
   if (message.includes("COMMENTAIRES_DESACTIVES")) return "Les commentaires sont désactivés sur cette publication.";
   if (message.includes("UN_SEUL_NIVEAU")) return "Impossible de répondre à une réponse.";

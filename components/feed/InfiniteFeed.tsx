@@ -18,19 +18,23 @@ const PAGE = 10;
  */
 export function InfiniteFeed({
   initial,
+  hasMore,
   params,
   canModerate,
   emptyTitle = "Aucune publication",
   emptyDescription,
 }: {
   initial: FeedPost[];
+  /** La page serveur était-elle pleine ? (les épinglés sont retirés de `initial`) */
+  hasMore?: boolean;
   params: FeedParams;
   canModerate: boolean;
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
+  const more = hasMore ?? initial.length >= PAGE;
   const [posts, setPosts] = useState(initial);
-  const [done, setDone] = useState(initial.length < PAGE);
+  const [done, setDone] = useState(!more);
   const [pending, startTransition] = useTransition();
   const sentinel = useRef<HTMLDivElement>(null);
   const firstIds = useRef(new Set(initial.map((p) => p.id)));
@@ -39,9 +43,9 @@ export function InfiniteFeed({
 
   useEffect(() => {
     setPosts(initial);
-    setDone(initial.length < PAGE);
+    setDone(!more);
     firstIds.current = new Set(initial.map((p) => p.id));
-  }, [initial, key]);
+  }, [initial, key, more]);
 
   useEffect(() => {
     const el = sentinel.current;

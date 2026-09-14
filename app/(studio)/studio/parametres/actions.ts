@@ -31,6 +31,13 @@ export async function setAppSetting(key: "auth_password_enabled" | "auth_magic_l
   const ctx = await requireAdmin();
   if (!ctx) return { ok: false, error: "Réservé aux administrateurs." };
   if (key === "feedback_email" && typeof value === "string" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return { ok: false, error: "Adresse e-mail invalide." };
+  if ((key === "auth_password_enabled" || key === "auth_magic_link_enabled") && value === false) {
+    // Jamais zéro moyen de connexion : l'autre méthode ou le SSO doit rester actif
+    const other = key === "auth_password_enabled" ? "auth_magic_link_enabled" : "auth_password_enabled";
+    const { data } = await ctx.supabase.from("app_settings").select("value").eq("key", other).maybeSingle();
+    const otherEnabled = data?.value !== false;
+    if (!otherEnabled && process.env.AUTH_OIDC_PROVIDER !== "azure") return { ok: false, error: "Impossible : plus aucun moyen de connexion ne resterait actif." };
+  }
   const { error } = await ctx.supabase.from("app_settings").upsert({ key, value, updated_by: ctx.user.id });
   if (error) return { ok: false, error: "Enregistrement impossible." };
   revalidatePath("/studio/parametres");

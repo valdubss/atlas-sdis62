@@ -1,4 +1,7 @@
 import { redirect } from "next/navigation";
+
+/** Traitement des images (sharp) et envois : au-delà des 10 s par défaut. */
+export const maxDuration = 60;
 import { Logo } from "@/components/brand/Logo";
 import { ROLE_LABELS } from "@/lib/config";
 import { getCurrentUser, isEditorRole } from "@/lib/supabase/server";

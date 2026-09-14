@@ -85,6 +85,14 @@ export function StoryViewer({
     [gi, groups.length, onClose],
   );
 
+  // Groupe sans story lisible (expirée entre-temps, erreur) : on passe au suivant
+  useEffect(() => {
+    if (list && list.length === 0) {
+      const t = setTimeout(() => goGroup(1), 0);
+      return () => clearTimeout(t);
+    }
+  }, [list, goGroup]);
+
   const next = useCallback(() => {
     if (!list) return;
     if (si + 1 < list.length) {

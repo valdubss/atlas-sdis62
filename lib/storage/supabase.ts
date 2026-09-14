@@ -43,7 +43,7 @@ export const supabaseStorage: StorageDriver = {
   async putObject(key, body, mime) {
     const res = await fetch(`${base()}/object/${BUCKET}/${key}`, {
       method: "POST",
-      headers: { ...authHeaders(), "Content-Type": mime, "x-upsert": "true", "cache-control": "31536000" },
+      headers: { ...authHeaders(), "Content-Type": mime, "x-upsert": "true", "cache-control": "max-age=31536000, immutable" },
       body: new Uint8Array(body),
     });
     if (!res.ok) throw new Error(`Écriture impossible (${res.status}) : ${key} — ${await res.text()}`);
@@ -51,11 +51,12 @@ export const supabaseStorage: StorageDriver = {
 
   async deleteObjects(keys) {
     if (keys.length === 0) return;
-    await fetch(`${base()}/object/${BUCKET}`, {
+    const res = await fetch(`${base()}/object/${BUCKET}`, {
       method: "DELETE",
       headers: { ...authHeaders(), "Content-Type": "application/json" },
       body: JSON.stringify({ prefixes: keys }),
     });
+    if (!res.ok && res.status !== 404) throw new Error(`Suppression impossible (${res.status})`);
   },
 
   publicUrl(key) {

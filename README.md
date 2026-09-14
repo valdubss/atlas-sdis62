@@ -64,7 +64,7 @@ redirige vers `/login`.
 
 ### 3.1 Projet et clés
 
-1. Sur <https://supabase.com/dashboard>, **New project** : nom `flash62`, région
+1. Sur <https://supabase.com/dashboard>, **New project** : nom `atlas`, région
    **West EU (Paris)** ou Francfort (hébergement UE), mot de passe base fort (à
    conserver dans un gestionnaire de mots de passe).
 2. **Project Settings → API** : copiez dans `.env.local`
@@ -92,6 +92,7 @@ redirige vers `/login`.
 | `0007_sso_feedback_onboarding.sql` | réglages de connexion, profil SSO prérempli, accueil de première connexion, table `feedback`, images des agents |
 | `0008_fix_enqueue_kind.sql` | correctif : cast explicite vers `notification_kind` dans le trigger de mise en ligne (publication bloquée depuis 0006) |
 | `0009_queue_stats.sql` | colonne `stats` sur la file de notifications (résumé d'envoi) et statistiques enrichies pour Studio → Paramètres |
+| `0010_consolidation.sql` | audit de consolidation : comptages de sondage indépendants de la RLS, index manquants, 30 photos par publication, statut `processing` de la file, purge des médias orphelins, galerie sans doublon, garde-fous épinglage/commentaires/audit, `media.owner_id` nullable |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -258,7 +259,7 @@ Points clés :
   revérifie en base.
 - Un `reader` ne peut jamais modifier `role`, `is_active` ni `email` (trigger
   `profiles_guard`).
-- Règles métier en triggers : 3 posts épinglés max, 20 images par post, un seul
+- Règles métier en triggers : 3 posts épinglés max, 30 images par post, un seul
   niveau de réponse aux commentaires, story vidéo ≤ 30 s, rate limiting
   (10 commentaires / 5 min, 60 réactions / min, 5 signalements / h).
 - `audit_log` est alimenté automatiquement (publications, stories, modération,
@@ -320,7 +321,7 @@ docs/ARCHITECTURE.md       plan d'architecture
 
 ```sql
 select cron.schedule('atlas-dispatch', '*/5 * * * *', $$
-  select net.http_get(url := 'https://<votre-domaine>/api/cron/dispatch?secret=<CRON_SECRET>')
+  select net.http_get(url := 'https://<votre-domaine>/api/cron/dispatch', headers := '{"Authorization": "Bearer <CRON_SECRET>"}'::jsonb)
 $$);
 ```
 

@@ -19,10 +19,14 @@ export const FEATURES = {
   authorChoice: true, // choix « Service Communication » / nom de l'éditeur
 } as const;
 
+/** Taille maximale acceptée par l'espace de stockage (Supabase gratuit : 50 Mo). */
+const UPLOAD_MAX_MB = Number(process.env.NEXT_PUBLIC_UPLOAD_MAX_MB ?? 50);
+
 export const LIMITS = {
-  imagesPerPost: 20,
-  videoMaxBytes: 200 * 1024 * 1024,
-  imageMaxBytes: 30 * 1024 * 1024,
+  imagesPerPost: 30,
+  uploadMaxBytes: UPLOAD_MAX_MB * 1024 * 1024,
+  videoMaxBytes: UPLOAD_MAX_MB * 1024 * 1024,
+  imageMaxBytes: Math.min(30, UPLOAD_MAX_MB) * 1024 * 1024,
   storyVideoMaxSeconds: 30,
   commentMaxLength: 1000,
   pinnedMax: 3,

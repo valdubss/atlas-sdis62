@@ -44,6 +44,7 @@ export function PostCard({
   const [expanded, setExpanded] = useState(variant === "full");
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [, startTransition] = useTransition();
+  const setCommentCount = useCallback((n: number) => setPost((p) => (p.comment_count === n ? p : { ...p, comment_count: n })), []);
   const toast = useToast();
 
   const shown = preview ? initial : post;
@@ -273,7 +274,7 @@ export function PostCard({
             postId={shown.id}
             enabled={shown.comments_enabled}
             canModerate={canModerate}
-            onCountChange={(n) => setPost((p) => ({ ...p, comment_count: n }))}
+            onCountChange={setCommentCount}
           />
         </section>
       )}
@@ -291,7 +292,7 @@ export function PostCard({
             enabled={shown.comments_enabled}
             canModerate={canModerate}
             layout="sheet"
-            onCountChange={(n) => setPost((p) => ({ ...p, comment_count: n }))}
+            onCountChange={setCommentCount}
           />
         </Sheet>
       )}

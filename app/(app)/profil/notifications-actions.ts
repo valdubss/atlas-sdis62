@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -21,6 +22,13 @@ export async function savePushSubscription(input: unknown, userAgent: string | n
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Session expirée." };
 
+  // Un appareil partagé change de main : l'abonnement (lié à l'appareil) suit le
+  // compte connecté. La ligne précédente, peut-être d'un autre agent, est retirée.
+  try {
+    await createAdminClient().from("push_subscriptions").delete().eq("endpoint", parsed.data.endpoint).neq("user_id", user.id);
+  } catch {
+    /* sans clé service_role : l'upsert ci-dessous échouera proprement */
+  }
   const { error } = await supabase.from("push_subscriptions").upsert(
     { user_id: user.id, endpoint: parsed.data.endpoint, p256dh: parsed.data.keys.p256dh, auth: parsed.data.keys.auth, user_agent: userAgent?.slice(0, 300) ?? null },
     { onConflict: "endpoint" },

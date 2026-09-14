@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { fetchCategories, fetchCenters, fetchFeed, fetchPinned, fetchStoryBar } from "@/lib/feed/queries";
+import { FEED_PAGE_SIZE, fetchCategories, fetchCenters, fetchFeed, fetchPinned, fetchStoryBar } from "@/lib/feed/queries";
 import { getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { FEATURES } from "@/lib/config";
 import { FeedHeader } from "@/components/feed/FeedHeader";
@@ -57,6 +57,7 @@ export default async function FeedPage({
 
           <InfiniteFeed
             initial={posts.filter((p) => !pinnedIds.has(p.id))}
+            hasMore={posts.length >= FEED_PAGE_SIZE}
             params={params}
             canModerate={canModerate}
             emptyTitle={filtered ? "Aucun résultat" : "Aucune actualité pour le moment"}

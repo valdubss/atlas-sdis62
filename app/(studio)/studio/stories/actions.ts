@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { storySchema } from "@/lib/validation/story";
 import { friendlyDbError } from "@/lib/validation/comment";
+import { fromLocalInput } from "@/lib/time";
 
 export type StoryFormState = { status: "idle" } | { status: "error"; message: string; fields?: Record<string, string> };
 type Result = { ok: true } | { ok: false; error: string };
@@ -59,7 +60,7 @@ export async function saveStory(_prev: StoryFormState, formData: FormData): Prom
   // Série : existante ou créée à la volée
   let seriesId = v.series_id;
   if (!seriesId && v.series_title) {
-    const { data: existing } = await supabase.from("story_series").select("id").ilike("title", v.series_title).maybeSingle();
+    const { data: existing } = await supabase.from("story_series").select("id").ilike("title", v.series_title.replace(/[%_\\]/g, "\\$&")).maybeSingle();
     if (existing) seriesId = existing.id;
     else {
       const { data: created, error } = await supabase.from("story_series").insert({ title: v.series_title, created_by: user.id }).select("id").single();
@@ -76,8 +77,14 @@ export async function saveStory(_prev: StoryFormState, formData: FormData): Prom
   }
 
   const status: "published" | "scheduled" | "draft" = v.action === "publish" ? "published" : v.action === "schedule" ? "scheduled" : "draft";
-  const scheduledAt = status === "scheduled" ? new Date(v.scheduled_at!) : null;
-  const base = status === "published" ? new Date() : scheduledAt;
+  const scheduledAt = status === "scheduled" ? fromLocalInput(v.scheduled_at) : null;
+  // Une story déjà en ligne garde sa date de mise en ligne : modifier son texte
+  // ne prolonge pas sa durée de vie.
+  let base = status === "published" ? new Date() : scheduledAt;
+  if (v.id && status === "published") {
+    const { data: prev } = await supabase.from("stories").select("published_at, status").eq("id", v.id).maybeSingle();
+    if (prev?.status === "published" && prev.published_at) base = new Date(prev.published_at);
+  }
   const expiresAt = base ? new Date(base.getTime() + v.expires_hours * 3600_000).toISOString() : null;
 
   const row = {

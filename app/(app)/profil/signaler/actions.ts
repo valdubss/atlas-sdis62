@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -77,5 +78,6 @@ export async function setFeedbackStatus(id: string, status: "new" | "seen" | "do
     .update({ status, handled_by: status === "new" ? null : user.id, handled_at: status === "new" ? null : new Date().toISOString() })
     .eq("id", id);
   if (error) return { ok: false, error: friendlyDbError(error.message) };
+  revalidatePath("/studio/retours");
   return { ok: true };
 }

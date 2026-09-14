@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { FeedCursor, FeedParams, FeedPost, GalleryItem, StoryBar, StoryItem } from "./types";
 
@@ -38,12 +39,13 @@ export async function fetchPinned(): Promise<FeedPost[]> {
   return (data ?? []) as unknown as FeedPost[];
 }
 
-export async function fetchPostBySlug(slug: string): Promise<FeedPost | null> {
+/** Mémoïsé par requête : generateMetadata et la page partagent le même appel. */
+export const fetchPostBySlug = cache(async (slug: string): Promise<FeedPost | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_post", { p_slug: slug });
   if (error || !data) return null;
   return data as unknown as FeedPost;
-}
+});
 
 export async function fetchPostById(id: string): Promise<FeedPost | null> {
   const supabase = await createClient();
@@ -89,7 +91,7 @@ export async function fetchStoryById(id: string): Promise<StoryItem | null> {
 
 export async function fetchGallery(limit = 30): Promise<GalleryItem[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_gallery", { p_limit: limit, p_cursor_at: null, p_cursor_id: null });
+  const { data, error } = await supabase.rpc("get_gallery", { p_limit: limit, p_cursor_at: null, p_cursor_id: null, p_cursor_pos: null });
   if (error) return [];
   return (data ?? []) as unknown as GalleryItem[];
 }

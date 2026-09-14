@@ -14,13 +14,26 @@ type QueueRow = { id: number; kind: string; payload: PushPayload & { post_id?: s
  */
 export async function dispatchNotifications(limit = 20): Promise<{ processed: number; sent: number; removed: number }> {
   const admin = createAdminClient();
-  const { data: queue } = await admin
+  const { data: candidates } = await admin
     .from("notification_queue")
-    .select("id, kind, payload, attempts")
+    .select("id")
     .eq("status", "pending")
     .in("kind", ["push_pinned", "push_category", "email_feedback"])
     .order("created_at")
     .limit(limit);
+  if (!candidates || candidates.length === 0) return { processed: 0, sent: 0, removed: 0 };
+
+  // Réservation : deux distributeurs concurrents (after() + cron) ne traitent
+  // jamais la même entrée.
+  const { data: queue } = await admin
+    .from("notification_queue")
+    .update({ status: "processing" })
+    .eq("status", "pending")
+    .in(
+      "id",
+      candidates.map((c) => c.id),
+    )
+    .select("id, kind, payload, attempts");
 
   let sent = 0;
   let removed = 0;
@@ -58,26 +71,36 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
     let ok = 0;
     let failed = 0;
     let lastError: string | null = null;
-    await Promise.all(
-      targets.map(async (s) => {
-        const r = await sendPush(s, payload);
-        if (r.status === "sent") ok++;
-        else if (r.status === "gone") gone.push(s.id);
-        else {
-          failed++;
-          lastError = r.message;
-        }
-      }),
-    );
+    // Envois par lots de 50 : pas de rafale de milliers de connexions simultanées
+    for (let i = 0; i < targets.length; i += 50) {
+      await Promise.all(
+        targets.slice(i, i + 50).map(async (s) => {
+          const r = await sendPush(s, payload);
+          if (r.status === "sent") ok++;
+          else if (r.status === "gone") gone.push(s.id);
+          else {
+            failed++;
+            lastError = r.message;
+          }
+        }),
+      );
+    }
     if (gone.length) {
       await admin.from("push_subscriptions").delete().in("id", gone);
       removed += gone.length;
     }
     sent += ok;
     const summary = `${ok}/${targets.length} envoyés` + (gone.length ? `, ${gone.length} expirés` : "") + (failed ? `, ${failed} en erreur (${lastError})` : "");
+    const allFailed = targets.length > 0 && ok === 0 && failed > 0;
     await admin
       .from("notification_queue")
-      .update({ status: "sent", sent_at: new Date().toISOString(), attempts: item.attempts + 1, error: failed ? summary : null, stats: summary })
+      .update({
+        status: allFailed ? (item.attempts + 1 >= 3 ? "failed" : "pending") : "sent",
+        sent_at: allFailed ? null : new Date().toISOString(),
+        attempts: item.attempts + 1,
+        error: failed ? summary : null,
+        stats: summary,
+      })
       .eq("id", item.id);
   }
   return { processed: (queue ?? []).length, sent, removed };
@@ -103,4 +126,33 @@ async function sendFeedbackEmail(admin: ReturnType<typeof createAdminClient>, fe
   const text = `Nouveau signalement ATLAS\n\n${f.description}\n\n${lines.join("\n")}\n\n${f.screenshot_key ? "Capture : " + mediaUrl(f.screenshot_key) + "\n" : ""}Traiter : ${site}/studio/retours`;
   const html = `<div style="font-family:Inter,-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1c1c21"><p style="font-size:13px;color:#6e6e73;margin:0 0 6px">ATLAS · ${esc(cat)}</p><p style="font-size:16px;white-space:pre-line;margin:0 0 16px">${esc(f.description)}</p><p style="font-size:13px;color:#6e6e73;margin:0 0 16px">${lines.map(esc).join("<br>")}</p>${f.screenshot_key ? `<p><a href="${mediaUrl(f.screenshot_key)}">Voir la capture d'écran</a></p>` : ""}<p><a href="${site}/studio/retours" style="color:#d71f36;font-weight:600">Traiter dans le studio</a></p></div>`;
   return sendMail({ to, subject: `[ATLAS] ${cat} signalé par ${f.author ? f.author.first_name + " " + f.author.last_name : "un agent"}`, html, text });
+}
+
+/**
+ * Entretien quotidien (cron) : entrées bloquées en « processing » remises en
+ * attente, purge des compteurs de limitation, de la file traitée et des médias
+ * orphelins (lignes supprimées en base, fichiers effacés du stockage).
+ */
+export async function runMaintenance(): Promise<{ requeued: number; orphanMedia: number }> {
+  const admin = createAdminClient();
+  const stale = new Date(Date.now() - 10 * 60_000).toISOString();
+  const { data: requeued } = await admin
+    .from("notification_queue")
+    .update({ status: "pending" })
+    .eq("status", "processing")
+    .lt("created_at", stale)
+    .select("id");
+  await admin.rpc("purge_rate_limit_events");
+  await admin.rpc("purge_notification_queue");
+  const { data: orphans } = await admin.rpc("purge_orphan_media");
+  const keys = ((orphans ?? []) as { id: string; keys: string[] }[]).flatMap((o) => o.keys ?? []);
+  if (keys.length > 0) {
+    const { getStorage } = await import("@/lib/storage");
+    for (let i = 0; i < keys.length; i += 100) {
+      await getStorage()
+        .deleteObjects(keys.slice(i, i + 100))
+        .catch((e) => console.error("purge médias", e));
+    }
+  }
+  return { requeued: requeued?.length ?? 0, orphanMedia: (orphans ?? []).length };
 }

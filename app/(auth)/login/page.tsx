@@ -12,6 +12,7 @@ export const metadata: Metadata = { title: "Connexion" };
 const ERRORS: Record<string, string> = {
   desactive: "Votre compte a été désactivé. Contactez le service communication.",
   lien: "Ce lien de connexion est invalide ou a expiré. Demandez-en un nouveau.",
+  domaine: "Cette adresse e-mail n'est pas autorisée sur ATLAS. Utilisez votre adresse professionnelle.",
   profil: "Votre compte n'a pas de profil valide. Reconnectez-vous ; si le problème persiste, contactez l'administrateur.",
   sso: "La connexion Microsoft a échoué. Réessayez, ou utilisez votre adresse e-mail.",
   mode: "Ce mode de connexion est désactivé.",

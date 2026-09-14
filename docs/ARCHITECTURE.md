@@ -131,7 +131,7 @@ Exploitation
 | `publish_scheduled()` | Passe `scheduled → published` les posts/stories dont l'heure est atteinte et enfile les notifications. Appelée par pg_cron chaque minute. |
 | `expire_stories()` | `published → expired`. pg_cron chaque minute. |
 | `studio_stats(p_from, p_to)` | Vues, réactions, commentaires par post, top 5 de la semaine. Éditeurs. |
-| `export_user_data(p_user_id)` / `delete_user_account(p_user_id)` | RGPD : export JSON complet, puis anonymisation des commentaires et suppression du compte auth (voir Q7). Admin. |
+| `export_user_data(p_user_id)` / `anonymize_user_data(p_user_id)` | RGPD : export JSON complet, puis anonymisation des commentaires et suppression du compte auth (voir Q7). Admin. |
 | Vue `gallery_images` | Toutes les images des posts publiés (photo, article, cover), filtrable par catégorie / centre / période. |
 
 ### 2.4 Politiques RLS (résumé)
@@ -170,8 +170,8 @@ avatars/{userId}.webp              256 px
 - Lecture publique via `S3_PUBLIC_URL` (CDN Scaleway Edge ou domaine R2). Les URLs sont non devinables (UUID) ; le contenu n'est pas confidentiel mais l'accès à l'app, si.
 - Flux d'upload : `POST /api/media/presign` (éditeur, Zod : type MIME, taille) → crée la ligne `media` (statut `uploading`) et renvoie une URL PUT présignée (validité 15 min, `Content-Type` et `Content-Length` contraints) → le navigateur PUT directement → `POST /api/media/{id}/process` → le serveur lit l'original depuis S3, génère les 3 variantes WebP avec `sharp` (orientation EXIF corrigée, métadonnées retirées), les envoie sur S3, met `status = ready`.
 - **HEIC** : `sharp` sur Vercel ne décode pas HEIC. Conversion **côté navigateur** en JPEG avant upload (`heic2any`, WASM), transparente pour l'éditeur.
-- **Vidéo** : vérification H.264 côté navigateur en lisant l'atome `moov` (`mp4box.js`) : `avc1` accepté, `hvc1`/`hev1`/autres rejetés avec message. MOV re-conteneurisé côté client si H.264/AAC, sinon rejeté. Limite 200 Mo appliquée au presign.
-- Limites : 20 images/post, formats `jpg png webp heic mp4 mov`.
+- **Vidéo** : vérification H.264 côté navigateur en lisant l'atome `moov` (`mp4box.js`) : `avc1` accepté, `hvc1`/`hev1`/autres rejetés avec message. MOV re-conteneurisé côté client si H.264/AAC, sinon rejeté. Limite `NEXT_PUBLIC_UPLOAD_MAX_MB` (50 Mo par défaut, plafond de Supabase Storage gratuit) appliquée au presign et au message 413.
+- Limites : 30 images/post, formats `jpg png webp heic mp4 mov`.
 - Politique CORS du bucket documentée dans le README (PUT depuis le domaine de l'app uniquement).
 
 ---
@@ -289,7 +289,7 @@ tests/unit/ (Vitest), tests/e2e/ (Playwright)
 - Zod sur chaque Server Action et route handler ; réponses d'erreur normalisées.
 - Rate limiting en base (voir 2.4) + limite 10 req/min sur `/api/media/presign` par utilisateur.
 - `audit_log` par triggers, non modifiable (pas de politique UPDATE/DELETE).
-- Export / suppression de compte en un clic (admin) via `export_user_data` / `delete_user_account`.
+- Export / suppression de compte en un clic (admin) via `export_user_data` / `anonymize_user_data`.
 - En-têtes de sécurité (CSP restreinte à `self` + `S3_PUBLIC_URL` + Supabase), cookies `HttpOnly`, `SameSite=Lax`.
 - `.env.example` documenté ; aucune clé côté client hormis `NEXT_PUBLIC_SUPABASE_URL` / `ANON_KEY` / `NEXT_PUBLIC_S3_PUBLIC_URL` / `NEXT_PUBLIC_VAPID_PUBLIC_KEY`.
 

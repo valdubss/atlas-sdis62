@@ -75,7 +75,7 @@ export function LoginForm({ next, domains, auth }: { next: string; domains: stri
 
       {!auth.ssoForced && mode === "link" && auth.magicLinkEnabled && (
         <form action={linkAction} className="space-y-3" noValidate>
-          <input type="hidden" name="next" value="/bienvenue?mdp=1" />
+          <input type="hidden" name="next" value={next && next !== "/" ? next : "/bienvenue?mdp=1"} />
           <p className="text-[15px] text-text-2">Saisissez votre adresse : vous recevrez un lien pour créer votre mot de passe.</p>
           <input name="email" type="email" autoComplete="email" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail" required className={cn(input, error && "ring-red")} />
           {error && (

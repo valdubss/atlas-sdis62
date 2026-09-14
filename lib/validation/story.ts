@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { fromLocalInput } from "@/lib/time";
 
 const optionalUuid = z
   .string()
@@ -45,8 +46,8 @@ export const storySchema = z
       ctx.addIssue({ code: "custom", path: ["media"], message: "Ajoutez une photo ou une vidéo." });
     }
     if (v.action === "schedule") {
-      const d = v.scheduled_at ? new Date(v.scheduled_at) : null;
-      if (!d || Number.isNaN(d.getTime())) {
+      const d = fromLocalInput(v.scheduled_at);
+      if (!d) {
         ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "Date de publication invalide." });
       } else if (d.getTime() < Date.now() + 60_000) {
         ctx.addIssue({ code: "custom", path: ["scheduled_at"], message: "La date doit être dans le futur." });

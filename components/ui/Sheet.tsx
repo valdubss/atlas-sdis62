@@ -35,15 +35,41 @@ export function Sheet({
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const opener = document.activeElement as HTMLElement | null;
+    const focusable = () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>('[role="dialog"] a[href], [role="dialog"] button:not([disabled]), [role="dialog"] textarea, [role="dialog"] input, [role="dialog"] select, [role="dialog"] [tabindex]:not([tabindex="-1"])'),
+      );
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab") {
+        // Le focus reste dans la feuille (piège clavier)
+        const items = focusable();
+        if (items.length === 0) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
     document.addEventListener("keydown", onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     document.documentElement.setAttribute("data-sheet-open", "");
+    const t = setTimeout(() => {
+      if (!document.querySelector('[role="dialog"]')?.contains(document.activeElement)) focusable()[0]?.focus({ preventScroll: true });
+    }, 60);
     return () => {
+      clearTimeout(t);
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = prev;
       document.documentElement.removeAttribute("data-sheet-open");
+      opener?.focus?.({ preventScroll: true });
     };
   }, [open, onClose]);
 

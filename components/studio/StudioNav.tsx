@@ -13,7 +13,7 @@ const NAV = [
   { href: "/studio/retours", label: "Retours" },
   { href: "/studio/utilisateurs", label: "Utilisateurs" },
   { href: "/studio/parametres", label: "Paramètres" },
-  { href: "/studio/dev-ui", label: "Composants" },
+  ...(process.env.NODE_ENV === "production" ? [] : [{ href: "/studio/dev-ui", label: "Composants" }]),
 ];
 
 export function StudioNav({ compact = false }: { compact?: boolean }) {

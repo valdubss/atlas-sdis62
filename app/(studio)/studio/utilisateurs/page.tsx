@@ -30,8 +30,9 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     .order("created_at", { ascending: false })
     .limit(500);
   if (q.trim()) {
-    const term = `%${q.trim()}%`;
-    query = query.or(`email.ilike.${term},first_name.ilike.${term},last_name.ilike.${term}`);
+    // Les virgules et parenthèses structurent le filtre PostgREST : on les retire
+    const term = `%${q.trim().replace(/[,()"%_\\]/g, "")}%`;
+    query = query.or(`email.ilike."${term}",first_name.ilike."${term}",last_name.ilike."${term}"`);
   }
   const { data } = await query;
 

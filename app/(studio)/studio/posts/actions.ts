@@ -7,6 +7,7 @@ import { dispatchNotifications } from "@/lib/notifications/dispatch";
 import { createClient } from "@/lib/supabase/server";
 import { postSchema } from "@/lib/validation/post";
 import { friendlyDbError } from "@/lib/validation/comment";
+import { fromLocalInput } from "@/lib/time";
 
 export type PostFormState =
   | { status: "idle" }
@@ -92,7 +93,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     comments_enabled: v.comments_enabled,
     pinned_at,
     status,
-    scheduled_at: status === "scheduled" ? new Date(v.scheduled_at!).toISOString() : null,
+    scheduled_at: status === "scheduled" ? fromLocalInput(v.scheduled_at)!.toISOString() : null,
     // Article : la première image sert de couverture ; photo/vidéo : médias du carrousel.
     cover_media_id: v.type === "article" ? (v.media[0]?.id ?? null) : null,
     ...(status === "draft" ? { published_at: null } : {}),
@@ -115,7 +116,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
   // Sondage : question = titre ; options recréées tant qu'aucun vote n'existe
   if (v.type === "poll") {
     const { count: votes } = await supabase.from("poll_votes").select("poll_id", { count: "exact", head: true }).eq("poll_id", id);
-    const closes = v.poll_closes_at ? new Date(v.poll_closes_at).toISOString() : null;
+    const closes = fromLocalInput(v.poll_closes_at)?.toISOString() ?? null;
     const { error: pollError } = await supabase.from("polls").upsert({ post_id: id, question: v.title!, closes_at: closes });
     if (pollError) return { status: "error", message: friendlyDbError(pollError.message) };
     if ((votes ?? 0) === 0) {

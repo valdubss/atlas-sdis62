@@ -24,13 +24,18 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
   const fields = state.status === "error" ? state.fields ?? {} : {};
 
   const [seriesId, setSeriesId] = useState(story?.series_id ?? series[0]?.id ?? "");
-  const [newSeries, setNewSeries] = useState(seriesId === "" && !story ? "" : "");
+  const [newSeries, setNewSeries] = useState("");
   const [media, setMedia] = useState<EditorMedia[]>(story?.media ? [{ ...story.media, status: "ready", progress: 1 }] : []);
   const [text, setText] = useState(story?.overlay?.text ?? "");
   const [position, setPosition] = useState<"top" | "middle" | "bottom">(story?.overlay?.position ?? "bottom");
   const [linkPostId, setLinkPostId] = useState(story?.link_post?.id ?? "");
   const [seconds, setSeconds] = useState(story?.display_seconds ?? 7);
-  const [hours, setHours] = useState(48);
+  const [hours, setHours] = useState(() => {
+    const from = story?.published_at ?? story?.scheduled_at;
+    if (!story?.expires_at || !from) return 48;
+    const h = Math.round((new Date(story.expires_at).getTime() - new Date(from).getTime()) / 3600_000);
+    return [24, 48, 72, 168].reduce((best, opt) => (Math.abs(opt - h) < Math.abs(best - h) ? opt : best), 48);
+  });
   const [schedule, setSchedule] = useState(story?.status === "scheduled");
   const [scheduledAt, setScheduledAt] = useState(toDatetimeLocal(story?.scheduled_at));
 

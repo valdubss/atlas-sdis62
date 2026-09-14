@@ -1,7 +1,9 @@
 /* ATLAS — service worker
  * Cache de l'interface uniquement (jamais des médias) et notifications push.
  */
-const VERSION = "atlas-v1";
+// Version = paramètre ?v= de l'URL d'enregistrement (version de l'app) : chaque
+// déploiement installe un nouveau worker et purge l'ancien cache.
+const VERSION = "atlas-" + (new URL(self.location.href).searchParams.get("v") || "dev");
 const SHELL = ["/offline", "/icons/icon-192.png", "/icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -68,12 +70,18 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = new URL(event.notification.data?.url || "/", self.location.origin).href;
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-      for (const client of list) {
-        if ("focus" in client) {
-          client.navigate(url);
-          return client.focus();
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (list) => {
+      const own = list.find((c) => new URL(c.url).origin === self.location.origin);
+      if (own) {
+        const focused = "focus" in own ? await own.focus() : own;
+        if ("navigate" in focused) {
+          try {
+            await focused.navigate(url);
+          } catch {
+            return self.clients.openWindow(url);
+          }
         }
+        return focused;
       }
       return self.clients.openWindow(url);
     }),

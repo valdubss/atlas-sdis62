@@ -20,7 +20,7 @@ export async function makeImageVariants(original: Buffer) {
     const { data, info } = await base
       .clone()
       .resize({ width: VARIANT_WIDTHS[name], withoutEnlargement: true })
-      .webp({ quality: name === "thumb" ? 76 : 82, effort: 4 })
+      .webp({ quality: name === "thumb" ? 76 : 82, effort: 3 })
       .toBuffer({ resolveWithObject: true });
     out[name] = data;
     if (name === "full") {

@@ -1,11 +1,16 @@
+import { toLocalInput } from "./time";
+
 const rtf = new Intl.RelativeTimeFormat("fr", { numeric: "auto" });
-const dateShort = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
+const TZ = "Europe/Paris";
+const dateShort = new Intl.DateTimeFormat("fr-FR", { timeZone: TZ, day: "numeric", month: "short" });
 const dateLong = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: TZ,
   day: "numeric",
   month: "long",
   year: "numeric",
 });
 const dateTime = new Intl.DateTimeFormat("fr-FR", {
+  timeZone: TZ,
   day: "numeric",
   month: "short",
   hour: "2-digit",
@@ -38,13 +43,7 @@ export function formatDateLong(iso: string | null | undefined) {
 }
 
 /** Valeur pour <input type="datetime-local"> en heure locale. */
+/** Valeur pour <input type="datetime-local"> en heure de Paris (voir lib/time.ts). */
 export function toDatetimeLocal(iso: string | null | undefined) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-export function pluralize(n: number, singular: string, plural = singular + "s") {
-  return `${n} ${n > 1 ? plural : singular}`;
+  return toLocalInput(iso);
 }

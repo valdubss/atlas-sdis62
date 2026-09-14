@@ -3,7 +3,7 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 
 function safeNext(next: string | null): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/";
+  if (!next || !next.startsWith("/") || /^\/[\/\\]/.test(next)) return "/";
   return next;
 }
 
@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
   } else if (tokenHash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type });
     if (!error) return NextResponse.redirect(`${origin}${next}`);
+    if (/DOMAINE_NON_AUTORISE|Database error/i.test(error.message)) return NextResponse.redirect(`${origin}/login?erreur=domaine`);
   }
 
   return NextResponse.redirect(`${origin}/login?erreur=lien`);

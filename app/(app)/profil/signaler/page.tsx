@@ -3,6 +3,7 @@ import { BackBar } from "@/components/layout/BackBar";
 import { FeedbackForm } from "@/components/profile/FeedbackForm";
 
 export const metadata: Metadata = { title: "Signaler un problème" };
+export const maxDuration = 60;
 
 export default async function SignalerPage({ searchParams }: { searchParams: Promise<{ from?: string }> }) {
   const { from } = await searchParams;

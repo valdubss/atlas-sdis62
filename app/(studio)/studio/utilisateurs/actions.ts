@@ -38,6 +38,12 @@ export async function setUserActive(userId: string, active: boolean): Promise<Re
   if (user.id === userId && !active) return { ok: false, error: "Vous ne pouvez pas désactiver votre propre compte." };
   const { error: dbError } = await supabase.from("profiles").update({ is_active: active }).eq("id", userId);
   if (dbError) return { ok: false, error: friendlyDbError(dbError.message) };
+  // Un compte désactivé ne doit plus pouvoir rafraîchir sa session ni se reconnecter
+  try {
+    await createAdminClient().auth.admin.updateUserById(userId, { ban_duration: active ? "none" : "876000h" });
+  } catch (e) {
+    console.error("ban utilisateur", e);
+  }
   revalidatePath("/studio/utilisateurs");
   return { ok: true };
 }

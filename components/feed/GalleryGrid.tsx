@@ -33,7 +33,7 @@ export function GalleryGrid({ initial }: { initial: GalleryItem[] }) {
         if (!entries[0].isIntersecting || pending) return;
         start(async () => {
           const last = items[items.length - 1];
-          const more = await loadMoreGallery(last ? { at: last.post.published_at, id: last.post.id } : null);
+          const more = await loadMoreGallery(last ? { at: last.post.published_at, id: last.post.id, position: last.position } : null);
           setItems((p) => {
             const seen = new Set(p.map((x) => x.media.id));
             return [...p, ...more.filter((x) => !seen.has(x.media.id))];

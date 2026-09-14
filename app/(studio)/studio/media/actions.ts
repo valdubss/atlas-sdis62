@@ -40,10 +40,10 @@ export async function createUpload(input: unknown): Promise<CreateUploadResult> 
 
   if (v.kind === "image") {
     if (!(ACCEPTED_IMAGE_MIMES as readonly string[]).includes(v.mime)) return { ok: false, error: "Format d'image refusé." };
-    if (v.size > LIMITS.imageMaxBytes) return { ok: false, error: "Image trop lourde (30 Mo max)." };
+    if (v.size > LIMITS.imageMaxBytes) return { ok: false, error: `Image trop lourde (${Math.round(LIMITS.imageMaxBytes / 1048576)} Mo max).` };
   } else {
     if (v.mime !== "video/mp4") return { ok: false, error: "Seules les vidéos MP4 H.264 sont acceptées." };
-    if (v.size > LIMITS.videoMaxBytes) return { ok: false, error: "Vidéo trop lourde (200 Mo max)." };
+    if (v.size > LIMITS.videoMaxBytes) return { ok: false, error: `Vidéo trop lourde (${Math.round(LIMITS.videoMaxBytes / 1048576)} Mo max).` };
   }
 
   const supabase = await createClient();
@@ -96,8 +96,18 @@ export async function finalizeMedia(mediaId: string): Promise<{ ok: true; media:
   if (!parsed.success) return { ok: false, error: "Identifiant invalide." };
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Session expirée." };
   const { data: row } = await supabase.from("media").select("*").eq("id", mediaId).maybeSingle();
   if (!row) return { ok: false, error: "Média introuvable." };
+  if (row.owner_id !== user.id) {
+    const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (me?.role !== "editor" && me?.role !== "admin") return { ok: false, error: "Action non autorisée." };
+  }
+  if (row.status === "ready") return { ok: true, media: toItem(row) };
+  if (row.status !== "uploading" && row.status !== "failed" && row.status !== "processing") return { ok: false, error: "Média déjà traité." };
 
   const storage = getStorage();
   try {
@@ -115,22 +125,26 @@ export async function finalizeMedia(mediaId: string): Promise<{ ok: true; media:
         storage.putObject(keys.medium, variants.medium, "image/webp"),
         storage.putObject(keys.full, variants.full, "image/webp"),
       ]);
-      const { data } = await supabase
+      const { data, error: updateError } = await supabase
         .from("media")
         .update({ status: "ready", variants: keys, width, height, error: null })
         .eq("id", mediaId)
         .select("*")
         .single();
-      return { ok: true, media: toItem(data ?? { ...row, status: "ready", variants: keys, width, height }) };
+      if (updateError || !data) throw new Error(updateError?.message ?? "mise à jour refusée");
+      // L'original (EXIF, GPS, poids) n'est plus servi : la variante « full » (2400 px) le remplace.
+      storage.deleteObjects([row.original_key]).catch(() => {});
+      return { ok: true, media: toItem(data) };
     }
 
-    const { data } = await supabase
+    const { data, error: updateError } = await supabase
       .from("media")
       .update({ status: "ready", error: null })
       .eq("id", mediaId)
       .select("*")
       .single();
-    return { ok: true, media: toItem(data ?? { ...row, status: "ready" }) };
+    if (updateError || !data) throw new Error(updateError?.message ?? "mise à jour refusée");
+    return { ok: true, media: toItem(data) };
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     await supabase.from("media").update({ status: "failed", error: message.slice(0, 500) }).eq("id", mediaId);
@@ -138,27 +152,43 @@ export async function finalizeMedia(mediaId: string): Promise<{ ok: true; media:
   }
 }
 
-/** Met à jour le texte alternatif d'un média (éditeur). */
-export async function updateMediaAlt(mediaId: string, alt: string) {
-  const supabase = await createClient();
-  await supabase.from("media").update({ alt: alt.slice(0, 300) }).eq("id", mediaId);
-}
-
-/** Supprime un média non rattaché à une publication (ménage après retrait dans l'éditeur). */
+/**
+ * Supprime un média retiré dans un éditeur, s'il n'est rattaché à rien
+ * (publication, couverture, story, série, à la une). Propriétaire ou éditeur
+ * uniquement ; la ligne est supprimée avant les fichiers (RLS = garde-fou).
+ */
 export async function discardMedia(mediaId: string) {
+  if (!z.uuid().safeParse(mediaId).success) return;
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
   const { data: row } = await supabase.from("media").select("*").eq("id", mediaId).maybeSingle();
   if (!row) return;
-  const { count } = await supabase.from("post_media").select("post_id", { count: "exact", head: true }).eq("media_id", mediaId);
-  if ((count ?? 0) > 0) return;
+  if (row.owner_id !== user.id) {
+    const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    if (me?.role !== "editor" && me?.role !== "admin") return;
+  }
+  const [pm, cover, story, series, highlight] = await Promise.all([
+    supabase.from("post_media").select("post_id", { count: "exact", head: true }).eq("media_id", mediaId),
+    supabase.from("posts").select("id", { count: "exact", head: true }).eq("cover_media_id", mediaId),
+    supabase.from("stories").select("id", { count: "exact", head: true }).eq("media_id", mediaId),
+    supabase.from("story_series").select("id", { count: "exact", head: true }).eq("cover_media_id", mediaId),
+    supabase.from("story_highlights").select("id", { count: "exact", head: true }).eq("cover_media_id", mediaId),
+  ]);
+  if ([pm, cover, story, series, highlight].some((r) => (r.count ?? 0) > 0)) return;
+
+  const { error } = await supabase.from("media").delete().eq("id", mediaId);
+  if (error) return;
   const variants = (row.variants ?? {}) as Record<string, string>;
-  const keys = [row.original_key, row.poster_key, ...Object.values(variants)].filter(Boolean) as string[];
+  const prefix = new RegExp(`^(originals|variants|posters|videos)/${mediaId}`);
+  const keys = [row.original_key, row.poster_key, ...Object.values(variants)].filter((k): k is string => typeof k === "string" && prefix.test(k));
   try {
     await getStorage().deleteObjects(keys);
   } catch {
-    /* le fichier orphelin sera nettoyé plus tard */
+    /* le fichier orphelin sera nettoyé par la purge quotidienne */
   }
-  await supabase.from("media").delete().eq("id", mediaId);
 }
 
 function toItem(row: Tables<"media">): MediaItem {

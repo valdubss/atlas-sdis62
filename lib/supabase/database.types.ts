@@ -147,6 +147,8 @@ type StoryRow = {
 
 type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
+type QueueStatus = "pending" | "processing" | "sent" | "failed";
+
 export type Database = {
   public: {
     Tables: {
@@ -211,9 +213,9 @@ export type Database = {
         Relationships: [];
       };
       notification_queue: {
-        Row: { id: number; kind: string; payload: Json; status: "pending" | "sent" | "failed"; attempts: number; created_at: Timestamp; sent_at: Timestamp | null; error: string | null; stats: string | null };
-        Insert: { kind: string; payload: Json; status?: "pending" | "sent" | "failed"; attempts?: number; sent_at?: Timestamp | null; error?: string | null; stats?: string | null };
-        Update: { status?: "pending" | "sent" | "failed"; attempts?: number; sent_at?: Timestamp | null; error?: string | null; stats?: string | null };
+        Row: { id: number; kind: string; payload: Json; status: QueueStatus; attempts: number; created_at: Timestamp; sent_at: Timestamp | null; error: string | null; stats: string | null };
+        Insert: { kind: string; payload: Json; status?: QueueStatus; attempts?: number; sent_at?: Timestamp | null; error?: string | null; stats?: string | null };
+        Update: { status?: QueueStatus; attempts?: number; sent_at?: Timestamp | null; error?: string | null; stats?: string | null };
         Relationships: [];
       };
       posts: {
@@ -377,7 +379,10 @@ export type Database = {
       get_story_by_id: { Args: { p_id: string }; Returns: Json };
       vote_poll: { Args: { p_post_id: string; p_option_id: string }; Returns: Json };
       get_notification_stats: { Args: Record<string, never>; Returns: Json };
-      get_gallery: { Args: { p_limit?: number; p_cursor_at?: string | null; p_cursor_id?: string | null }; Returns: Json[] };
+      get_gallery: { Args: { p_limit?: number; p_cursor_at?: string | null; p_cursor_id?: string | null; p_cursor_pos?: number | null }; Returns: Json[] };
+      purge_orphan_media: { Args: Record<string, never>; Returns: { id: string; keys: string[] }[] };
+      purge_rate_limit_events: { Args: Record<string, never>; Returns: undefined };
+      purge_notification_queue: { Args: Record<string, never>; Returns: undefined };
     };
     Enums: {
       user_role: UserRole;

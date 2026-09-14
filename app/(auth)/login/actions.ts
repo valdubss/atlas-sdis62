@@ -14,7 +14,7 @@ export type LoginState =
   | { status: "error"; message: string };
 
 function safeNext(next: string | null): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//")) return "/";
+  if (!next || !next.startsWith("/") || /^\/[\/\\]/.test(next)) return "/";
   return next;
 }
 

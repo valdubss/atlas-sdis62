@@ -72,8 +72,12 @@ export async function sendWeeklyDigest(opts: { testRecipient?: string } = {}): P
   }
 
   let sent = 0;
-  for (const to of recipients) {
-    if (await sendMail({ to, subject, html, text })) sent++;
+  // Cinq envois en parallèle, chaque échec isolé (un rebond ne bloque pas les autres)
+  for (let i = 0; i < recipients.length; i += 5) {
+    const results = await Promise.all(
+      recipients.slice(i, i + 5).map((to) => sendMail({ to, subject, html, text }).catch(() => false)),
+    );
+    sent += results.filter(Boolean).length;
   }
   return { posts: posts.length, recipients: recipients.length, sent };
 }

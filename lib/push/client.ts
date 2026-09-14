@@ -2,6 +2,9 @@
 
 /** Utilitaires navigateur pour l'abonnement Web Push. */
 
+/** URL du service worker, versionnée : un déploiement = un nouveau worker. */
+export const SW_URL = `/sw.js?v=${process.env.NEXT_PUBLIC_APP_VERSION ?? "dev"}`;
+
 export function pushSupported() {
   return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 }
@@ -15,7 +18,7 @@ function urlBase64ToUint8Array(base64: string) {
 
 async function registration() {
   const existing = await navigator.serviceWorker.getRegistration("/");
-  return existing ?? (await navigator.serviceWorker.register("/sw.js", { scope: "/" }));
+  return existing ?? (await navigator.serviceWorker.register(SW_URL, { scope: "/" }));
 }
 
 export async function currentSubscription(): Promise<PushSubscription | null> {

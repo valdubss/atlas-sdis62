@@ -41,9 +41,14 @@ export async function votePoll(postId: string, optionId: string): Promise<{ ok: 
   return { ok: true, poll: data as unknown as Poll };
 }
 
-export async function loadMoreGallery(cursor: { at: string; id: string } | null): Promise<GalleryItem[]> {
+export async function loadMoreGallery(cursor: { at: string; id: string; position: number } | null): Promise<GalleryItem[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_gallery", { p_limit: 30, p_cursor_at: cursor?.at ?? null, p_cursor_id: cursor?.id ?? null });
+  const { data, error } = await supabase.rpc("get_gallery", {
+    p_limit: 30,
+    p_cursor_at: cursor?.at ?? null,
+    p_cursor_id: cursor?.id ?? null,
+    p_cursor_pos: cursor?.position ?? null,
+  });
   if (error) return [];
   return (data ?? []) as unknown as GalleryItem[];
 }

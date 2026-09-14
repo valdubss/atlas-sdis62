@@ -54,8 +54,13 @@ async function prepareVideo(file: File): Promise<PreparedFile> {
   if (file.size > LIMITS.videoMaxBytes) {
     throw new Error(`${file.name} dépasse ${mb(LIMITS.videoMaxBytes)}.`);
   }
-  const buf = await file.arrayBuffer();
-  const types = readSampleEntryTypes(buf);
+  // Les atomes MP4 utiles (moov/stsd) sont en tête ou en queue : on ne lit
+  // jamais tout le fichier en mémoire sur le téléphone.
+  const WINDOW = 8 * 1024 * 1024;
+  let types = readSampleEntryTypes(await file.slice(0, WINDOW).arrayBuffer());
+  if (types.length === 0 && file.size > WINDOW) {
+    types = readSampleEntryTypes(await file.slice(file.size - WINDOW).arrayBuffer());
+  }
   if (types.length === 0) {
     throw new Error(`${file.name} : fichier vidéo illisible.`);
   }
@@ -156,7 +161,7 @@ export function uploadWithProgress(
         : reject(
             new Error(
               xhr.status === 413
-                ? "Fichier trop lourd pour l'espace de stockage (limite actuelle : 50 Mo par fichier)."
+                ? `Fichier trop lourd pour l'espace de stockage (limite : ${mb(LIMITS.uploadMaxBytes)} par fichier).`
                 : `Envoi refusé par le stockage (${xhr.status}).`,
             ),
           );
