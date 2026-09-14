@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useCallback, useRef, useState, useTransition } from "react";
 import type { FeedPost } from "@/lib/feed/types";
-import type { ReactionKind } from "@/lib/config";
+import { FEATURES, type ReactionKind } from "@/lib/config";
 import { formatRelative } from "@/lib/format";
-import { imageSrc } from "@/lib/media/url";
 import { cn } from "@/lib/cn";
 import { reactToPost, toggleBookmark } from "@/app/(app)/feed-actions";
 import { Avatar } from "@/components/ui/Avatar";
@@ -16,6 +15,8 @@ import { IconButton } from "./IconButton";
 import { ShareButton } from "./ShareButton";
 import { Comments } from "./Comments";
 import { Markdown } from "./Markdown";
+import { PhotoCarousel } from "./PhotoCarousel";
+import { VideoPlayer } from "./VideoPlayer";
 
 const TEXT_CLAMP = 300;
 
@@ -45,11 +46,13 @@ export function PostCard({
   const [, startTransition] = useTransition();
   const lastTap = useRef(0);
 
+  // En mode aperçu (studio), la carte suit les changements de l'éditeur.
+  const shown = preview ? initial : post;
+
   const react = useCallback(
     (kind: ReactionKind) => {
       if (preview) return;
       setError(null);
-      // Optimiste : on applique localement, on corrige avec la réponse serveur.
       setPost((p) => {
         const counts = { ...p.reaction_counts };
         if (p.my_reaction) counts[p.my_reaction] = Math.max(0, (counts[p.my_reaction] ?? 1) - 1);
@@ -59,9 +62,8 @@ export function PostCard({
       });
       startTransition(async () => {
         const res = await reactToPost(post.id, kind);
-        if (res.ok) {
-          setPost((p) => ({ ...p, reaction_counts: res.reaction_counts, my_reaction: res.my_reaction }));
-        } else {
+        if (res.ok) setPost((p) => ({ ...p, reaction_counts: res.reaction_counts, my_reaction: res.my_reaction }));
+        else {
           setPost(initial);
           setError(res.error);
         }
@@ -93,12 +95,19 @@ export function PostCard({
     });
   }
 
-  const official = post.author_display === "service_com";
-  const body = post.body ?? "";
-  const isLong = variant === "feed" && post.type === "text" && body.length > TEXT_CLAMP;
-  const shownBody = isLong && !expanded ? body.slice(0, TEXT_CLAMP).trimEnd() + "…" : body;
-  const cover = post.cover ?? post.media[0] ?? null;
-  const href = `/post/${post.slug}`;
+  const official = shown.author_display === "service_com";
+  const body = shown.body ?? "";
+  const clampable = variant === "feed" && shown.type !== "article" && body.length > TEXT_CLAMP;
+  const shownBody = clampable && !expanded ? body.slice(0, TEXT_CLAMP).trimEnd() + "…" : body;
+  const images = shown.media.filter((m) => m.kind === "image");
+  const video = shown.media.find((m) => m.kind === "video") ?? null;
+  const cover = shown.cover ?? (shown.type === "article" ? images[0] ?? null : null);
+  const href = `/post/${shown.slug}`;
+  const meta = [
+    FEATURES.categories && shown.category ? shown.category.name : null,
+    formatRelative(shown.published_at ?? shown.scheduled_at),
+    FEATURES.centers && shown.center ? shown.center.name : null,
+  ].filter(Boolean);
 
   return (
     <article
@@ -107,109 +116,120 @@ export function PostCard({
         variant === "feed" && "border-b border-line sm:rounded-card sm:border sm:shadow-soft",
         variant === "full" && "sm:rounded-card sm:shadow-soft",
       )}
-      aria-label={post.title ?? "Publication"}
+      aria-label={shown.title ?? "Publication"}
     >
       {/* En-tête */}
       <header className="flex items-center gap-3 px-4 pt-3 pb-2">
-        <Avatar name={post.author?.name} avatarKey={post.author?.avatar_key} official={official} />
+        <Avatar name={shown.author?.name} avatarKey={shown.author?.avatar_key} official={official} />
         <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-[15px] font-semibold text-ink">{post.author?.name ?? "Service Communication"}</p>
-          <p className="truncate text-xs text-muted">
-            {post.category && <span className="font-semibold text-navy">{post.category.name}</span>}
-            {post.category && " · "}
-            <time dateTime={post.published_at ?? undefined}>{formatRelative(post.published_at ?? post.scheduled_at)}</time>
-            {post.center && <span> · {post.center.name}</span>}
-          </p>
+          <p className="truncate text-[15px] font-semibold text-ink">{shown.author?.name ?? "Service Communication"}</p>
+          <p className="truncate text-xs text-muted">{meta.join(" · ")}</p>
         </div>
-        {post.pinned_at && (
+        {shown.pinned_at && (
           <Badge tone="red" className="shrink-0">
             Épinglé
           </Badge>
         )}
       </header>
 
-      {/* Média de couverture (photos plein cadre au lot c) */}
-      {cover && cover.kind === "image" && (
-        <div className="relative select-none bg-surface-2" onClick={handleTap} onDoubleClick={onDoubleTap}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- variantes servies par le CDN S3 */}
-          <img
-            src={imageSrc(cover, variant === "full" ? "full" : "medium")}
-            alt={cover.alt}
-            width={cover.width ?? undefined}
-            height={cover.height ?? undefined}
-            loading="lazy"
-            className="max-h-[80vh] w-full object-cover"
-            style={{ aspectRatio: cover.width && cover.height ? `${cover.width}/${cover.height}` : "4/3" }}
-          />
+      {/* Médias plein cadre */}
+      {shown.type === "photo" && images.length > 0 && (
+        <div className="relative">
+          <PhotoCarousel media={images} size={variant === "full" ? "full" : "medium"} onTap={handleTap} onDoubleTap={onDoubleTap} />
+          <HeartBurst show={heartBurst} />
+        </div>
+      )}
+      {shown.type === "video" && video && (
+        <div className="relative">
+          <VideoPlayer media={video} controls={variant === "full"} autoplay={!preview} onDoubleTap={onDoubleTap} />
+          <HeartBurst show={heartBurst} />
+        </div>
+      )}
+      {shown.type === "article" && cover && (
+        <div className="relative">
+          <PhotoCarousel media={[cover]} size={variant === "full" ? "full" : "medium"} onTap={handleTap} onDoubleTap={onDoubleTap} />
           <HeartBurst show={heartBurst} />
         </div>
       )}
 
       {/* Corps */}
-      <div className="relative px-4 pt-2 pb-1" onClick={cover ? undefined : handleTap} onDoubleClick={cover ? undefined : onDoubleTap}>
-        {!cover && <HeartBurst show={heartBurst} />}
-        {post.title && (
-          <h2 className="mb-1 font-display text-[22px] font-bold uppercase leading-tight text-ink">
-            {variant === "feed" && post.type === "article" ? <Link href={href}>{post.title}</Link> : post.title}
-          </h2>
-        )}
+      {(shown.title || body) && (
+        <div
+          className="relative px-4 pt-2 pb-1"
+          onClick={shown.media.length ? undefined : handleTap}
+          onDoubleClick={shown.media.length ? undefined : onDoubleTap}
+        >
+          {!shown.media.length && <HeartBurst show={heartBurst} />}
+          {shown.title && (
+            <h2 className="mb-1 font-display text-[22px] font-bold uppercase leading-tight text-ink">
+              {variant === "feed" && shown.type === "article" ? <Link href={href}>{shown.title}</Link> : shown.title}
+            </h2>
+          )}
 
-        {post.type === "article" ? (
-          variant === "full" ? (
-            <>
-              {post.excerpt && <p className="mb-3 text-[17px] font-medium leading-snug text-body">{post.excerpt}</p>}
-              <Markdown>{body}</Markdown>
-            </>
-          ) : (
-            <>
-              <p className="text-[15px] leading-relaxed text-body">
-                {post.excerpt ?? body.replace(/[#*_>`\[\]]/g, "").slice(0, 220).trimEnd() + "…"}
-              </p>
-              <Link href={href} className="mt-1 inline-block text-sm font-bold text-red-text">
-                Lire l&apos;article →
-              </Link>
-            </>
-          )
-        ) : (
-          <p className="whitespace-pre-line break-words text-[15px] leading-relaxed text-body">
-            {shownBody}
-            {isLong && !expanded && (
+          {shown.type === "article" ? (
+            variant === "full" ? (
               <>
-                {" "}
-                <button type="button" onClick={() => setExpanded(true)} className="font-semibold text-muted">
-                  voir plus
-                </button>
+                {shown.excerpt && <p className="mb-3 text-[17px] font-medium leading-snug text-body">{shown.excerpt}</p>}
+                <Markdown>{body}</Markdown>
               </>
-            )}
-          </p>
-        )}
+            ) : (
+              <>
+                <p className="text-[15px] leading-relaxed text-body">
+                  {shown.excerpt ?? body.replace(/[#*_>`\[\]]/g, "").slice(0, 220).trimEnd() + "…"}
+                </p>
+                <Link href={href} className="mt-1 inline-block text-sm font-bold text-red-text">
+                  Lire l&apos;article →
+                </Link>
+              </>
+            )
+          ) : (
+            body && (
+              <p className="whitespace-pre-line break-words text-[15px] leading-relaxed text-body">
+                {shownBody}
+                {clampable && !expanded && (
+                  <>
+                    {" "}
+                    <button type="button" onClick={() => setExpanded(true)} className="font-semibold text-muted">
+                      voir plus
+                    </button>
+                  </>
+                )}
+              </p>
+            )
+          )}
 
-        {post.tags.length > 0 && (
-          <p className="mt-2 flex flex-wrap gap-x-2 text-xs font-semibold text-navy">
-            {post.tags.map((t) => (
-              <Link key={t} href={`/?tag=${encodeURIComponent(t)}`}>
-                #{t}
-              </Link>
-            ))}
-          </p>
-        )}
-      </div>
+          {FEATURES.tags && shown.tags.length > 0 && (
+            <p className="mt-2 flex flex-wrap gap-x-2 text-xs font-semibold text-navy">
+              {shown.tags.map((t) => (
+                <Link key={t} href={`/?tag=${encodeURIComponent(t)}`}>
+                  #{t}
+                </Link>
+              ))}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Pied : réactions, commentaires, favori, partage */}
       <footer className="flex items-center justify-between gap-2 px-3 pb-2 pt-1">
-        <ReactionBar counts={post.reaction_counts} mine={post.my_reaction} onSelect={react} disabled={preview} />
+        <ReactionBar counts={shown.reaction_counts} mine={shown.my_reaction} onSelect={react} disabled={preview} />
         <div className="flex items-center">
           <IconButton
             label="Commentaires"
-            count={post.comment_count}
-            onClick={() => !preview && (variant === "full" ? document.getElementById(`comments-${post.id}`)?.scrollIntoView({ behavior: "smooth" }) : setCommentsOpen(true))}
+            count={shown.comment_count}
+            onClick={() =>
+              !preview &&
+              (variant === "full"
+                ? document.getElementById(`comments-${shown.id}`)?.scrollIntoView({ behavior: "smooth" })
+                : setCommentsOpen(true))
+            }
           >
             <path d="M21 12a8 8 0 0 1-11.6 7.2L4 21l1.8-4.6A8 8 0 1 1 21 12z" strokeLinejoin="round" />
           </IconButton>
-          <IconButton label={post.is_bookmarked ? "Retirer des favoris" : "Enregistrer"} active={post.is_bookmarked} onClick={bookmark}>
+          <IconButton label={shown.is_bookmarked ? "Retirer des favoris" : "Enregistrer"} active={shown.is_bookmarked} onClick={bookmark}>
             <path d="M6 4h12v17l-6-4-6 4V4z" strokeLinejoin="round" />
           </IconButton>
-          <ShareButton slug={post.slug} title={post.title} />
+          <ShareButton slug={shown.slug} title={shown.title} />
         </div>
       </footer>
       {error && (
@@ -219,22 +239,22 @@ export function PostCard({
       )}
 
       {variant === "full" && !preview && (
-        <section id={`comments-${post.id}`} className="border-t border-line pt-3">
+        <section id={`comments-${shown.id}`} className="border-t border-line pt-3">
           <h3 className="px-4 pb-1 font-display text-lg font-bold uppercase text-navy">Commentaires</h3>
           <Comments
-            postId={post.id}
-            enabled={post.comments_enabled}
+            postId={shown.id}
+            enabled={shown.comments_enabled}
             canModerate={canModerate}
             onCountChange={(n) => setPost((p) => ({ ...p, comment_count: n }))}
           />
         </section>
       )}
 
-      {variant === "feed" && (
+      {variant === "feed" && !preview && (
         <Sheet open={commentsOpen} onClose={() => setCommentsOpen(false)} title="Commentaires">
           <Comments
-            postId={post.id}
-            enabled={post.comments_enabled}
+            postId={shown.id}
+            enabled={shown.comments_enabled}
             canModerate={canModerate}
             autoFocus
             onCountChange={(n) => setPost((p) => ({ ...p, comment_count: n }))}

@@ -5,6 +5,7 @@ import { FeedFilters } from "@/components/feed/FeedFilters";
 import { InfiniteFeed } from "@/components/feed/InfiniteFeed";
 import { PostCard } from "@/components/feed/PostCard";
 import { EcgDivider } from "@/components/brand/Ecg";
+import { FEATURES } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export default async function FeedPage({
 
       <div className="px-4 sm:px-0">
         <Suspense>
-          <FeedFilters categories={categories} centers={centers} />
+          <FeedFilters categories={categories} centers={centers} showCategories={FEATURES.categories} showCenters={FEATURES.centers} />
         </Suspense>
       </div>
 

@@ -10,7 +10,17 @@ type Ref = { id: string; name: string; slug: string };
  * Filtres du fil : puces de catégories (défilement horizontal), recherche,
  * centre. Tout passe par l'URL (?categorie=&centre=&q=) : partageable, SSR.
  */
-export function FeedFilters({ categories, centers }: { categories: Ref[]; centers: Ref[] }) {
+export function FeedFilters({
+  categories,
+  centers,
+  showCategories = true,
+  showCenters = true,
+}: {
+  categories: Ref[];
+  centers: Ref[];
+  showCategories?: boolean;
+  showCenters?: boolean;
+}) {
   const router = useRouter();
   const sp = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -33,16 +43,20 @@ export function FeedFilters({ categories, centers }: { categories: Ref[]; center
   return (
     <div className={cn("space-y-2 bg-bg", pending && "opacity-70")}>
       <div className="flex items-center gap-2">
-        <div className="-mx-4 flex flex-1 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <Chip active={!category} onClick={() => push({ categorie: "" })}>
-            Tout
-          </Chip>
-          {categories.map((c) => (
-            <Chip key={c.id} active={category === c.slug} onClick={() => push({ categorie: category === c.slug ? "" : c.slug })}>
-              {c.name}
+        {showCategories ? (
+          <div className="-mx-4 flex flex-1 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Chip active={!category} onClick={() => push({ categorie: "" })}>
+              Tout
             </Chip>
-          ))}
-        </div>
+            {categories.map((c) => (
+              <Chip key={c.id} active={category === c.slug} onClick={() => push({ categorie: category === c.slug ? "" : c.slug })}>
+                {c.name}
+              </Chip>
+            ))}
+          </div>
+        ) : (
+          <h1 className="flex-1 font-display text-2xl font-bold uppercase leading-none text-navy">Fil d&apos;actualités</h1>
+        )}
         <button
           type="button"
           aria-label="Rechercher"
@@ -74,6 +88,7 @@ export function FeedFilters({ categories, centers }: { categories: Ref[]; center
             autoFocus
             className="h-10 flex-1 rounded-full border border-line bg-surface px-4 text-base text-body focus:border-navy focus:outline-none"
           />
+          {showCenters && (
           <select
             aria-label="Filtrer par centre"
             value={center}
@@ -87,6 +102,7 @@ export function FeedFilters({ categories, centers }: { categories: Ref[]; center
               </option>
             ))}
           </select>
+          )}
         </form>
       )}
 
