@@ -36,8 +36,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </>
       )}
 
-      <header className="absolute left-5 top-[max(env(safe-area-inset-top),24px)] sm:left-8 sm:top-8">
-        <Logo height={44} />
+      {/* Mobile : logo centré dans le tiers haut de la photo ; desktop : en haut à gauche */}
+      <header className="absolute inset-x-0 top-[18%] flex justify-center sm:inset-x-auto sm:left-8 sm:top-8 sm:block">
+        <Logo height={52} className="sm:!h-11" />
         <h1 className="sr-only">{APP_NAME}</h1>
       </header>
 
