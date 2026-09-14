@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getStorage } from "@/lib/storage";
 import { extensionFor, mediaKeys } from "@/lib/media/keys";
 import { makeImageVariants } from "@/lib/media/variants";
+import { faststart } from "@/lib/media/faststart";
 import { ACCEPTED_IMAGE_MIMES, LIMITS } from "@/lib/config";
 import type { MediaItem } from "@/lib/feed/types";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -137,6 +138,16 @@ export async function finalizeMedia(mediaId: string): Promise<{ ok: true; media:
       return { ok: true, media: toItem(data) };
     }
 
+    // Vidéo : l'index (moov) passe en tête de fichier pour une lecture
+    // immédiate en flux (les vidéos iPhone le placent en fin de fichier).
+    await supabase.from("media").update({ status: "processing" }).eq("id", mediaId);
+    try {
+      const original = await storage.getObject(row.original_key);
+      const fixed = faststart(original);
+      if (fixed) await storage.putObject(row.original_key, fixed, row.mime || "video/mp4");
+    } catch (e) {
+      console.error("faststart", e);
+    }
     const { data, error: updateError } = await supabase
       .from("media")
       .update({ status: "ready", error: null })

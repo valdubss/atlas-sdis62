@@ -1,5 +1,6 @@
 "use client";
 
+import { lockScroll, unlockScroll } from "@/lib/dom/scroll-lock";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-motion";
@@ -11,6 +12,7 @@ import { imageSrc, posterSrc } from "@/lib/media/url";
 import { SPRING } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 import { StoryMedia } from "./StoryMedia";
+import { videoSrc } from "@/lib/media/url";
 
 /**
  * Viewer plein écran : fond #000, barres de progression 2 px, tap droite/gauche,
@@ -59,10 +61,9 @@ export function StoryViewer({
 
   // Verrouillage du défilement de la page
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockScroll();
     return () => {
-      document.body.style.overflow = prev;
+      unlockScroll();
     };
   }, []);
 
@@ -208,16 +209,22 @@ export function StoryViewer({
           {/* Média + zones tactiles */}
           <div className="absolute inset-0" onPointerDown={onPointerDown} onPointerUp={onPointerUp} onPointerCancel={() => setPaused(false)}>
             {story ? (
-              <StoryMedia
-                key={story.id}
-                media={story.media}
-                overlay={story.overlay}
-                videoRef={videoRef}
-                muted={muted}
-                playing={!paused}
-                onVideoTime={setProgress}
-                onVideoEnded={next}
-              />
+              <>
+                {list?.[si + 1]?.media?.kind === "video" && (
+                  // Préchargement discret de la story suivante (vidéo) pour un enchaînement sans attente
+                  <video src={videoSrc(list[si + 1].media!)} preload="auto" muted playsInline aria-hidden="true" tabIndex={-1} className="hidden" />
+                )}
+                <StoryMedia
+                  key={story.id}
+                  media={story.media}
+                  overlay={story.overlay}
+                  videoRef={videoRef}
+                  muted={muted}
+                  playing={!paused}
+                  onVideoTime={setProgress}
+                  onVideoEnded={next}
+                />
+              </>
             ) : (
               <div className="flex h-full items-center justify-center">
                 <div className="h-8 w-8 animate-spin rounded-full border-[1.75px] border-white/30 border-t-white" aria-label="Chargement" />

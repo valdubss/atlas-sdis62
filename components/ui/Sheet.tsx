@@ -1,5 +1,6 @@
 "use client";
 
+import { lockScroll, unlockScroll } from "@/lib/dom/scroll-lock";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-motion";
 import { SPRING } from "@/lib/motion";
@@ -58,8 +59,7 @@ export function Sheet({
       }
     };
     document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockScroll();
     document.documentElement.setAttribute("data-sheet-open", "");
     const t = setTimeout(() => {
       if (!document.querySelector('[role="dialog"]')?.contains(document.activeElement)) focusable()[0]?.focus({ preventScroll: true });
@@ -67,7 +67,7 @@ export function Sheet({
     return () => {
       clearTimeout(t);
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
+      unlockScroll();
       document.documentElement.removeAttribute("data-sheet-open");
       opener?.focus?.({ preventScroll: true });
     };

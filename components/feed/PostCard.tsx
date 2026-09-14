@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import { Bookmark, MessageCircle } from "lucide-react";
 import type { FeedPost } from "@/lib/feed/types";
@@ -45,6 +46,7 @@ export function PostCard({
   const [expanded, setExpanded] = useState(variant === "full");
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [, startTransition] = useTransition();
+  const router = useRouter();
   const setCommentCount = useCallback((n: number) => setPost((p) => (p.comment_count === n ? p : { ...p, comment_count: n })), []);
   const toast = useToast();
 
@@ -121,6 +123,7 @@ export function PostCard({
             media={images}
             size={variant === "full" ? "full" : "medium"}
             onDoubleTap={onDoubleTap}
+            onTap={variant === "feed" ? () => router.push(href) : undefined}
             interactive={!preview}
             rounded={false}
           />
@@ -139,6 +142,7 @@ export function PostCard({
             media={[cover]}
             size={variant === "full" ? "full" : "medium"}
             onDoubleTap={onDoubleTap}
+            onTap={variant === "feed" ? () => router.push(href) : undefined}
             interactive={!preview}
             rounded={false}
           />

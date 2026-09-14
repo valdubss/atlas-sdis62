@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { MediaItem } from "@/lib/feed/types";
 import { imageSizes, imageSrc, imageSrcSet } from "@/lib/media/url";
 import { cn } from "@/lib/cn";
-import { Lightbox } from "./Lightbox";
+import { Lightbox, type LightboxItem } from "./Lightbox";
 
 /** Nombre de photos chargées d'avance autour de la photo affichée. */
 const AHEAD = 2;
@@ -19,12 +19,15 @@ export function PhotoCarousel({
   media,
   size = "medium",
   onDoubleTap,
+  onTap,
   interactive = true,
   rounded = true,
 }: {
   media: MediaItem[];
   size?: "medium" | "full";
   onDoubleTap?: () => void;
+  /** Tap simple : par défaut, ouverture de la galerie plein écran. */
+  onTap?: (index: number) => void;
   interactive?: boolean;
   rounded?: boolean;
 }) {
@@ -70,7 +73,11 @@ export function PhotoCarousel({
   }, []);
 
   const first = media[0];
-  const ratio = first?.width && first?.height ? Math.min(Math.max(first.width / first.height, 0.8), 1.91) : 4 / 3;
+  // Ratio natif de la première photo (borné : jamais plus haut que 4:5 dans le
+  // fil, jusqu'à 1:2 en page de lecture). Les photos ne sont jamais recadrées :
+  // celles d'un autre format s'affichent entières sur le fond de la carte.
+  const bounds = size === "full" ? [0.5, 2.4] : [0.8, 1.91];
+  const ratio = first?.width && first?.height ? Math.min(Math.max(first.width / first.height, bounds[0]), bounds[1]) : 4 / 3;
   const many = media.length > 1;
 
   function tap(i: number) {
@@ -84,11 +91,13 @@ export function PhotoCarousel({
     lastTap.current = now;
     // Simple tap : ouverture différée pour laisser une chance au double-tap
     setTimeout(() => {
-      if (lastTap.current === now) setOpen(i);
+      if (lastTap.current !== now) return;
+      if (onTap) onTap(i);
+      else setOpen(i);
     }, 280);
   }
 
-  const current = open !== null ? media[open] : null;
+  const galleryItems: LightboxItem[] = media.map((m) => ({ src: imageSrc(m, "full"), alt: m.alt }));
 
   return (
     <div ref={root} className={cn("relative overflow-hidden bg-bg-1", rounded && "rounded-[28px]")} style={{ aspectRatio: String(ratio) }}>
@@ -119,7 +128,7 @@ export function PhotoCarousel({
                   decoding="async"
                   draggable={false}
                   onClick={() => tap(i)}
-                  className={cn("h-full w-full select-none object-cover", interactive && "cursor-zoom-in")}
+                  className={cn("h-full w-full select-none object-contain", interactive && "cursor-zoom-in")}
                 />
               ) : (
                 <div className="h-full w-full bg-bg-2" aria-hidden="true" />
@@ -135,7 +144,7 @@ export function PhotoCarousel({
         </span>
       )}
 
-      {current && <Lightbox open src={imageSrc(current, "full")} alt={current.alt} onClose={() => setOpen(null)} />}
+      {open !== null && <Lightbox open items={galleryItems} index={open} onClose={() => setOpen(null)} />}
     </div>
   );
 }
