@@ -194,7 +194,7 @@ export function StoryViewer({
   const cover = group.cover;
 
   return (
-    <div className="fixed inset-0 z-[70] flex min-h-dvh items-center justify-center bg-black" role="dialog" aria-modal="true" aria-label={`Stories : ${group.title}`}>
+    <div className="fixed inset-0 z-[70] flex min-h-dvh items-center justify-center overflow-clip bg-black" role="dialog" aria-modal="true" aria-label={`Stories : ${group.title}`}>
       <AnimatePresence mode="wait" initial={false} custom={dir}>
         <motion.div
           key={`${group.kind}-${group.id}`}
