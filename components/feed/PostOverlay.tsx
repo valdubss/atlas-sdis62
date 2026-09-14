@@ -11,9 +11,9 @@ import { PostCard } from "./PostCard";
 
 /**
  * Publication en exergue, ouverte instantanément depuis le fil avec les
- * données déjà chargées (aucun aller-retour serveur). L'URL passe sur
- * /post/<slug> via l'historique : le bouton Retour du téléphone referme la
- * vue, et un rechargement tombe sur la vraie page.
+ * données déjà chargées (aucun aller-retour serveur). Une entrée d'historique
+ * est ajoutée pour que le bouton Retour du téléphone referme la vue ; le
+ * partage et les liens utilisent toujours la page /post/<slug>.
  */
 export function PostOverlay({ post, canModerate, onClose }: { post: FeedPost; canModerate: boolean; onClose: () => void }) {
   const reduced = useReducedMotion();
@@ -22,9 +22,9 @@ export function PostOverlay({ post, canModerate, onClose }: { post: FeedPost; ca
 
   useEffect(() => {
     lockScroll();
-    const href = `/post/${post.slug}`;
-    const previous = window.location.pathname + window.location.search;
-    window.history.pushState({ atlasOverlay: true }, "", href);
+    // Entrée d'historique sans changement d'URL : le routeur Next ne déclenche
+    // aucune navigation, et le bouton Retour du téléphone referme la vue.
+    window.history.pushState({ ...(window.history.state ?? {}), atlasOverlay: true }, "");
     pushed.current = true;
     const onPop = () => {
       closing.current = true;
@@ -43,10 +43,6 @@ export function PostOverlay({ post, canModerate, onClose }: { post: FeedPost; ca
       window.removeEventListener("popstate", onPop);
       document.removeEventListener("keydown", onKey);
       unlockScroll();
-      // Fermeture sans passer par l'historique (ex. démontage) : on restaure l'URL du fil
-      if (pushed.current && !closing.current && window.location.pathname === href) {
-        window.history.replaceState(null, "", previous);
-      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- montage unique par publication
   }, [post.slug]);
