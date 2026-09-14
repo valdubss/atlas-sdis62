@@ -32,7 +32,6 @@ export const LIMITS = {
 
 export const ACCEPTED_IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
 export const ACCEPTED_VIDEO_MIMES = ["video/mp4", "video/quicktime"] as const;
-export const ACCEPTED_EXTENSIONS = ".jpg,.jpeg,.png,.webp,.heic,.heif,.mp4,.mov";
 
 export const REACTIONS = [
   { kind: "clap", emoji: "👏", label: "Bravo" },

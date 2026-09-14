@@ -1,17 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Barlow_Condensed, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 import { APP_NAME, APP_TAGLINE } from "@/lib/config";
+import { ToastProvider } from "@/components/ui/Toast";
 import "./globals.css";
 
-// Polices téléchargées à la construction et servies depuis le domaine :
-// aucun appel à Google Fonts au runtime.
-const barlow = Barlow_Condensed({
-  weight: ["600", "700", "800"],
-  subsets: ["latin"],
-  variable: "--font-barlow",
-  display: "swap",
-});
-
+// Une seule famille, téléchargée à la construction et servie depuis le domaine.
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -26,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0d14",
+  themeColor: "#0a0a0c",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -34,8 +27,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${barlow.variable} ${inter.variable}`}>
-      <body className="antialiased">{children}</body>
+    <html lang="fr" className={inter.variable}>
+      <body>
+        <ToastProvider>{children}</ToastProvider>
+      </body>
     </html>
   );
 }

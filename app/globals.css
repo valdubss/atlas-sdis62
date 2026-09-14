@@ -1,167 +1,227 @@
 @import "tailwindcss";
 
 /* -----------------------------------------------------------------------------
-   Tokens ATLAS — thème sombre « glass »
-   Fond quasi noir bleuté, surfaces translucides floutées, rouge sapeurs-pompiers
-   réservé aux actions, bleu clair pour les liens et libellés.
+   Tokens ATLAS — « Sombre. Verre. Silence. » (voir DESIGN.md)
+   Le contenu est la lumière, l'interface est l'ombre. Le rouge n'apparaît que
+   là où l'utilisateur doit agir ou là où quelque chose est nouveau.
 ----------------------------------------------------------------------------- */
 :root {
   color-scheme: dark;
 
-  --red: #e4293f;
-  --red-hover: #f03d52;
-  --red-text: #ff6b7a;
-  --navy: #8fa8ff; /* accent « marine » lisible sur fond sombre */
-  --navy-hover: #adc0ff;
+  --bg-0: #0a0a0c;
+  --bg-1: #141417;
+  --bg-2: #1c1c21;
+  --glass: rgba(20, 20, 24, 0.62);
+  --glass-fallback: rgba(20, 20, 24, 0.94);
+  --glass-edge: rgba(255, 255, 255, 0.08);
+  --line: rgba(255, 255, 255, 0.06);
 
-  --bg: #0a0d14;
-  --surface: rgba(255, 255, 255, 0.045);
-  --surface-2: rgba(255, 255, 255, 0.085);
-  --glass: rgba(14, 18, 28, 0.62);
-  --glass-strong: rgba(14, 18, 28, 0.86);
-  --ink: #f5f7fa;
-  --body: #d7dce6;
-  --muted: #8d95a7;
-  --line: rgba(255, 255, 255, 0.1);
-  --line-strong: rgba(255, 255, 255, 0.18);
+  --text-1: #f5f5f7;
+  --text-2: rgba(245, 245, 247, 0.6);
+  --text-3: rgba(245, 245, 247, 0.5);
+  --text-4: rgba(245, 245, 247, 0.38);
 
-  --success: #4ade80;
-  --danger: #ff7b7b;
+  --red: #e4213a;
+  --red-fill: #d71f36;
+  --red-text: #ff3b52;
+  --red-soft: rgba(228, 33, 58, 0.14);
+  --navy: #2e4a8c;
+  --navy-link: #6b8cd6;
 
-  --radius-card: 20px;
-  --shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 40px -18px rgba(0, 0, 0, 0.7);
-  --shadow-glow-red: 0 10px 30px -10px rgba(228, 41, 63, 0.6);
+  --success: #5dbe7a;
+  --danger: #e4213a;
+
+  --shadow-float: 0 12px 40px rgba(0, 0, 0, 0.55);
 }
 
 @theme inline {
-  --color-red: var(--red);
-  --color-red-hover: var(--red-hover);
-  --color-red-text: var(--red-text);
-  --color-navy: var(--navy);
-  --color-navy-hover: var(--navy-hover);
-  --color-bg: var(--bg);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-glass: var(--glass);
-  --color-glass-strong: var(--glass-strong);
-  --color-ink: var(--ink);
-  --color-body: var(--body);
-  --color-muted: var(--muted);
+  /* Noms du système (DESIGN.md) */
+  --color-bg-0: var(--bg-0);
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-glass-edge: var(--glass-edge);
   --color-line: var(--line);
-  --color-line-strong: var(--line-strong);
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-text-4: var(--text-4);
+  --color-red: var(--red);
+  --color-red-fill: var(--red-fill);
+  --color-red-text: var(--red-text);
+  --color-red-soft: var(--red-soft);
+  --color-navy: var(--navy);
+  --color-navy-link: var(--navy-link);
   --color-success: var(--success);
   --color-danger: var(--danger);
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-barlow), "Arial Narrow", Impact, sans-serif;
+  /* Alias historiques (composants non encore migrés) */
+  --color-bg: var(--bg-0);
+  --color-surface: var(--bg-1);
+  --color-surface-2: var(--bg-2);
+  --color-ink: var(--text-1);
+  --color-body: var(--text-1);
+  --color-muted: var(--text-2);
+  --color-line-strong: var(--glass-edge);
+  --color-red-hover: var(--red-fill);
+  --color-navy-hover: var(--navy-link);
 
-  --radius-card: var(--radius-card);
-  --shadow-soft: var(--shadow-soft);
-  --shadow-glow-red: var(--shadow-glow-red);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  --radius-field: 10px;
+  --radius-card: 16px;
+  --radius-sheet: 22px;
+  --radius-media: 28px;
+  --shadow-float: var(--shadow-float);
+  --shadow-soft: none;
 }
 
 html {
   -webkit-text-size-adjust: 100%;
-  background: var(--bg);
+  background: var(--bg-0);
+  overscroll-behavior-y: none;
 }
 
 body {
-  background: var(--bg);
-  color: var(--body);
+  background: var(--bg-0);
+  color: var(--text-1);
   font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01", "ss03";
+  font-size: 15px;
+  line-height: 1.45;
   min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--text-1);
+}
+
+/* Matière « verre » : réservée aux surfaces qui survolent du contenu.
+   Fallback opaque sans backdrop-filter. */
+.glass {
+  background: var(--glass-fallback);
+  border-top: 1px solid var(--glass-edge);
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.4) inset;
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+  }
+}
+/* Verre jamais empilé : sheet ouverte → les barres passent en opaque */
+html[data-sheet-open] .glass {
+  background: var(--bg-2);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* Surface flottante (sheets, menus, toasts) */
+.floating {
+  background: var(--bg-2);
+  box-shadow: var(--shadow-float);
+}
+
+/* Séparateur en retrait du bord gauche */
+.hairline > * + * {
   position: relative;
 }
-
-/* Lumière d'ambiance très douce derrière les surfaces en verre */
-body::before {
+.hairline > * + *::before {
   content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(60% 40% at 15% -10%, rgba(228, 41, 63, 0.16), transparent 70%),
-    radial-gradient(50% 40% at 100% 100%, rgba(84, 110, 255, 0.14), transparent 70%);
+  position: absolute;
+  left: 20px;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--line);
 }
 
-/* Surface en verre dépoli */
-.glass {
-  background: var(--glass);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid var(--line);
+/* Pression : seule micro-interaction générique autorisée */
+:where(button, [role="button"], .pressable) {
+  transition: transform 120ms ease, opacity 120ms ease;
 }
-.glass-strong {
-  background: var(--glass-strong);
-  -webkit-backdrop-filter: blur(28px) saturate(140%);
-  backdrop-filter: blur(28px) saturate(140%);
-  border: 1px solid var(--line);
+:where(button, [role="button"], .pressable):active:not(:disabled) {
+  transform: scale(0.97);
+  opacity: 0.85;
 }
 
-/* Focus visible uniforme (accessibilité) */
+/* Focus visible (accessibilité) : liseré, jamais de halo coloré */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-  outline: 2px solid var(--navy);
+  outline: 1px solid var(--glass-edge);
   outline-offset: 2px;
 }
-
+input, textarea, select {
+  color: var(--text-1);
+}
+::placeholder {
+  color: var(--text-4);
+}
 ::selection {
-  background: rgba(228, 41, 63, 0.4);
+  background: var(--red-soft);
 }
 
-/* Animation du tracé ECG (loader) */
-.ecg-animate {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  animation: ecg-draw 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+/* Squelettes : balayage lumineux lent, jamais de spinner hors des boutons */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-1);
+  border-radius: 10px;
 }
-@keyframes ecg-draw {
-  0% { stroke-dashoffset: 1; opacity: 1; }
-  65% { stroke-dashoffset: 0; opacity: 1; }
-  85% { stroke-dashoffset: 0; opacity: 0; }
-  100% { stroke-dashoffset: 1; opacity: 0; }
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent);
+  animation: shimmer 2.2s ease-in-out infinite;
+}
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
 }
 
-/* Animations d'interaction (façon Instagram) */
-@keyframes sheet-in {
-  from { transform: translateY(24px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+/* Défilement horizontal sans barre visible (stories, carrousel) */
+.no-scrollbar {
+  scrollbar-width: none;
 }
-@keyframes pop {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.35); }
-  100% { transform: scale(1); }
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
-@keyframes heart {
-  0% { transform: scale(0.4); opacity: 0; }
-  30% { transform: scale(1.15); opacity: 1; }
-  70% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(1.3); opacity: 0; }
+
+/* Troncature à 4 lignes */
+.clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .ecg-animate { animation: none; stroke-dashoffset: 0; }
-  .animate-\[sheet-in_\.22s_ease-out\],
-  .animate-\[pop_\.3s_ease-out\],
-  .animate-\[heart_\.7s_ease-out\] { animation: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Rendu Markdown des articles */
-.prose-atlas { color: var(--body); font-size: 16px; line-height: 1.65; }
+.prose-atlas { color: var(--text-1); font-size: 17px; line-height: 1.45; }
 .prose-atlas > * + * { margin-top: 0.9em; }
-.prose-atlas h1, .prose-atlas h2, .prose-atlas h3, .prose-atlas h4 {
-  font-family: var(--font-display); text-transform: uppercase; color: var(--ink);
-  line-height: 1.15; margin-top: 1.4em;
-}
-.prose-atlas h1 { font-size: 1.6em; } .prose-atlas h2 { font-size: 1.35em; } .prose-atlas h3 { font-size: 1.15em; }
-.prose-atlas a { color: var(--navy); text-decoration: underline; text-underline-offset: 2px; }
-.prose-atlas strong { color: var(--ink); }
+.prose-atlas h1, .prose-atlas h2, .prose-atlas h3, .prose-atlas h4 { margin-top: 1.4em; }
+.prose-atlas h1 { font-size: 28px; } .prose-atlas h2 { font-size: 22px; } .prose-atlas h3 { font-size: 17px; }
+.prose-atlas a { color: var(--navy-link); text-decoration: underline; text-underline-offset: 2px; }
+.prose-atlas strong { font-weight: 600; }
 .prose-atlas ul, .prose-atlas ol { padding-left: 1.4em; }
 .prose-atlas ul { list-style: disc; } .prose-atlas ol { list-style: decimal; }
 .prose-atlas li + li { margin-top: 0.3em; }
-.prose-atlas blockquote { border-left: 3px solid var(--red); padding-left: 1em; color: var(--muted); font-style: italic; }
-.prose-atlas img { border-radius: 12px; max-width: 100%; height: auto; }
-.prose-atlas code { background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 6px; font-size: 0.9em; }
-.prose-atlas pre { background: var(--surface-2); padding: 0.8em 1em; border-radius: 12px; overflow-x: auto; }
+.prose-atlas blockquote { border-left: 2px solid var(--glass-edge); padding-left: 1em; color: var(--text-2); }
+.prose-atlas img { border-radius: 16px; max-width: 100%; height: auto; }
+.prose-atlas code { background: var(--bg-2); padding: 0.1em 0.35em; border-radius: 6px; font-size: 0.9em; }
+.prose-atlas pre { background: var(--bg-2); padding: 0.8em 1em; border-radius: 10px; overflow-x: auto; }
 .prose-atlas hr { border: 0; border-top: 1px solid var(--line); }
-.prose-atlas table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
-.prose-atlas th, .prose-atlas td { border: 1px solid var(--line); padding: 0.4em 0.6em; text-align: left; }
+.prose-atlas table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.prose-atlas th, .prose-atlas td { border-bottom: 1px solid var(--line); padding: 0.4em 0.6em; text-align: left; }

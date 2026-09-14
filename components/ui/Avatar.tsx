@@ -1,9 +1,9 @@
 import { cn } from "@/lib/cn";
 import { mediaUrl } from "@/lib/media/url";
 
-const SIZES = { sm: "h-8 w-8 text-xs", md: "h-10 w-10 text-sm", lg: "h-16 w-16 text-2xl" } as const;
+const SIZES = { sm: "h-8 w-8 text-[11px]", md: "h-10 w-10 text-[13px]", lg: "h-16 w-16 text-[22px]" } as const;
 
-/** Avatar : photo si disponible, sinon initiales. « SC » (marine) pour le service com. */
+/** Avatar : photo si disponible, sinon initiales sur --bg-2. Jamais de fond coloré. */
 export function Avatar({
   name,
   avatarKey,
@@ -28,24 +28,15 @@ export function Avatar({
 
   if (avatarKey) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element -- avatar S3 léger, variante 256 px
-      <img
-        src={mediaUrl(avatarKey)}
-        alt=""
-        className={cn("shrink-0 rounded-full object-cover", SIZES[size], className)}
-      />
+      // eslint-disable-next-line @next/next/no-img-element -- avatar léger, variante 256 px
+      <img src={mediaUrl(avatarKey)} alt="" className={cn("shrink-0 rounded-full object-cover", SIZES[size], className)} />
     );
   }
 
   return (
     <span
       aria-hidden="true"
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full font-display font-bold uppercase",
-        official ? "bg-red text-white" : "bg-surface-2 text-ink ring-1 ring-line",
-        SIZES[size],
-        className,
-      )}
+      className={cn("flex shrink-0 items-center justify-center rounded-full bg-bg-2 font-medium text-text-2", SIZES[size], className)}
     >
       {initials}
     </span>

@@ -1,27 +1,29 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "tertiary" | "danger";
 type Size = "sm" | "md" | "lg";
 
+/**
+ * Principal : plein --red-fill, 48 px, rayon 12 px — un seul par écran.
+ * Secondaire : --bg-2 texte --text-1. Tertiaire : texte seul.
+ */
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-red text-white shadow-glow-red hover:bg-red-hover focus-visible:ring-red",
-  secondary: "bg-white text-bg hover:bg-white/90 focus-visible:ring-white",
-  ghost:
-    "bg-surface text-ink hover:bg-surface-2 focus-visible:ring-navy border border-line-strong",
-  danger:
-    "bg-transparent text-danger border border-danger/40 hover:bg-danger/5 focus-visible:ring-danger",
+  primary: "bg-red-fill text-white rounded-[12px]",
+  secondary: "bg-bg-2 text-text-1 rounded-[10px]",
+  tertiary: "bg-transparent text-text-2 hover:text-text-1 rounded-[10px]",
+  danger: "bg-transparent text-red-text rounded-[10px]",
 };
 
 const SIZES: Record<Size, string> = {
-  sm: "h-9 px-3 text-sm",
-  md: "h-11 px-4 text-sm",
-  lg: "h-12 px-6 text-base",
+  sm: "h-9 px-3 text-[13px]",
+  md: "h-11 px-4 text-[15px]",
+  lg: "h-12 px-5 text-[15px]",
 };
 
 export function Button({
   variant = "primary",
-  size = "md",
+  size = variant === "primary" ? "lg" : "md",
   loading = false,
   className,
   children,
@@ -35,7 +37,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:cursor-not-allowed disabled:opacity-60",
+        "inline-flex items-center justify-center gap-2 font-semibold disabled:cursor-not-allowed disabled:opacity-40",
         VARIANTS[variant],
         SIZES[size],
         className,
@@ -46,7 +48,7 @@ export function Button({
     >
       {loading && (
         <span
-          className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+          className="h-4 w-4 animate-spin rounded-full border-[1.75px] border-current border-t-transparent"
           aria-hidden="true"
         />
       )}

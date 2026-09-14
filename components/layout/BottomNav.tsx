@@ -2,70 +2,73 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Bookmark, LayoutGrid, Newspaper, User } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/config";
+import { SPRING } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 
-const ICONS: Record<(typeof NAV_ITEMS)[number]["icon"], React.ReactNode> = {
-  feed: (
-    <path d="M4 5h16M4 12h16M4 19h10" strokeLinecap="round" />
-  ),
-  gallery: (
-    <>
-      <rect x="3" y="3" width="8" height="8" rx="1.5" />
-      <rect x="13" y="3" width="8" height="8" rx="1.5" />
-      <rect x="3" y="13" width="8" height="8" rx="1.5" />
-      <rect x="13" y="13" width="8" height="8" rx="1.5" />
-    </>
-  ),
-  bookmark: <path d="M6 4h12v17l-6-4-6 4V4z" strokeLinejoin="round" />,
-  user: (
-    <>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" strokeLinecap="round" />
-    </>
-  ),
-};
+const ICONS = { feed: Newspaper, gallery: LayoutGrid, bookmark: Bookmark, user: User } as const;
 
+/**
+ * Barre basse en verre : 4 entrées, icône 20 px + libellé 11 px, entrée active en
+ * --text-1 sans fond ni pastille. Se masque au scroll vers le bas, revient au scroll
+ * vers le haut.
+ */
 export function BottomNav() {
   const pathname = usePathname();
+  const [hidden, setHidden] = useState(false);
+  const reduced = useReducedMotion();
+
+  useEffect(() => {
+    let last = window.scrollY;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const delta = y - last;
+        if (y < 16) setHidden(false);
+        else if (delta > 6) setHidden(true);
+        else if (delta < -6) setHidden(false);
+        last = y;
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <nav
+    <motion.nav
       aria-label="Navigation principale"
-      className="glass fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)]"
+      animate={{ y: hidden && !reduced ? "110%" : 0 }}
+      transition={SPRING}
+      className="glass fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="mx-auto grid max-w-2xl grid-cols-4">
+      <ul className="mx-auto grid max-w-[680px] grid-cols-4">
         {NAV_ITEMS.map((item) => {
-          const active =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const Icon = ICONS[item.icon];
           return (
             <li key={item.href}>
               <Link
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold uppercase tracking-wide transition-colors",
-                  active ? "text-ink" : "text-muted hover:text-ink",
+                  "pressable flex h-[52px] flex-col items-center justify-center gap-1 text-[11px] font-medium",
+                  active ? "text-text-1" : "text-text-2",
                 )}
               >
-                <span className={cn("flex h-7 w-12 items-center justify-center rounded-full transition-colors", active && "bg-red/20")}>
-                <svg
-                  viewBox="0 0 24 24"
-                  className={cn("h-6 w-6", active && "text-red-text")}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={active ? 2.4 : 1.8}
-                  aria-hidden="true"
-                >
-                  {ICONS[item.icon]}
-                </svg>
-                </span>
+                <Icon size={22} strokeWidth={1.75} aria-hidden="true" />
                 {item.label}
               </Link>
             </li>
           );
         })}
       </ul>
-    </nav>
+    </motion.nav>
   );
 }

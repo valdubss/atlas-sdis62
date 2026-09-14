@@ -1,16 +1,17 @@
 import { cn } from "@/lib/cn";
 
-type Tone = "navy" | "red" | "muted" | "success";
+type Tone = "neutral" | "red" | "success" | "navy";
 
+/** Étiquette 13/500 : fond --bg-2, texte --text-2 ; rouge uniquement pour « nouveau ». */
 const TONES: Record<Tone, string> = {
-  navy: "bg-navy/15 text-navy",
-  red: "bg-red text-white",
-  muted: "bg-surface-2 text-muted",
-  success: "bg-success/10 text-success",
+  neutral: "bg-bg-2 text-text-2",
+  red: "bg-red-soft text-red-text",
+  success: "bg-bg-2 text-success",
+  navy: "bg-bg-2 text-navy-link",
 };
 
 export function Badge({
-  tone = "navy",
+  tone = "neutral",
   className,
   children,
 }: {
@@ -19,13 +20,7 @@ export function Badge({
   children: React.ReactNode;
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide",
-        TONES[tone],
-        className,
-      )}
-    >
+    <span className={cn("inline-flex h-6 items-center rounded-full px-2.5 text-[13px] font-medium", TONES[tone], className)}>
       {children}
     </span>
   );

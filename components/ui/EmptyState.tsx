@@ -1,5 +1,4 @@
-import { Ecg } from "@/components/brand/Ecg";
-
+/** État vide : un titre 17/600, une phrase en --text-2, rien d'autre. */
 export function EmptyState({
   title,
   description,
@@ -10,11 +9,10 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 px-6 py-14 text-center">
-      <Ecg className="h-8 w-44 text-red/70" strokeWidth={2} />
-      <h3 className="font-display text-xl font-bold uppercase text-ink">{title}</h3>
-      {description && <p className="max-w-xs text-sm text-muted">{description}</p>}
-      {action}
+    <div className="flex flex-col items-center gap-2 px-5 py-16 text-center">
+      <p className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">{title}</p>
+      {description && <p className="max-w-xs text-[15px] text-text-2">{description}</p>}
+      {action && <div className="mt-3">{action}</div>}
     </div>
   );
 }
