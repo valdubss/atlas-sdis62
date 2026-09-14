@@ -16,12 +16,13 @@ export type EditorMedia = MediaItem & {
   error?: string;
 };
 
-type Accept = "images" | "video" | "cover";
+type Accept = "images" | "video" | "cover" | "story";
 
 const LABELS: Record<Accept, { title: string; hint: string; max: number; kinds: ("image" | "video")[] }> = {
   images: { title: "Photos", hint: `Glissez vos photos ou touchez pour choisir, jusqu'à ${LIMITS.imagesPerPost}. JPG, PNG, WebP, HEIC.`, max: LIMITS.imagesPerPost, kinds: ["image"] },
   video: { title: "Vidéo", hint: "Une vidéo MP4 (H.264), 200 Mo au plus. MOV accepté si H.264.", max: 1, kinds: ["video"] },
   cover: { title: "Image de couverture (facultatif)", hint: "Une image affichée en tête de l'article.", max: 1, kinds: ["image"] },
+  story: { title: "Média de la story", hint: `Une photo ou une vidéo de ${LIMITS.storyVideoMaxSeconds} s au plus, format vertical conseillé.`, max: 1, kinds: ["image", "video"] },
 };
 
 export function MediaUploader({
@@ -79,6 +80,9 @@ export function MediaUploader({
 
         try {
           const prepared = await prepareFile(file);
+          if (accept === "story" && prepared.kind === "video" && (prepared.duration ?? 0) > LIMITS.storyVideoMaxSeconds) {
+            throw new Error(`Une story vidéo dure ${LIMITS.storyVideoMaxSeconds} s au plus (${Math.round(prepared.duration ?? 0)} s).`);
+          }
           const created = await createUpload({
             kind: prepared.kind,
             mime: prepared.mime,
@@ -129,7 +133,7 @@ export function MediaUploader({
         }
       }
     },
-    [cfg, items.length, onChange, patch],
+    [cfg, accept, items.length, onChange, patch],
   );
 
   function remove(m: EditorMedia) {
@@ -176,12 +180,20 @@ export function MediaUploader({
           )}
         >
           <Upload size={22} strokeWidth={1.75} className="text-text-2" aria-hidden="true" />
-          <p className="text-[15px] font-medium text-text-1">Ajouter {accept === "video" ? "une vidéo" : accept === "cover" ? "une image" : "des photos"}</p>
+          <p className="text-[15px] font-medium text-text-1">
+            Ajouter {accept === "video" ? "une vidéo" : accept === "cover" ? "une image" : accept === "story" ? "une photo ou une vidéo" : "des photos"}
+          </p>
           <p className="text-[13px] text-text-3">{cfg.hint}</p>
           <input
             ref={inputRef}
             type="file"
-            accept={accept === "video" ? ".mp4,.mov,video/mp4,video/quicktime" : ".jpg,.jpeg,.png,.webp,.heic,.heif,image/*"}
+            accept={
+              accept === "video"
+                ? ".mp4,.mov,video/mp4,video/quicktime"
+                : accept === "story"
+                  ? ".jpg,.jpeg,.png,.webp,.heic,.heif,.mp4,.mov,image/*,video/mp4,video/quicktime"
+                  : ".jpg,.jpeg,.png,.webp,.heic,.heif,image/*"
+            }
             multiple={cfg.max > 1}
             className="sr-only"
             onChange={(e) => {
@@ -201,10 +213,10 @@ export function MediaUploader({
       )}
 
       {items.length > 0 && (
-        <ul className={cn("grid gap-3", accept === "images" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1")}>
+        <ul className={cn("grid gap-3", accept === "images" ? "grid-cols-2 sm:grid-cols-3" : accept === "story" ? "max-w-[220px] grid-cols-1" : "grid-cols-1")}>
           {items.map((m, i) => (
             <li key={m.id} className="overflow-hidden rounded-[16px] bg-bg-2">
-              <div className="relative aspect-[4/3] bg-bg-0">
+              <div className={cn("relative bg-bg-0", accept === "story" ? "aspect-[9/16]" : "aspect-[4/3]")}>
                 {m.kind === "video" ? (
                   posterSrc(m) ? (
                     // eslint-disable-next-line @next/next/no-img-element -- aperçu local
