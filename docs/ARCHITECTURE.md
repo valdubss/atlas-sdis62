@@ -1,7 +1,7 @@
 # ATLAS — Plan d'architecture
 
 > Plateforme d'actualités interne du SDIS 62. Diffusion descendante : le service communication publie, les agents consultent et réagissent.
-> Statut : **proposition à valider avant tout code**. Version du 14/09/2026.
+> Statut : validé le 14/09/2026. Écarts d'implémentation : stockage démarré sur Supabase Storage (pilote interchangeable avec S3, voir README §8) ; catégories / centres / tags désactivés par drapeaux `FEATURES` à la demande du service ; publication programmée déclenchée à la lecture du fil en attendant pg_cron.
 
 ---
 

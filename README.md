@@ -7,7 +7,7 @@ interagissent (réactions, commentaires, favoris).
 - **Stack** : Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · Supabase
   (Postgres, Auth, RLS, Realtime) · stockage S3 compatible (Scaleway / R2) · Vercel.
 - **Architecture** : voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Avancement** : lots (a) et (b) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications texte et article, réactions, commentaires temps réel, favoris, recherche, studio (éditeur, liste, statistiques). Prochain lot : (c) stockage S3 et photos.
+- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`).
 
 ---
 
@@ -191,8 +191,9 @@ npm run dev           # puis http://localhost:3000
 
 Parcours à tester :
 
-0. Studio → **Nouvelle publication** : rédiger une annonce, **Publier maintenant** →
-   elle apparaît sur le fil (`/`) ; réagir 👏, commenter (ouvrir la même page dans un
+0. Studio → **Nouvelle publication** : glisser 2 ou 3 photos (ou une vidéo MP4),
+   écrire une légende, **Publier maintenant** → la publication apparaît sur le fil
+   (`/`) en carrousel plein cadre ; réagir 👏, commenter (ouvrir la même page dans un
    second onglet : le commentaire arrive en temps réel), enregistrer en favori,
    partager ; tester la recherche et les puces de catégories.
 1. `/login` avec une adresse **hors** domaine → message « Seules les adresses @sdis62.fr… ».
@@ -252,11 +253,13 @@ components/
   brand/                   Logo, tracé ECG (séparateur, loader, état vide)
   layout/                  TopBar, BottomNav
   ui/                      Button, Field, Card, Sheet, Avatar, Badge, EmptyState
-  feed/                    PostCard, ReactionBar, Comments, InfiniteFeed, FeedFilters…
-  studio/                  PostEditor
+  feed/                    PostCard, PhotoCarousel, VideoPlayer, ReactionBar, Comments…
+  studio/                  PostEditor, MediaUploader (glisser-déposer, progression, alt)
 lib/
   config.ts                nom de l'app, limites, réactions
   feed/                    types du fil, requêtes serveur (RPC get_feed…)
+  storage/                 pilotes de stockage : s3.ts (SDK AWS v3), supabase.ts
+  media/                   variantes sharp, clés du bucket, contrôle MP4, préparation client
   format.ts                dates relatives en français
   auth/                    domaines autorisés, point d'extension SSO
   supabase/                clients navigateur / serveur / admin, middleware, types
@@ -269,10 +272,58 @@ scripts/extract-colors.mjs extraction des couleurs du logo
 docs/ARCHITECTURE.md       plan d'architecture
 ```
 
-## 8. Bucket S3 (Scaleway / R2)
+## 8. Stockage des médias (Supabase Storage ou bucket S3)
 
-*Livré au lot (c).* Variables prévues dans `.env.example` (`S3_ENDPOINT`,
-`S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_PUBLIC_URL`).
+Les photos et vidéos partent **directement du navigateur** vers le stockage
+(URL signée), puis le serveur génère les variantes WebP (400 / 1200 / 2400 px)
+avec `sharp`. Les vidéos sont stockées telles quelles (MP4 H.264, contrôle du
+codec dans le navigateur) avec un poster généré côté client.
+
+### 8.1 Démarrage sans configuration : Supabase Storage
+
+Sans variables `S3_*`, l'application utilise le bucket public **`media`** de
+Supabase Storage. Il est créé automatiquement au premier usage, ou à la main :
+**Storage → New bucket** : nom `media`, *Public bucket* coché.
+
+> Limite de taille par fichier : **50 Mo** sur l'offre gratuite Supabase
+> (5 Go sur l'offre Pro, réglable dans les paramètres du bucket). Les vidéos
+> plus lourdes sont refusées avec un message explicite.
+
+### 8.2 Passage à un bucket S3 (Scaleway Object Storage ou Cloudflare R2)
+
+Renseignez dans `.env.local` (et sur Vercel) :
+
+| Variable | Scaleway | Cloudflare R2 |
+|---|---|---|
+| `S3_ENDPOINT` | `https://s3.fr-par.scw.cloud` | `https://<account_id>.r2.cloudflarestorage.com` |
+| `S3_REGION` | `fr-par` | `auto` |
+| `S3_BUCKET` | nom du bucket | nom du bucket |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | clés API du projet | jeton R2 (lecture/écriture objets) |
+| `S3_PUBLIC_URL` et `NEXT_PUBLIC_S3_PUBLIC_URL` | `https://<bucket>.s3.fr-par.scw.cloud` ou domaine Edge | domaine public R2 (`r2.dev` ou personnalisé) |
+
+Puis :
+
+1. **Visibilité** : bucket en lecture publique (Scaleway : *Visibilité → Public* ;
+   R2 : *Settings → Public access*).
+2. **CORS** du bucket, pour autoriser le `PUT` depuis l'application :
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://<votre-domaine>", "http://localhost:3000"],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
+
+3. Redémarrez l'application : `lib/storage` détecte les variables et bascule sur
+   le pilote S3 (`STORAGE_DRIVER=s3|supabase` force le choix). Les médias déjà
+   envoyés sur Supabase Storage restent lisibles tant que l'ancienne URL
+   publique est conservée dans `NEXT_PUBLIC_S3_PUBLIC_URL`… ou se migrent avec
+   `rclone` (`rclone copy supabase:media scaleway:<bucket>`).
 
 ## 9. Déploiement Vercel
 
