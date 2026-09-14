@@ -7,6 +7,7 @@ import { EcgDivider } from "@/components/brand/Ecg";
 import { createClient, getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { ROLE_LABELS } from "@/lib/config";
 import { ProfileForm } from "./ProfileForm";
+import { PasswordForm } from "./PasswordForm";
 import { signOut } from "./actions";
 
 export const metadata: Metadata = { title: "Profil" };
@@ -76,6 +77,14 @@ export default async function ProfilPage() {
           </Link>
         </Card>
       )}
+
+      <Card className="p-5">
+        <p className="font-semibold text-ink">Mot de passe</p>
+        <p className="mb-4 text-sm text-muted">
+          Facultatif : permet de se connecter sans attendre le lien par e-mail.
+        </p>
+        <PasswordForm />
+      </Card>
 
       <Card className="space-y-3 p-5">
         <p className="text-sm text-muted">

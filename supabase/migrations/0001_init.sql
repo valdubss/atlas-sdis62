@@ -1,5 +1,5 @@
 -- =============================================================================
--- Flash 62 — migration 0001 : schéma initial, rôles, RLS, triggers métier
+-- ATLAS (SDIS 62) — migration 0001 : schéma initial, rôles, RLS, triggers métier
 -- =============================================================================
 -- Conventions :
 --   * toutes les tables sont dans le schéma public, RLS activée ;
@@ -79,8 +79,9 @@ create table public.app_settings (
 );
 
 insert into public.app_settings (key, value) values
-  ('app_name',              '"Flash 62"'),
+  ('app_name',              '"ATLAS"'),
   ('allowed_email_domains', '["sdis62.fr"]'),
+  ('allowed_emails',        '[]'),   -- adresses individuelles hors domaine (ex. admin externe)
   ('digest_enabled',        'false'),
   ('digest_weekday',        '1'),
   ('digest_hour',           '7');
@@ -169,6 +170,8 @@ returns boolean language sql stable security definer set search_path = public as
   select coalesce(public.auth_role() in ('editor', 'admin'), false)
 $$;
 
+-- Une adresse est acceptée si son domaine est listé dans allowed_email_domains
+-- OU si l'adresse complète est listée dans allowed_emails.
 create or replace function public.is_allowed_email(p_email text)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
@@ -177,6 +180,13 @@ returns boolean language sql stable security definer set search_path = public as
          jsonb_array_elements_text(s.value) d(domain)
     where s.key = 'allowed_email_domains'
       and lower(split_part(p_email, '@', 2)) = lower(d.domain)
+  )
+  or exists (
+    select 1
+    from public.app_settings s,
+         jsonb_array_elements_text(s.value) e(email)
+    where s.key = 'allowed_emails'
+      and lower(p_email) = lower(e.email)
   )
 $$;
 
@@ -223,7 +233,9 @@ create trigger on_auth_user_created
 create or replace function public.profiles_guard()
 returns trigger language plpgsql security definer set search_path = public as $$
 begin
-  if not public.is_admin() then
+  -- auth.uid() est null hors session utilisateur (éditeur SQL, migrations,
+  -- clé service_role) : ces contextes d'administration ne sont pas restreints.
+  if auth.uid() is not null and not public.is_admin() then
     if new.role is distinct from old.role
        or new.is_active is distinct from old.is_active
        or new.email is distinct from old.email then

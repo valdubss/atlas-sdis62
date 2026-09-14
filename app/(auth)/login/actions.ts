@@ -1,9 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAllowedEmail, getAllowedDomains } from "@/lib/auth/domains";
-import { loginSchema } from "@/lib/validation/auth";
+import { loginSchema, passwordLoginSchema } from "@/lib/validation/auth";
 
 export type LoginState =
   | { status: "idle" }
@@ -15,6 +16,14 @@ function safeNext(next: string | null): string {
   return next;
 }
 
+function notAllowedMessage() {
+  const domains = getAllowedDomains();
+  return domains.length > 0
+    ? `Seules les adresses ${domains.map((d) => "@" + d).join(", ")} (ou autorisées individuellement) sont acceptées.`
+    : "Aucun domaine e-mail autorisé n'est configuré (ALLOWED_EMAIL_DOMAINS).";
+}
+
+/** Connexion par lien magique (par défaut). */
 export async function sendMagicLink(
   _prev: LoginState,
   formData: FormData,
@@ -26,14 +35,7 @@ export async function sendMagicLink(
   const { email } = parsed.data;
 
   if (!isAllowedEmail(email)) {
-    const domains = getAllowedDomains();
-    return {
-      status: "error",
-      message:
-        domains.length > 0
-          ? `Seules les adresses ${domains.map((d) => "@" + d).join(", ")} sont acceptées.`
-          : "Aucun domaine e-mail autorisé n'est configuré (ALLOWED_EMAIL_DOMAINS).",
-    };
+    return { status: "error", message: notAllowedMessage() };
   }
 
   const h = await headers();
@@ -53,7 +55,7 @@ export async function sendMagicLink(
   });
 
   if (error) {
-    // Le trigger SQL refuse les domaines non autorisés (défense en profondeur).
+    // Le trigger SQL refuse les adresses non autorisées (défense en profondeur).
     if (error.message.includes("DOMAINE_NON_AUTORISE") || error.message.includes("Database error")) {
       return { status: "error", message: "Cette adresse n'est pas autorisée." };
     }
@@ -67,4 +69,43 @@ export async function sendMagicLink(
   }
 
   return { status: "sent", email };
+}
+
+/**
+ * Connexion par mot de passe (option pour les administrateurs / éditeurs).
+ * Le mot de passe se définit depuis la page Profil après une première
+ * connexion par lien magique.
+ */
+export async function signInWithPassword(
+  _prev: LoginState,
+  formData: FormData,
+): Promise<LoginState> {
+  const parsed = passwordLoginSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+  });
+  if (!parsed.success) {
+    return { status: "error", message: parsed.error.issues[0]?.message ?? "Champs invalides." };
+  }
+  const { email, password } = parsed.data;
+
+  if (!isAllowedEmail(email)) {
+    return { status: "error", message: notAllowedMessage() };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    if (error.status === 429) {
+      return { status: "error", message: "Trop de tentatives. Patientez quelques minutes." };
+    }
+    return {
+      status: "error",
+      message:
+        "Identifiants incorrects. Si vous n'avez pas encore défini de mot de passe, utilisez le lien magique.",
+    };
+  }
+
+  redirect(safeNext(formData.get("next") as string | null));
 }

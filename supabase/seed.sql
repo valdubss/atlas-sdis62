@@ -1,5 +1,5 @@
 -- =============================================================================
--- Flash 62 — données de démarrage (facultatif, environnement de dev / recette)
+-- ATLAS — données de démarrage (facultatif, environnement de dev / recette)
 -- À exécuter après les migrations : supabase db reset applique seed.sql
 -- automatiquement ; sinon collez ce fichier dans l'éditeur SQL du dashboard.
 -- =============================================================================
@@ -16,3 +16,13 @@ insert into public.centers (name, slug, sort_order) values
   ('CIS Montreuil-sur-Mer',      'cis-montreuil',    70),
   ('CIS Berck',                  'cis-berck',        80)
 on conflict (slug) do nothing;
+
+-- -----------------------------------------------------------------------------
+-- Accès administrateur initial hors domaine sdis62.fr
+-- Ajoute l'adresse à la liste blanche (la connexion reste refusée pour tout
+-- autre compte gmail.com). Après la première connexion, passer le rôle en admin :
+--   update public.profiles set role = 'admin' where email = 'contact.vdubois@gmail.com';
+-- -----------------------------------------------------------------------------
+update public.app_settings
+set value = '["contact.vdubois@gmail.com"]'
+where key = 'allowed_emails';

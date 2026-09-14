@@ -1,24 +1,41 @@
 /**
- * Restriction des connexions aux domaines e-mail autorisés.
+ * Restriction des connexions aux adresses autorisées.
+ *
+ * Deux listes :
+ *  - ALLOWED_EMAIL_DOMAINS : domaines entiers (ex. sdis62.fr) ;
+ *  - ALLOWED_EMAILS : adresses individuelles hors domaine (ex. un administrateur
+ *    externe). Le reste du domaine de ces adresses reste refusé.
  *
  * Deux niveaux de contrôle :
  *  1. ici, côté serveur Next (message immédiat à l'utilisateur) ;
  *  2. en base, trigger handle_new_user() qui lit app_settings.allowed_email_domains
- *     (défense en profondeur : même un appel direct à l'API Supabase est refusé).
+ *     et app_settings.allowed_emails (défense en profondeur).
  *
- * Gardez ALLOWED_EMAIL_DOMAINS (.env) et app_settings.allowed_email_domains alignés.
+ * Gardez .env et app_settings alignés.
  */
-export function getAllowedDomains(): string[] {
-  return (process.env.ALLOWED_EMAIL_DOMAINS ?? "")
+function parseList(value: string | undefined): string[] {
+  return (value ?? "")
     .split(",")
     .map((d) => d.trim().toLowerCase())
     .filter(Boolean);
 }
 
-export function isAllowedEmail(email: string, domains = getAllowedDomains()) {
-  const at = email.lastIndexOf("@");
+export function getAllowedDomains(): string[] {
+  return parseList(process.env.ALLOWED_EMAIL_DOMAINS);
+}
+
+export function getAllowedEmails(): string[] {
+  return parseList(process.env.ALLOWED_EMAILS);
+}
+
+export function isAllowedEmail(
+  email: string,
+  domains = getAllowedDomains(),
+  emails = getAllowedEmails(),
+) {
+  const normalized = email.trim().toLowerCase();
+  if (emails.includes(normalized)) return true;
+  const at = normalized.lastIndexOf("@");
   if (at < 0) return false;
-  const domain = email.slice(at + 1).toLowerCase();
-  if (domains.length === 0) return false;
-  return domains.includes(domain);
+  return domains.includes(normalized.slice(at + 1));
 }
