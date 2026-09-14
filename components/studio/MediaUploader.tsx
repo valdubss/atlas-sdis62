@@ -236,7 +236,7 @@ export function MediaUploader({
                     ) : (
                       <>
                         <span>
-                          {m.status === "preparing" && "Préparation"}
+                          {m.status === "preparing" && (m.kind === "video" ? "Analyse de la vidéo…" : "Préparation…")}
                           {m.status === "uploading" && `Envoi ${Math.round(m.progress * 100)} %`}
                           {m.status === "processing" && "Traitement"}
                         </span>

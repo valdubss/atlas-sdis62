@@ -46,7 +46,7 @@ export default async function StudioLayout({ children }: { children: React.React
             <StudioNav compact />
           </div>
         </header>
-        <main className="flex-1 px-5 pb-28 pt-[calc(48px+env(safe-area-inset-top)+16px)] md:px-8 md:py-8">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-clip px-5 pb-28 pt-[calc(48px+env(safe-area-inset-top)+16px)] md:px-8 md:py-8">{children}</main>
         <div className="md:hidden">
           <BottomNav />
         </div>

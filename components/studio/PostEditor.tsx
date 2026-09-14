@@ -135,8 +135,8 @@ export function PostEditor({
   }
 
   return (
-    <div className="mx-auto grid max-w-[1200px] gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <form action={action} className="space-y-6">
+    <div className="mx-auto grid min-w-0 max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <form action={action} className="min-w-0 space-y-6">
         {post && <input type="hidden" name="id" value={post.id} />}
         <input type="hidden" name="type" value={type} />
         <input type="hidden" name="media" value={mediaPayload} />
@@ -146,11 +146,11 @@ export function PostEditor({
         {!FEATURES.authorChoice && <input type="hidden" name="author_display" value={authorDisplay} />}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">{post ? "Modifier" : "Nouvelle publication"}</h1>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="min-w-0 text-[26px] font-semibold tracking-[-0.02em] text-text-1 sm:text-[28px]">{post ? "Modifier" : "Nouvelle publication"}</h1>
             <Badge tone={badge.tone}>{badge.label}</Badge>
           </div>
-          <Link href="/studio/posts" className="pressable text-[15px] font-medium text-text-2 hover:text-text-1">
+          <Link href="/studio/posts" className="pressable hidden text-[15px] font-medium text-text-2 hover:text-text-1 sm:inline">
             Publications
           </Link>
         </div>
@@ -358,7 +358,7 @@ export function PostEditor({
       </form>
 
       {/* Aperçu tel que vu par un agent, dans un cadre de téléphone */}
-      <aside className="lg:sticky lg:top-8 lg:self-start">
+      <aside className="min-w-0 lg:sticky lg:top-8 lg:self-start">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-[13px] font-medium text-text-2">Aperçu agent</p>
           {type === "article" && (

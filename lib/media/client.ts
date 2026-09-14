@@ -61,8 +61,12 @@ async function prepareVideo(file: File): Promise<PreparedFile> {
   if (types.length === 0 && file.size > WINDOW) {
     types = readSampleEntryTypes(await file.slice(file.size - WINDOW).arrayBuffer());
   }
+  if (types.length === 0 && file.size > WINDOW) {
+    // Dernier recours : le fichier entier (au plus la limite d'envoi)
+    types = readSampleEntryTypes(await file.arrayBuffer());
+  }
   if (types.length === 0) {
-    throw new Error(`${file.name} : fichier vidéo illisible.`);
+    throw new Error(`${file.name} : fichier vidéo illisible (conteneur MP4/MOV attendu).`);
   }
   if (!isH264(types)) {
     throw new Error(
@@ -106,19 +110,41 @@ function videoMetadata(file: File): Promise<{ width: number; height: number; dur
     video.playsInline = true;
     video.preload = "auto";
     video.src = url;
-
-    const fail = () => {
+    let settled = false;
+    const done = (value: { width: number; height: number; duration: number; poster?: Blob } | null, error?: string) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(metaTimer);
+      clearTimeout(posterTimer);
       URL.revokeObjectURL(url);
-      reject(new Error("Vidéo illisible par le navigateur."));
+      video.removeAttribute("src");
+      video.load();
+      if (value) resolve(value);
+      else reject(new Error(error ?? "Vidéo illisible par le navigateur."));
     };
-    video.onerror = fail;
+    // Délais de garde : jamais bloqué sur « Préparation » (iOS peut ne jamais
+    // émettre seeked sur un blob ; le poster est alors simplement omis).
+    let posterTimer: ReturnType<typeof setTimeout> | undefined;
+    const metaTimer = setTimeout(() => done(null, "La vidéo n'a pas pu être lue par le téléphone (délai dépassé). Réessayez avec un export MP4 H.264."), 20_000);
+
+    video.onerror = () => done(null);
 
     video.onloadedmetadata = () => {
       const width = video.videoWidth;
       const height = video.videoHeight;
       const duration = video.duration;
+      if (!width || !height) {
+        done(null, "Vidéo sans piste image lisible.");
+        return;
+      }
+      posterTimer = setTimeout(() => done({ width, height, duration }), 6_000);
       // Poster : image à 0,5 s (ou au début si la vidéo est plus courte)
-      video.currentTime = Math.min(0.5, Math.max(0, duration - 0.1));
+      try {
+        video.currentTime = Math.min(0.5, Math.max(0, (Number.isFinite(duration) ? duration : 1) - 0.1));
+      } catch {
+        done({ width, height, duration });
+        return;
+      }
       video.onseeked = () => {
         try {
           const canvas = document.createElement("canvas");
@@ -127,16 +153,12 @@ function videoMetadata(file: File): Promise<{ width: number; height: number; dur
           canvas.height = Math.round(height * scale);
           canvas.getContext("2d")!.drawImage(video, 0, 0, canvas.width, canvas.height);
           canvas.toBlob(
-            (poster) => {
-              URL.revokeObjectURL(url);
-              resolve({ width, height, duration, poster: poster ?? undefined });
-            },
+            (poster) => done({ width, height, duration, poster: poster ?? undefined }),
             "image/jpeg",
             0.85,
           );
         } catch {
-          URL.revokeObjectURL(url);
-          resolve({ width, height, duration });
+          done({ width, height, duration });
         }
       };
     };

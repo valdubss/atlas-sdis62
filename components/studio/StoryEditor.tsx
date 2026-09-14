@@ -53,18 +53,18 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
   };
 
   return (
-    <div className="mx-auto grid max-w-[1200px] gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <form action={action} className="space-y-6">
+    <div className="mx-auto grid min-w-0 max-w-[1200px] grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <form action={action} className="min-w-0 space-y-6">
         {story && <input type="hidden" name="id" value={story.id} />}
         <input type="hidden" name="media_id" value={ready?.id ?? ""} />
         <input type="hidden" name="overlay_position" value={position} />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">{story ? "Modifier la story" : "Nouvelle story"}</h1>
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <h1 className="min-w-0 text-[26px] font-semibold tracking-[-0.02em] text-text-1 sm:text-[28px]">{story ? "Modifier la story" : "Nouvelle story"}</h1>
             <Badge tone={badge[status].tone}>{badge[status].label}</Badge>
           </div>
-          <Link href="/studio/stories" className="pressable text-[15px] font-medium text-text-2 hover:text-text-1">
+          <Link href="/studio/stories" className="pressable hidden text-[15px] font-medium text-text-2 hover:text-text-1 sm:inline">
             Stories
           </Link>
         </div>
@@ -190,7 +190,7 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
         </div>
       </form>
 
-      <aside className="lg:sticky lg:top-8 lg:self-start">
+      <aside className="min-w-0 lg:sticky lg:top-8 lg:self-start">
         <p className="mb-3 text-[13px] font-medium text-text-2">Aperçu</p>
         <div className="mx-auto aspect-[9/16] w-full max-w-[300px] overflow-hidden rounded-[28px] bg-black ring-[6px] ring-bg-2">
           <div className="relative h-full">

@@ -48,6 +48,21 @@ export function readSampleEntryTypes(buf: ArrayBuffer): string[] {
   }
 
   walk(0, buf.byteLength, 0);
+  if (found.length > 0) return found;
+
+  // Tampon partiel (fin d'un fichier dont le « moov » est en queue) : les
+  // boîtes ne commencent pas au début, on cherche la signature « moov ».
+  const bytes = new Uint8Array(buf);
+  for (let i = 4; i + 4 <= bytes.length; i++) {
+    if (bytes[i] === 0x6d && bytes[i + 1] === 0x6f && bytes[i + 2] === 0x6f && bytes[i + 3] === 0x76) {
+      const start = i - 4;
+      const size = view.getUint32(start);
+      if (size >= 16 && size <= buf.byteLength - start + 16) {
+        walk(start, Math.min(start + size, buf.byteLength), 0);
+        if (found.length > 0) return found;
+      }
+    }
+  }
   return found;
 }
 
