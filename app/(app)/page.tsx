@@ -24,8 +24,8 @@ export default async function FeedPage({
 
   const [current, categories, centers, pinned, posts] = await Promise.all([
     getCurrentUser(),
-    fetchCategories(),
-    fetchCenters(),
+    FEATURES.categories ? fetchCategories() : Promise.resolve([]),
+    FEATURES.centers ? fetchCenters() : Promise.resolve([]),
     filtered ? Promise.resolve([]) : fetchPinned(),
     fetchFeed(params),
   ]);

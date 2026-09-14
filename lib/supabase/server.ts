@@ -39,9 +39,13 @@ export async function createClient() {
  */
 export const getCurrentUser = cache(async () => {
   const supabase = await createClient();
+  // Le middleware a déjà validé le jeton auprès de Supabase pour cette requête :
+  // on lit la session depuis le cookie (aucun aller-retour réseau). Les données
+  // restent protégées par la RLS, qui vérifie la signature du jeton côté base.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session ? decodeJwtUser(session.access_token) : null;
   if (!user) return null;
 
   let { data: profile } = await supabase
@@ -61,6 +65,18 @@ export const getCurrentUser = cache(async () => {
 
   return { user, profile: profile as Profile };
 });
+
+/** Identité minimale lue dans le jeton (sub, email), sans aller-retour réseau. */
+function decodeJwtUser(token: string): { id: string; email: string | null } | null {
+  try {
+    const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8")) as { sub?: string; email?: string; exp?: number };
+    if (!payload.sub) return null;
+    if (payload.exp && payload.exp * 1000 < Date.now()) return null;
+    return { id: payload.sub, email: payload.email ?? null };
+  } catch {
+    return null;
+  }
+}
 
 export function isEditorRole(role: Profile["role"] | undefined | null) {
   return role === "editor" || role === "admin";
