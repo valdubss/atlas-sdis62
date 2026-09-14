@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { FeedCursor, FeedParams, FeedPost } from "./types";
+import type { FeedCursor, FeedParams, FeedPost, StoryBar, StoryItem } from "./types";
 
 export const FEED_PAGE_SIZE = 10;
 
@@ -71,4 +71,18 @@ export async function fetchCenters() {
     .order("sort_order")
     .order("name");
   return data ?? [];
+}
+
+export async function fetchStoryBar(): Promise<StoryBar> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_story_bar");
+  if (error || !data) return { series: [], highlights: [] };
+  return data as unknown as StoryBar;
+}
+
+export async function fetchStoryById(id: string): Promise<StoryItem | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_story_by_id", { p_id: id });
+  if (error || !data) return null;
+  return data as unknown as StoryItem;
 }

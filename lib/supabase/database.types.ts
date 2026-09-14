@@ -114,6 +114,23 @@ type MediaRow = {
   updated_at: Timestamp;
 };
 
+type StoryRow = {
+  id: string;
+  series_id: string;
+  media_id: string;
+  author_id: string | null;
+  overlay: Json | null;
+  link_post_id: string | null;
+  display_seconds: number;
+  status: StoryStatus;
+  scheduled_at: Timestamp | null;
+  published_at: Timestamp | null;
+  expires_at: Timestamp | null;
+  position: number;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+};
+
 type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 export type Database = {
@@ -217,6 +234,36 @@ export type Database = {
         Update: { position?: number; alt?: string | null; crop?: Json | null };
         Relationships: [];
       };
+      story_series: {
+        Row: { id: string; title: string; cover_media_id: string | null; created_by: string | null; created_at: Timestamp };
+        Insert: { id?: string; title: string; cover_media_id?: string | null; created_by?: string | null; created_at?: Timestamp };
+        Update: { title?: string; cover_media_id?: string | null };
+        Relationships: [];
+      };
+      stories: {
+        Row: StoryRow;
+        Insert: Optional<StoryRow, "id" | "author_id" | "overlay" | "link_post_id" | "display_seconds" | "status" | "scheduled_at" | "published_at" | "expires_at" | "position" | "created_at" | "updated_at">;
+        Update: Partial<StoryRow>;
+        Relationships: [];
+      };
+      story_highlights: {
+        Row: { id: string; title: string; cover_media_id: string | null; position: number; is_active: boolean; created_at: Timestamp };
+        Insert: { id?: string; title: string; cover_media_id?: string | null; position?: number; is_active?: boolean; created_at?: Timestamp };
+        Update: { title?: string; cover_media_id?: string | null; position?: number; is_active?: boolean };
+        Relationships: [];
+      };
+      story_highlight_items: {
+        Row: { highlight_id: string; story_id: string; position: number };
+        Insert: { highlight_id: string; story_id: string; position?: number };
+        Update: { position?: number };
+        Relationships: [];
+      };
+      story_views: {
+        Row: { story_id: string; user_id: string; viewed_at: Timestamp };
+        Insert: { story_id: string; user_id: string; viewed_at?: Timestamp };
+        Update: never;
+        Relationships: [];
+      };
       media: {
         Row: MediaRow;
         Insert: Optional<MediaRow, "id" | "status" | "variants" | "poster_key" | "width" | "height" | "duration_s" | "alt" | "error" | "created_at" | "updated_at">;
@@ -270,6 +317,11 @@ export type Database = {
       record_post_view: { Args: { p_post_id: string }; Returns: undefined };
       get_comments: { Args: { p_post_id: string }; Returns: Json[] };
       studio_stats: { Args: Record<string, never>; Returns: Json };
+      get_story_bar: { Args: Record<string, never>; Returns: Json };
+      get_story_items: { Args: { p_series_id?: string | null; p_highlight_id?: string | null }; Returns: Json[] };
+      get_highlight_items: { Args: { p_highlight_id: string }; Returns: Json[] };
+      record_story_view: { Args: { p_story_id: string }; Returns: undefined };
+      get_story_by_id: { Args: { p_id: string }; Returns: Json };
     };
     Enums: {
       user_role: UserRole;

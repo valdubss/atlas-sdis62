@@ -87,3 +87,36 @@ export function cursorOf(posts: FeedPost[]): FeedCursor {
 export function totalReactions(counts: ReactionCounts) {
   return Object.values(counts).reduce((a, b) => a + (b ?? 0), 0);
 }
+
+/** Story sérialisée par story_to_json(). */
+export type StoryOverlay = { text?: string; position?: "top" | "middle" | "bottom" } | null;
+
+export type StoryItem = {
+  id: string;
+  series_id: string;
+  series_title: string | null;
+  status: "draft" | "scheduled" | "published" | "expired" | "archived";
+  overlay: StoryOverlay;
+  display_seconds: number;
+  scheduled_at: string | null;
+  published_at: string | null;
+  expires_at: string | null;
+  position: number;
+  media: MediaItem | null;
+  link_post: { id: string; slug: string; title: string | null } | null;
+  seen: boolean;
+  views: number;
+};
+
+/** Bulle du bandeau : une série active ou un à-la-une. */
+export type StoryGroup = {
+  id: string;
+  kind: "series" | "highlight";
+  title: string;
+  count: number;
+  all_seen: boolean;
+  latest_at: string | null;
+  cover: MediaItem | null;
+};
+
+export type StoryBar = { series: StoryGroup[]; highlights: StoryGroup[] };
