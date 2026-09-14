@@ -76,7 +76,7 @@ export function PhotoCarousel({
   // Ratio natif de la première photo (borné : jamais plus haut que 4:5 dans le
   // fil, jusqu'à 1:2 en page de lecture). Les photos ne sont jamais recadrées :
   // celles d'un autre format s'affichent entières sur le fond de la carte.
-  const bounds = size === "full" ? [0.5, 2.4] : [0.8, 1.91];
+  const bounds = size === "full" ? [0.5, 2.4] : [0.75, 1.91];
   const ratio = first?.width && first?.height ? Math.min(Math.max(first.width / first.height, bounds[0]), bounds[1]) : 4 / 3;
   const many = media.length > 1;
 

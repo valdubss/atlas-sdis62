@@ -113,7 +113,7 @@ export function PostCard({
     (shown.type === "photo" && images.length > 0) ||
     (shown.type === "video" && !!video) ||
     (shown.type === "article" && !!cover);
-  const clampable = variant === "feed" && body.length > 180;
+  const clampable = variant === "feed" && (body.length > 120 || /\n/.test(body));
 
   return (
     <article className="space-y-2" aria-label={shown.title ?? "Publication"}>
@@ -148,18 +148,20 @@ export function PostCard({
           />
         )}
 
-        <div className={cn(hasMedia ? "px-4 pb-1 pt-3" : "px-4 pb-1 pt-4")}>
-          <header className="flex items-center gap-3">
+        <div className={cn(variant === "feed" ? (hasMedia ? "px-3.5 pb-0.5 pt-2.5" : "px-3.5 pb-0.5 pt-3.5") : hasMedia ? "px-4 pb-1 pt-3" : "px-4 pb-1 pt-4")}>
+          {/* Fil : auteur et date sur une seule ligne, l'image garde la place */}
+          <header className="flex items-center gap-2.5">
             <Avatar
               name={shown.author?.name}
               avatarKey={shown.author?.avatar_key}
               official={official}
+              size={variant === "feed" ? "sm" : "md"}
             />
-            <div className="min-w-0 flex-1 leading-tight">
-              <p className="truncate text-[15px] font-medium text-text-1">
+            <div className={cn("min-w-0 flex-1 leading-tight", variant === "feed" && "flex items-baseline gap-1.5")}>
+              <p className="truncate text-[14px] font-medium text-text-1">
                 {shown.author?.name ?? "Service Communication"}
               </p>
-              <p className="text-[13px] text-text-3">
+              <p className="shrink-0 text-[13px] text-text-3">
                 <time dateTime={shown.published_at ?? undefined}>
                   {formatRelative(shown.published_at ?? shown.scheduled_at) ||
                     (preview ? "à l'instant" : "")}
@@ -173,9 +175,9 @@ export function PostCard({
           </header>
 
           {(shown.title || body) && (
-            <div className="mt-3">
+            <div className={variant === "feed" ? "mt-1.5" : "mt-3"}>
               {shown.title && (
-                <h2 className="mb-1 text-[22px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">
+                <h2 className={cn("mb-0.5 font-semibold tracking-[-0.02em] leading-[1.2] text-text-1", variant === "feed" ? "text-[17px]" : "text-[22px]")}>
                   {variant === "feed" && shown.type === "article" ? (
                     <Link href={href}>{shown.title}</Link>
                   ) : (
@@ -213,7 +215,7 @@ export function PostCard({
                   <p
                     className={cn(
                       "whitespace-pre-line break-words text-[15px] text-text-1",
-                      clampable && !expanded && "clamp-4",
+                      clampable && !expanded && (hasMedia ? "clamp-2" : "clamp-4"),
                     )}
                   >
                     {body}
@@ -233,7 +235,7 @@ export function PostCard({
             </div>
           )}
 
-          <footer className="mt-1 flex items-center justify-between">
+          <footer className={cn("flex items-center justify-between", variant === "feed" ? "-mx-1 mt-0" : "mt-1")}>
             <ReactionBar
               counts={shown.reaction_counts}
               mine={shown.my_reaction}

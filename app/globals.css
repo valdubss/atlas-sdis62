@@ -250,6 +250,14 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
   display: none;
 }
 
+/* Troncature à 2 lignes (légende sous une photo dans le fil) */
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 /* Troncature à 4 lignes */
 .clamp-4 {
   display: -webkit-box;
