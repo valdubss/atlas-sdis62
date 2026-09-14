@@ -52,9 +52,11 @@ npm run dev
 L'application est disponible sur <http://localhost:3000>. Sans session, toute page
 redirige vers `/login`.
 
-> **Identité** : thème sombre « glass » et logo typographique ATLAS (composant
-> `components/brand/Logo.tsx`). Les couleurs se règlent dans `app/globals.css`
-> (variables `--red`, `--navy`, `--bg`, `--glass`…).
+> **Design** : direction « Sombre. Verre. Silence. » décrite dans [DESIGN.md](DESIGN.md)
+> (tokens, contrastes AA, références). Composants visibles dans tous leurs états sur
+> `/studio/dev-ui` (éditeurs). Captures 390×844 et 1440×900 : `node scripts/screenshots.mjs`
+> (serveur de dev lancé, `.env.local` renseigné) → `docs/screenshots/`.
+> Écran de connexion : déposez une photo d'intervention en `public/login-bg.jpg`.
 
 ## 3. Créer le projet Supabase
 
@@ -347,3 +349,4 @@ variables de `.env.local` dans **Settings → Environment Variables**, définir
 | `npm run db:push` | applique les migrations au projet Supabase lié |
 | `npm run db:types` | régénère les types TypeScript depuis la base |
 | `npm run db:reset` | (local uniquement) recrée la base locale + seed |
+| `npm run screenshots` | captures de référence Playwright (dev server lancé) |

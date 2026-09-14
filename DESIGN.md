@@ -1,7 +1,7 @@
 # DESIGN.md — ATLAS · interface premium, verre & sombre
 
 > Remplace la section « Direction artistique » du brief fonctionnel.
-> Statut : **proposition à valider avant tout code**. 14/09/2026.
+> Statut : **validé (« Go ») et implémenté** le 14/09/2026. Captures de référence dans `docs/screenshots/` (`node scripts/screenshots.mjs`), composants dans `/studio/dev-ui`.
 > Logo `logo-sdis62.png` : **toujours absent du projet**. Les couleurs ci-dessous sont
 > les cibles du brief ; `scripts/extract-colors.mjs` recalera `--red` et `--navy` dès
 > que le fichier sera déposé dans `public/`.
@@ -221,7 +221,7 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
 
 ---
 
-## 7. Points à valider
+## 7. Points validés le 14/09/2026 (« Go »)
 
 1. **Nom et logo.** Le brief cite « Flash 62 » et un logo SDIS 62 blanc monochrome ; vous avez choisi ATLAS et retiré le 62. Proposition la plus discrète : mot-symbole **ATLAS** en Inter 600, blanc, sans signature, et **pas de filigrane « 62 »** tant que vous ne le demandez pas. Le logo PNG, s'il arrive, ne servira que sur l'écran de connexion.
 2. **`--text-3` à 0.50 au lieu de 0.38** pour que dates et méta restent lisibles (AA). 0.38 reste pour les placeholders.
@@ -229,3 +229,15 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
 4. **Liens secondaires en `#6B8CD6`** ; `#2E4A8C` réservé au décoratif.
 5. **Écran de connexion** : il faut une photo d'intervention (paysage, ≥ 2000 px, libre de droits internes). En attendant : fond `--bg-0` uni.
 6. **Réactions** : icônes Lucide ThumbsUp / Flame / Heart / BicepsFlexed pour 👏 🔥 ❤️ 💪.
+
+---
+
+## 8. Notes d'implémentation
+
+- Tokens : `app/globals.css` (`:root` + `@theme inline`). Les anciens noms (`surface`, `ink`, `muted`…) restent des alias vers les nouveaux tokens pour les composants non encore migrés.
+- Verre : classe `.glass` (fallback `@supports`), barres haute et basse, toast, écran de connexion. Sheet ouverte → `html[data-sheet-open]` passe les barres en opaque.
+- Pression : règle globale `:where(button, [role="button"], .pressable):active`.
+- Motion : `lib/motion.ts` (ressort unique, haptique). Cascade du fil dans `InfiniteFeed`, sheet et toast en `framer-motion`, lightbox en `layoutId` partagé.
+- Interrupteurs : piste blanche `--text-1` et bouton `--bg-0` à l'état actif (le rouge reste réservé au bouton principal).
+- Écran de connexion : la photo `public/login-bg.jpg` est détectée au démarrage ; sans fichier, fond `--bg-0`.
+- Captures : Chrome headless applique `backdrop-filter` (style calculé vérifié) mais ne le composite pas toujours dans les PNG ; le flou est visible dans un navigateur réel.
