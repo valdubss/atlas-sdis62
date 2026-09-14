@@ -146,7 +146,6 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
   }
 
   revalidatePath("/");
-  revalidatePath("/galerie");
   revalidatePath("/studio");
   revalidatePath("/studio/posts");
   if (status === "published") {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { fetchComments, moderateComment, postComment, reportComment } from "@/app/(app)/feed-actions";
+import { deleteComment, fetchComments, moderateComment, postComment, reportComment } from "@/app/(app)/feed-actions";
 import type { CommentItem } from "@/lib/feed/types";
 import { formatRelative } from "@/lib/format";
 import { LIMITS } from "@/lib/config";
@@ -214,6 +214,23 @@ function CommentRow({
           {!comment.is_mine && !hidden && (
             <button type="button" onClick={() => setReporting((v) => !v)} className="hover:text-text-1">
               Signaler
+            </button>
+          )}
+          {comment.is_mine && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                if (!confirm("Supprimer votre commentaire ?")) return;
+                startTransition(async () => {
+                  const res = await deleteComment(comment.id);
+                  if (!res.ok) toast(res.error);
+                  onChanged();
+                });
+              }}
+              className="hover:text-red-text"
+            >
+              Supprimer
             </button>
           )}
           {canModerate && (

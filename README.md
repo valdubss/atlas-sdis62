@@ -7,7 +7,7 @@ interagissent (réactions, commentaires, favoris).
 - **Stack** : Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · Supabase
   (Postgres, Auth, RLS, Realtime) · stockage S3 compatible (Scaleway / R2) · Vercel.
 - **Architecture** : voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération et gestion des utilisateurs. Lot (d) : stories. Lot (f) : sondages et galerie. Lot (g) : PWA, push, digest. **Lot 1 v2** : SSO Microsoft Entra ID (fiche DSI dans [docs/SSO-ENTRA.md](docs/SSO-ENTRA.md)), réglages de connexion (mot de passe, lien, SSO forcé), signalement intégré depuis le profil avec boîte de réception Studio → Retours et e-mail, accueil de première connexion en trois écrans. Données personnelles : [PRIVACY.md](PRIVACY.md).
+- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération et gestion des utilisateurs. Lot (d) : stories. Lot (f) : sondages. **Agenda** (septembre 2026) : événements du service publiés depuis le Studio, ajout au calendrier du téléphone (.ics), à la place de l'onglet Galerie. Lot (g) : PWA, push, digest. **Lot 1 v2** : SSO Microsoft Entra ID (fiche DSI dans [docs/SSO-ENTRA.md](docs/SSO-ENTRA.md)), réglages de connexion (mot de passe, lien, SSO forcé), signalement intégré depuis le profil avec boîte de réception Studio → Retours et e-mail, accueil de première connexion en trois écrans. Données personnelles : [PRIVACY.md](PRIVACY.md).
 
 ---
 
@@ -94,6 +94,7 @@ redirige vers `/login`.
 | `0009_queue_stats.sql` | colonne `stats` sur la file de notifications (résumé d'envoi) et statistiques enrichies pour Studio → Paramètres |
 | `0010_consolidation.sql` | audit de consolidation : comptages de sondage indépendants de la RLS, index manquants, 30 photos par publication, statut `processing` de la file, purge des médias orphelins, galerie sans doublon, garde-fous épinglage/commentaires/audit, `media.owner_id` nullable |
 | `0011_purge_deleted_posts_media.sql` | la purge quotidienne libère les médias des publications supprimées (soft delete) |
+| `0012_agenda.sql` | table `events` (agenda du service : titre, dates, lieu, description, publication liée), RLS agents/éditeurs |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 

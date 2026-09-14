@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bookmark, LayoutGrid, Newspaper, SquarePen, User } from "lucide-react";
+import { Bookmark, CalendarDays, Newspaper, SquarePen, User } from "lucide-react";
 import { useRole } from "./RoleContext";
 import { NAV_ITEMS } from "@/lib/config";
 import { cn } from "@/lib/cn";
 
-const ICONS = { feed: Newspaper, gallery: LayoutGrid, bookmark: Bookmark, user: User, studio: SquarePen } as const;
+const ICONS = { feed: Newspaper, calendar: CalendarDays, bookmark: Bookmark, user: User, studio: SquarePen } as const;
 
 /**
  * Barre basse flottante en verre : 4 entrées (+ « Studio » pour les éditeurs),

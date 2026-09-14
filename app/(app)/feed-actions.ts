@@ -1,8 +1,9 @@
 "use server";
 
+import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { fetchFeed } from "@/lib/feed/queries";
-import type { CommentItem, FeedCursor, FeedParams, FeedPost, GalleryItem, Poll, ReactionCounts } from "@/lib/feed/types";
+import type { CommentItem, FeedCursor, FeedParams, FeedPost, Poll, ReactionCounts } from "@/lib/feed/types";
 import type { ReactionKind } from "@/lib/config";
 import { commentSchema, friendlyDbError, reportSchema } from "@/lib/validation/comment";
 
@@ -42,18 +43,6 @@ export async function votePoll(postId: string, optionId: string): Promise<{ ok: 
   return { ok: true, poll: data as unknown as Poll };
 }
 
-export async function loadMoreGallery(cursor: { at: string; id: string; position: number } | null): Promise<GalleryItem[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_gallery", {
-    p_limit: 30,
-    p_cursor_at: cursor?.at ?? null,
-    p_cursor_id: cursor?.id ?? null,
-    p_cursor_pos: cursor?.position ?? null,
-  });
-  if (error) return [];
-  return (data ?? []) as unknown as GalleryItem[];
-}
-
 export async function recordView(postId: string) {
   const supabase = await createClient();
   await supabase.rpc("record_post_view", { p_post_id: postId });
@@ -87,6 +76,16 @@ export async function postComment(input: {
     user_id: user.id,
   });
   if (error) return { ok: false, error: friendlyDbError(error.message) };
+  return { ok: true };
+}
+
+/** Supprime son propre commentaire (RLS : user_id = auth.uid()) ; ses réponses sont supprimées avec lui. */
+export async function deleteComment(commentId: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (!z.uuid().safeParse(commentId).success) return { ok: false, error: "Identifiant invalide." };
+  const supabase = await createClient();
+  const { error, count } = await supabase.from("comments").delete({ count: "exact" }).eq("id", commentId);
+  if (error) return { ok: false, error: friendlyDbError(error.message) };
+  if (!count) return { ok: false, error: "Ce commentaire ne peut pas être supprimé." };
   return { ok: true };
 }
 

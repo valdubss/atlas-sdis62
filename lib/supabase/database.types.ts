@@ -128,6 +128,22 @@ type MediaRow = {
   updated_at: Timestamp;
 };
 
+type EventRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  starts_at: Timestamp;
+  ends_at: Timestamp | null;
+  all_day: boolean;
+  post_id: string | null;
+  status: "draft" | "published";
+  author_id: string | null;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+  deleted_at: Timestamp | null;
+};
+
 type StoryRow = {
   id: string;
   series_id: string;
@@ -293,6 +309,12 @@ export type Database = {
         Row: { id: string; title: string; cover_media_id: string | null; created_by: string | null; created_at: Timestamp };
         Insert: { id?: string; title: string; cover_media_id?: string | null; created_by?: string | null; created_at?: Timestamp };
         Update: { title?: string; cover_media_id?: string | null };
+        Relationships: [];
+      };
+      events: {
+        Row: EventRow;
+        Insert: Optional<EventRow, "id" | "description" | "location" | "ends_at" | "all_day" | "post_id" | "status" | "author_id" | "created_at" | "updated_at" | "deleted_at">;
+        Update: Partial<EventRow>;
         Relationships: [];
       };
       stories: {

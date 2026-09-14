@@ -89,9 +89,6 @@ export function totalReactions(counts: ReactionCounts) {
 }
 
 /** Élément de galerie : une image et sa publication. */
-export type GalleryItem = {
-  media: MediaItem;
-  post: { id: string; slug: string; title: string | null; published_at: string };
   position: number;
 };
 

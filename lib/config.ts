@@ -48,7 +48,7 @@ export type ReactionKind = (typeof REACTIONS)[number]["kind"];
 
 export const NAV_ITEMS = [
   { href: "/", label: "Fil", icon: "feed" },
-  { href: "/galerie", label: "Galerie", icon: "gallery" },
+  { href: "/agenda", label: "Agenda", icon: "calendar" },
   { href: "/favoris", label: "Favoris", icon: "bookmark" },
   { href: "/profil", label: "Profil", icon: "user" },
 ] as const;
