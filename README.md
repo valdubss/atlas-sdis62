@@ -7,7 +7,7 @@ interagissent (réactions, commentaires, favoris).
 - **Stack** : Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · Supabase
   (Postgres, Auth, RLS, Realtime) · stockage S3 compatible (Scaleway / R2) · Vercel.
 - **Architecture** : voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération et gestion des utilisateurs. Lot (d) : stories (bandeau de bulles, viewer plein écran tactile, expiration configurable, archive, à-la-une, suivi des vues pour les éditeurs).
+- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération et gestion des utilisateurs. Lot (d) : stories. Lot (f) : sondages à choix unique (résultats après le vote ou à la clôture) et galerie de toutes les photos publiées avec lightbox.
 
 ---
 
@@ -87,6 +87,7 @@ redirige vers `/login`.
 | `0002_ensure_profile.sql` | auto-réparation d'un compte sans profil |
 | `0003_feed.sql` | fil paginé, recherche, réactions, favoris, commentaires temps réel, statistiques studio |
 | `0004_stories.sql` | bandeau de stories, viewer, vues, à-la-une |
+| `0005_polls_gallery.sql` | vote de sondage, galerie paginée |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -212,6 +213,10 @@ Parcours à tester :
 3. `/profil` : renseigner prénom, nom, centre → « Profil enregistré ».
 4. `/studio` en tant que `reader` → redirection vers `/` avec le message d'accès refusé ;
    en tant qu'`admin` → tableau de bord du studio.
+4c. Studio → **Nouvelle publication** → type **Sondage** : question, 2 à 6 réponses,
+   clôture facultative → voter depuis le fil, les barres de résultats apparaissent.
+   **Galerie** (barre basse) : grille de toutes les photos publiées, lightbox, lien vers
+   la publication.
 4a. Studio → **Stories** → **Nouvelle story** : une photo ou une vidéo (30 s max), un
    texte, une série, **Publier** → la bulle apparaît en haut du fil ; tap à droite pour
    avancer, maintien pour mettre en pause, glisser vers le bas pour fermer. Après 48 h
