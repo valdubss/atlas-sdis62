@@ -31,7 +31,7 @@ export function TopBar({ title, showStudio, right }: { title: string; showStudio
     >
       <div className="relative mx-auto flex h-12 max-w-[680px] items-center justify-between px-5 sm:px-8">
         <Link href="/" aria-label="Accueil" className="pressable flex items-center">
-          <Logo height={18} />
+          <Logo height={22} />
         </Link>
         <span
           className={cn(

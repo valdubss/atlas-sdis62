@@ -24,14 +24,19 @@ if (!fs.existsSync(src)) {
 const input = await sharp(src).ensureAlpha().toBuffer();
 const { width, height } = await sharp(input).metadata();
 
-// Luminance → alpha : le blanc du logo reste opaque, le fond noir devient transparent.
-const alpha = await sharp(input).greyscale().linear(1.15, -10).toColourspace("b-w").raw().toBuffer();
-const white = await sharp({ create: { width, height, channels: 3, background: "#ffffff" } }).raw().toBuffer();
-
-const transparent = await sharp(white, { raw: { width, height, channels: 3 } })
-  .joinChannel(alpha, { raw: { width, height, channels: 1 } })
-  .png()
-  .toBuffer();
+// Source déjà détourée (canal alpha réel) : on la garde telle quelle.
+// Sinon : luminance → alpha, le blanc du logo reste opaque, le fond noir devient transparent.
+const stats = await sharp(input).stats();
+const alreadyTransparent = stats.channels[3] && stats.channels[3].min < 255;
+let transparent = input;
+if (!alreadyTransparent) {
+  const alpha = await sharp(input).greyscale().linear(1.15, -10).toColourspace("b-w").raw().toBuffer();
+  const white = await sharp({ create: { width, height, channels: 3, background: "#ffffff" } }).raw().toBuffer();
+  transparent = await sharp(white, { raw: { width, height, channels: 3 } })
+    .joinChannel(alpha, { raw: { width, height, channels: 1 } })
+    .png()
+    .toBuffer();
+}
 
 // Rognage des marges transparentes puis exports
 const trimmed = await sharp(transparent).trim({ threshold: 8 }).toBuffer();
@@ -41,9 +46,10 @@ const outSquare = path.join(process.cwd(), "public", "logo-atlas-512.png");
 const wide = await sharp(trimmed).resize({ width: 1200, withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
 fs.writeFileSync(outWide, wide);
 
-const square = await sharp(trimmed)
-  .resize({ width: 400, height: 400, fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
-  .extend({ top: 56, bottom: 56, left: 56, right: 56, background: "#0a0a0c" })
+// Icône carrée : fond --bg-0, logo centré sur 400 px de large
+const logoForIcon = await sharp(trimmed).resize({ width: 400, height: 400, fit: "inside" }).png().toBuffer();
+const square = await sharp({ create: { width: 512, height: 512, channels: 4, background: "#0a0a0c" } })
+  .composite([{ input: logoForIcon, gravity: "centre" }])
   .png()
   .toBuffer();
 fs.writeFileSync(outSquare, square);
