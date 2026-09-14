@@ -3,6 +3,7 @@ import { fetchFeed } from "@/lib/feed/queries";
 import { getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { InfiniteFeed } from "@/components/feed/InfiniteFeed";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { RefreshWhenDirty } from "@/components/layout/RefreshWhenDirty";
 
 export const metadata: Metadata = { title: "Favoris" };
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ export default async function FavorisPage() {
   return (
     <div className="space-y-3">
       <PageHeader title="Favoris" />
+      <RefreshWhenDirty page="favoris" />
       <InfiniteFeed
         initial={posts}
         params={params}

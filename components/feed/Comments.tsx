@@ -124,7 +124,7 @@ export function Comments({
       </div>
 
       {enabled && (
-        <div className={cn("bg-bg-2 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-2", sheet ? "shrink-0 border-t border-line" : "sticky bottom-0")}>
+        <div className={cn("bg-bg-2 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-2", sheet ? "shrink-0" : "sticky bottom-0")}>
           {replyTo && (
             <div className="mb-1 flex items-center justify-between text-[13px] text-text-3">
               <span>

@@ -34,6 +34,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: (JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as { version: string }).version,
   },
   reactStrictMode: true,
+  // Les pages visitées restent 30 s dans le cache du routeur : changer d'onglet
+  // et revenir est instantané ; tirer-pour-actualiser force le rechargement.
+  experimental: { staleTimes: { dynamic: 30, static: 180 } },
   devIndicators: false,
   poweredByHeader: false,
   images: { remotePatterns, formats: ["image/webp"] },

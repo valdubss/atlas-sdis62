@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { fetchFeed } from "@/lib/feed/queries";
 import type { CommentItem, FeedCursor, FeedParams, FeedPost, GalleryItem, Poll, ReactionCounts } from "@/lib/feed/types";
@@ -26,7 +25,9 @@ export async function toggleBookmark(postId: string): Promise<{ ok: true; bookma
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("toggle_bookmark", { p_post_id: postId });
   if (error) return { ok: false, error: friendlyDbError(error.message) };
-  revalidatePath("/favoris");
+  // Pas de revalidatePath ici : il forcerait le re-rendu serveur de la page
+  // courante dans la réponse de l'action. La page Favoris se rafraîchit
+  // elle-même (RefreshWhenDirty) quand un marque-page a changé.
   return { ok: true, bookmarked: Boolean(data) };
 }
 

@@ -37,11 +37,16 @@ export default async function StudioLayout({ children }: { children: React.React
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between bg-bg-1 px-5 md:hidden">
-          <Logo height={24} />
-          <StudioNav compact />
+        <header
+          className="glass fixed inset-x-0 top-0 z-30 md:hidden"
+          style={{ paddingTop: "env(safe-area-inset-top)" }}
+        >
+          <div className="flex h-12 items-center justify-between px-5">
+            <Logo height={22} />
+            <StudioNav compact />
+          </div>
         </header>
-        <main className="flex-1 px-5 pb-28 pt-6 md:px-8 md:py-8">{children}</main>
+        <main className="flex-1 px-5 pb-28 pt-[calc(48px+env(safe-area-inset-top)+16px)] md:px-8 md:py-8">{children}</main>
         <div className="md:hidden">
           <BottomNav />
         </div>

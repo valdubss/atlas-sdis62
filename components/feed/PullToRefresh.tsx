@@ -27,11 +27,20 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
   }, [router]);
 
   useEffect(() => {
+    const overlayOpen = () => document.documentElement.hasAttribute("data-sheet-open") || document.querySelector('[role="dialog"]') !== null;
     const onStart = (e: TouchEvent) => {
-      startY.current = window.scrollY <= 0 && !refreshing ? e.touches[0].clientY : null;
+      const target = e.target as Element | null;
+      const inOverlay = overlayOpen() || Boolean(target?.closest?.('[role="dialog"]'));
+      startY.current = window.scrollY <= 0 && !refreshing && !inOverlay ? e.touches[0].clientY : null;
     };
     const onMove = (e: TouchEvent) => {
       if (startY.current === null) return;
+      if (overlayOpen()) {
+        startY.current = null;
+        pullRef.current = 0;
+        setPull(0);
+        return;
+      }
       const dy = e.touches[0].clientY - startY.current;
       // Résistance progressive
       pullRef.current = dy <= 0 || window.scrollY > 0 ? 0 : Math.min(MAX_PULL, dy * 0.5);

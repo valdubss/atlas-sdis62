@@ -157,12 +157,19 @@ html[data-sheet-open] .glass {
 }
 
 /* Focus visible (accessibilité) : liseré, jamais de halo coloré */
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+:where(a, button, input, select, textarea, [tabindex]):focus-visible:not(.outline-none) {
   outline: 1px solid var(--glass-edge);
   outline-offset: 2px;
 }
 input, textarea, select {
   color: var(--text-1);
+}
+/* iOS dessine un bord et un ombrage natifs sur les champs : jamais dans ATLAS */
+textarea,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 0;
 }
 ::placeholder {
   color: var(--text-4);

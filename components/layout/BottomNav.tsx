@@ -20,6 +20,11 @@ const ICONS = { feed: Newspaper, gallery: LayoutGrid, bookmark: Bookmark, user: 
 export function BottomNav() {
   const pathname = usePathname();
   const [hidden, setHidden] = useState(false);
+  // Onglet actif dès le toucher, avant la réponse du serveur
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
   const reduced = useReducedMotion();
   const { canEdit } = useRole();
   const items: { href: string; label: string; icon: keyof typeof ICONS }[] = canEdit ? [...NAV_ITEMS, { href: "/studio", label: "Studio", icon: "studio" }] : [...NAV_ITEMS];
@@ -53,12 +58,14 @@ export function BottomNav() {
     >
       <ul className={cn("mx-auto grid max-w-[680px]", canEdit ? "grid-cols-5" : "grid-cols-4")}>
         {items.map((item) => {
-          const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const current = pendingHref ?? pathname;
+          const active = item.href === "/" ? current === "/" : current.startsWith(item.href);
           const Icon = ICONS[item.icon];
           return (
             <li key={item.href}>
               <Link
                 href={item.href}
+                onClick={() => setPendingHref(item.href)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "pressable flex h-[52px] flex-col items-center justify-center gap-1 text-[11px] font-medium",

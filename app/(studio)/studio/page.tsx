@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { NewButton } from "@/components/studio/NewButton";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelative } from "@/lib/format";
 
@@ -23,9 +24,7 @@ export default async function StudioDashboardPage() {
     <div className="mx-auto max-w-[960px] space-y-8">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">Tableau de bord</h1>
-        <Link href="/studio/posts/new" className="pressable flex h-11 items-center rounded-[12px] bg-red-fill px-4 text-[15px] font-semibold text-white">
-          Nouvelle publication
-        </Link>
+        <NewButton href="/studio/posts/new" label="Nouvelle publication" />
       </div>
 
       <section className="grid grid-cols-3 gap-3">

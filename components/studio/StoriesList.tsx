@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { NewButton } from "@/components/studio/NewButton";
 import { useState, useTransition } from "react";
 import { createHighlight, deleteHighlight, deleteStory, expireStory, renameHighlight, republishStory, setHighlightActive, toggleStoryInHighlight } from "@/app/(studio)/studio/stories/actions";
 import type { MediaItem, StoryOverlay } from "@/lib/feed/types";
@@ -141,9 +142,7 @@ export function StoriesList({ stories, highlights, notice }: { stories: StoryRow
     <div className="mx-auto max-w-[960px] space-y-8">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">Stories</h1>
-        <Link href="/studio/stories/new" className="pressable flex h-11 items-center rounded-[12px] bg-red-fill px-4 text-[15px] font-semibold text-white">
-          Nouvelle story
-        </Link>
+        <NewButton href="/studio/stories/new" label="Nouvelle story" />
       </div>
       {notice && (
         <p role="status" className="text-[15px] text-text-2">

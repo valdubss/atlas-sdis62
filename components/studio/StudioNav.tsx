@@ -27,7 +27,7 @@ export function StudioNav({ compact = false }: { compact?: boolean }) {
           aria-label="Navigation du studio"
           value={NAV.find((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))?.href ?? "/studio"}
           onChange={(e) => router.push(e.target.value)}
-          className="h-10 appearance-none rounded-[10px] bg-bg-2 pl-3 pr-9 text-[15px] font-medium text-text-1"
+          className="h-9 appearance-none rounded-[10px] bg-bg-2 pl-3 pr-8 text-[15px] font-medium text-text-1"
         >
           {NAV.map((n) => (
             <option key={n.href} value={n.href}>

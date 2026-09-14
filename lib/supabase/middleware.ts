@@ -40,16 +40,16 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  // Ne pas insérer de logique entre createServerClient et getUser :
-  // getUser() valide le jeton auprès de Supabase et rafraîchit les cookies.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() vérifie la signature du jeton localement (clés publiques JWKS,
+  // mises en cache) et ne contacte Supabase que pour rafraîchir une session
+  // expirée : pas d'aller-retour réseau à chaque page.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const claims = claimsData?.claims ?? null;
 
   const { pathname } = request.nextUrl;
   const publicPath = isPublicPath(pathname);
 
-  if (!user) {
+  if (!claims) {
     if (publicPath) return response;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -58,7 +58,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const meta = (user.app_metadata ?? {}) as { role?: string; is_active?: boolean; onboarded?: boolean };
+  const meta = ((claims.app_metadata as Record<string, unknown> | undefined) ?? {}) as { role?: string; is_active?: boolean; onboarded?: boolean };
 
   if (meta.is_active === false) {
     await supabase.auth.signOut();

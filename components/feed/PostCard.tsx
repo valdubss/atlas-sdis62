@@ -12,6 +12,7 @@ import { reactToPost, toggleBookmark } from "@/app/(app)/feed-actions";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Sheet } from "@/components/ui/Sheet";
+import { markDirty } from "@/components/layout/RefreshWhenDirty";
 import { useToast } from "@/components/ui/Toast";
 import { ReactionBar } from "./ReactionBar";
 import { IconButton } from "./IconButton";
@@ -90,6 +91,7 @@ export function PostCard({
       const res = await toggleBookmark(post.id);
       if (res.ok) {
         setPost((p) => ({ ...p, is_bookmarked: res.bookmarked }));
+        markDirty("favoris");
         toast(res.bookmarked ? "Ajouté aux favoris" : "Retiré des favoris");
       } else {
         setPost((p) => ({ ...p, is_bookmarked: !next }));
