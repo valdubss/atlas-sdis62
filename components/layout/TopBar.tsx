@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import { Logo } from "@/components/brand/Logo";
 
 /**
  * Barre haute en verre. Transparente au repos ; quand le grand titre de la page
@@ -28,7 +29,10 @@ export function TopBar({ title, showStudio, right }: { title: string; showStudio
       className={cn("fixed inset-x-0 top-0 z-30 transition-colors duration-200", collapsed ? "glass" : "border-t border-transparent")}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
-      <div className="relative mx-auto flex h-12 max-w-[680px] items-center justify-end px-5 sm:px-8">
+      <div className="relative mx-auto flex h-12 max-w-[680px] items-center justify-between px-5 sm:px-8">
+        <Link href="/" aria-label="Accueil" className="pressable flex items-center">
+          <Logo height={18} />
+        </Link>
         <span
           className={cn(
             "pointer-events-none absolute inset-x-16 truncate text-center text-[17px] font-semibold tracking-[-0.02em] text-text-1 transition-opacity duration-200",

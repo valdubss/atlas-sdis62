@@ -102,7 +102,7 @@ export function DevUi() {
           <p className="text-[17px] font-semibold tracking-[-0.02em] leading-[1.15]">Titre 17</p>
           <p className="text-[15px]">Corps 15, hauteur de ligne 1,45. Inter avec cv11, ss01, ss03.</p>
           <p className="text-[13px] font-medium text-text-2">Libellé 13 / 500</p>
-          <Logo size={22} />
+          <Logo height={28} />
         </div>
       </Block>
 

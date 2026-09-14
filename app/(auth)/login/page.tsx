@@ -37,7 +37,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       )}
 
       <header className="absolute left-5 top-[max(env(safe-area-inset-top),24px)] sm:left-8 sm:top-8">
-        <Logo size={22} />
+        <Logo height={44} />
         <h1 className="sr-only">{APP_NAME}</h1>
       </header>
 

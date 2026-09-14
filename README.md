@@ -57,6 +57,8 @@ redirige vers `/login`.
 > `/studio/dev-ui` (éditeurs). Captures 390×844 et 1440×900 : `node scripts/screenshots.mjs`
 > (serveur de dev lancé, `.env.local` renseigné) → `docs/screenshots/`.
 > Écran de connexion : déposez une photo d'intervention en `public/login-bg.jpg`.
+> Logo : déposez le fichier fourni en `public/logo-atlas.png` puis `node scripts/prepare-logo.mjs`
+> (fond noir rendu transparent, marges rognées, icône 512 px pour la PWA) et redémarrez le serveur.
 
 ## 3. Créer le projet Supabase
 

@@ -20,7 +20,7 @@ export default async function StudioLayout({ children }: { children: React.React
     <div className="flex min-h-dvh bg-bg-0">
       <aside className="hidden w-[280px] shrink-0 flex-col bg-bg-1 md:flex">
         <div className="flex h-14 items-center gap-2 px-6">
-          <Logo size={17} />
+          <Logo height={20} />
           <span className="text-[13px] text-text-3">Studio</span>
         </div>
         <StudioNav />
@@ -32,7 +32,7 @@ export default async function StudioLayout({ children }: { children: React.React
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 items-center justify-between bg-bg-1 px-5 md:hidden">
-          <Logo size={17} />
+          <Logo height={20} />
           <StudioNav compact />
         </header>
         <main className="flex-1 px-5 py-6 md:px-8 md:py-8">{children}</main>
