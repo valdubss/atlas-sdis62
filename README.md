@@ -7,7 +7,7 @@ interagissent (réactions, commentaires, favoris).
 - **Stack** : Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · Supabase
   (Postgres, Auth, RLS, Realtime) · stockage S3 compatible (Scaleway / R2) · Vercel.
 - **Architecture** : voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération et gestion des utilisateurs. Lot (d) : stories. Lot (f) : sondages et galerie. Lot (g) : application installable (PWA), notifications push Web (VAPID) à chaque publication, résumé hebdomadaire par e-mail (Resend ou SMTP), page Paramètres du studio.
+- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération et gestion des utilisateurs. Lot (d) : stories. Lot (f) : sondages et galerie. Lot (g) : PWA, push, digest. **Lot 1 v2** : SSO Microsoft Entra ID (fiche DSI dans [docs/SSO-ENTRA.md](docs/SSO-ENTRA.md)), réglages de connexion (mot de passe, lien, SSO forcé), signalement intégré depuis le profil avec boîte de réception Studio → Retours et e-mail, accueil de première connexion en trois écrans. Données personnelles : [PRIVACY.md](PRIVACY.md).
 
 ---
 
@@ -89,6 +89,7 @@ redirige vers `/login`.
 | `0004_stories.sql` | bandeau de stories, viewer, vues, à-la-une |
 | `0005_polls_gallery.sql` | vote de sondage, galerie paginée |
 | `0006_push_digest.sql` | file de notifications à la publication, statistiques push, préférence « nouvelles publications » |
+| `0007_sso_feedback_onboarding.sql` | réglages de connexion, profil SSO prérempli, accueil de première connexion, table `feedback`, images des agents |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -159,6 +160,10 @@ where key = 'allowed_emails';
 ```
 
 ### 3.5 Parcours de connexion
+
+- **SSO Microsoft** (facultatif) : suivre [docs/SSO-ENTRA.md](docs/SSO-ENTRA.md), puis
+  `AUTH_OIDC_PROVIDER=azure`. Un administrateur peut rendre le SSO obligatoire dans
+  Studio → Paramètres.
 
 - **Connexion** (défaut) : e-mail et mot de passe.
 - **Première connexion ou mot de passe oublié** : l'agent saisit son adresse, reçoit

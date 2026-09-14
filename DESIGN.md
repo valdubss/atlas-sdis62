@@ -245,3 +245,5 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
 - Sondage (`PollCard`) : options en boutons `--bg-2` 44 px ; résultats en barres `--text-1` à 10 % sur `--bg-2`, choix de l'agent en `--red-text` (unique rouge de la carte).
 - Galerie (`GalleryGrid`) : grille 3 colonnes, vignettes carrées, 3 px d'espace, lightbox partagée avec légende en verre.
 - Notifications (`NotificationSettings`, `SettingsPanel`) : rangées à interrupteur façon Réglages, aucune icône, chiffres du studio en cartes `--bg-1`.
+- Accueil de première connexion (`Onboarding`) : trois écrans plein cadre, icône Lucide 40 px en `--text-2`, titre 34, progression 2 px en haut, un seul bouton rouge par écran.
+- Signalement (`FeedbackForm`) : catégorie en liste à radio (rangées `--bg-1`, disque `--text-1`), description, capture facultative.

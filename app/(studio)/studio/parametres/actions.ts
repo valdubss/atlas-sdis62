@@ -26,6 +26,18 @@ export async function setDigestEnabled(enabled: boolean): Promise<Result> {
   return { ok: true };
 }
 
+/** Réglages d'authentification et adresse des signalements (admin). */
+export async function setAppSetting(key: "auth_password_enabled" | "auth_magic_link_enabled" | "auth_sso_forced" | "feedback_email", value: boolean | string): Promise<Result> {
+  const ctx = await requireAdmin();
+  if (!ctx) return { ok: false, error: "Réservé aux administrateurs." };
+  if (key === "feedback_email" && typeof value === "string" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return { ok: false, error: "Adresse e-mail invalide." };
+  const { error } = await ctx.supabase.from("app_settings").upsert({ key, value, updated_by: ctx.user.id });
+  if (error) return { ok: false, error: "Enregistrement impossible." };
+  revalidatePath("/studio/parametres");
+  revalidatePath("/login");
+  return { ok: true };
+}
+
 /** Envoie le digest de la semaine à une seule adresse, pour vérifier le rendu. */
 export async function sendDigestTest(to: string): Promise<Result> {
   const ctx = await requireAdmin();

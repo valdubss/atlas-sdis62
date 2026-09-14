@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const s3PublicUrl = process.env.NEXT_PUBLIC_S3_PUBLIC_URL;
@@ -31,6 +31,7 @@ const nextConfig: NextConfig = {
   env: {
     // Logo image présent dans public/ ? (évalué au démarrage et à la construction)
     NEXT_PUBLIC_HAS_LOGO: existsSync(path.join(process.cwd(), "public", "logo-atlas.png")) ? "1" : "0",
+    NEXT_PUBLIC_APP_VERSION: (JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as { version: string }).version,
   },
   reactStrictMode: true,
   devIndicators: false,
