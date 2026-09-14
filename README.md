@@ -7,7 +7,7 @@ interagissent (réactions, commentaires, favoris).
 - **Stack** : Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · Supabase
   (Postgres, Auth, RLS, Realtime) · stockage S3 compatible (Scaleway / R2) · Vercel.
 - **Architecture** : voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Avancement** : lot (a) livré — auth par lien magique, rôles, schéma SQL complet, RLS.
+- **Avancement** : lots (a) et (b) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications texte et article, réactions, commentaires temps réel, favoris, recherche, studio (éditeur, liste, statistiques). Prochain lot : (c) stockage S3 et photos.
 
 ---
 
@@ -73,9 +73,16 @@ redirige vers `/login`.
 
 **Option A — éditeur SQL du dashboard (le plus simple)**
 
-1. **SQL Editor → New query**, collez le contenu de
-   [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql), **Run**.
+1. **SQL Editor → New query**, collez le contenu de chaque fichier de
+   [`supabase/migrations/`](supabase/migrations/) **dans l'ordre** (`0001_…`, `0002_…`,
+   `0003_…`), **Run** à chaque fois.
 2. Facultatif : collez [`supabase/seed.sql`](supabase/seed.sql) (centres de démo), **Run**.
+
+| Migration | Contenu |
+|---|---|
+| `0001_init.sql` | schéma complet, rôles, RLS, triggers métier, audit |
+| `0002_ensure_profile.sql` | auto-réparation d'un compte sans profil |
+| `0003_feed.sql` | fil paginé, recherche, réactions, favoris, commentaires temps réel, statistiques studio |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -184,6 +191,10 @@ npm run dev           # puis http://localhost:3000
 
 Parcours à tester :
 
+0. Studio → **Nouvelle publication** : rédiger une annonce, **Publier maintenant** →
+   elle apparaît sur le fil (`/`) ; réagir 👏, commenter (ouvrir la même page dans un
+   second onglet : le commentaire arrive en temps réel), enregistrer en favori,
+   partager ; tester la recherche et les puces de catégories.
 1. `/login` avec une adresse **hors** domaine → message « Seules les adresses @sdis62.fr… ».
 2. `/login` avec une adresse autorisée → écran « Lien envoyé », e-mail reçu, clic →
    arrivée sur le fil avec « Bonjour ».
@@ -227,18 +238,26 @@ Points clés :
 
 ```
 app/
-  (auth)/login/            page de connexion + Server Action (lien magique)
+  (auth)/login/            page de connexion (lien magique ou mot de passe)
   auth/callback/           échange du code Supabase → session
   (app)/                   layout agent : en-tête + barre de navigation basse
-    page.tsx               fil (lot b)
+    page.tsx               fil : filtres, épinglés, défilement infini
+    post/[slug]/           page de lecture (Markdown, commentaires)
     galerie/ favoris/ profil/ a-propos/
+    feed-actions.ts        Server Actions : réactions, favoris, commentaires, signalements
   (studio)/studio/         espace éditeur (desktop), garde par rôle
+    page.tsx               tableau de bord (compteurs, 7 jours, top 5)
+    posts/                 liste, éditeur (aperçu agent en temps réel), actions
 components/
   brand/                   Logo, tracé ECG (séparateur, loader, état vide)
   layout/                  TopBar, BottomNav
-  ui/                      Button, Field, Card, EmptyState
+  ui/                      Button, Field, Card, Sheet, Avatar, Badge, EmptyState
+  feed/                    PostCard, ReactionBar, Comments, InfiniteFeed, FeedFilters…
+  studio/                  PostEditor
 lib/
   config.ts                nom de l'app, limites, réactions
+  feed/                    types du fil, requêtes serveur (RPC get_feed…)
+  format.ts                dates relatives en français
   auth/                    domaines autorisés, point d'extension SSO
   supabase/                clients navigateur / serveur / admin, middleware, types
   validation/              schémas Zod
