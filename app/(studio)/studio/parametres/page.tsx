@@ -1,15 +1,30 @@
 import type { Metadata } from "next";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { redirect } from "next/navigation";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { SettingsPanel } from "@/components/studio/SettingsPanel";
 
 export const metadata: Metadata = { title: "Paramètres" };
+export const dynamic = "force-dynamic";
 
-export default function Page() {
+type Stats = { subscribers: number; devices: number; digest_recipients: number; pending: number; sent_7d: number };
+
+export default async function ParametresPage() {
+  const current = await getCurrentUser();
+  if (!current) redirect("/auth/deconnexion?raison=profil");
+  const supabase = await createClient();
+  const [{ data: settings }, { data: stats }] = await Promise.all([
+    supabase.from("app_settings").select("key, value").in("key", ["digest_enabled", "app_name"]),
+    supabase.rpc("get_notification_stats"),
+  ]);
+  const digestEnabled = settings?.find((s) => s.key === "digest_enabled")?.value === true;
+
   return (
-    <div className="mx-auto max-w-[960px] space-y-6">
-      <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">Paramètres</h1>
-      <div className="rounded-[16px] bg-bg-1">
-        <EmptyState title="Bientôt disponible" description="Catégories, centres, utilisateurs et notifications." />
-      </div>
-    </div>
+    <SettingsPanel
+      isAdmin={current.profile.role === "admin"}
+      digestEnabled={digestEnabled}
+      stats={(stats ?? { subscribers: 0, devices: 0, digest_recipients: 0, pending: 0, sent_7d: 0 }) as unknown as Stats}
+      emailConfigured={Boolean(process.env.RESEND_API_KEY || process.env.SMTP_HOST)}
+      pushConfigured={Boolean(process.env.VAPID_PRIVATE_KEY)}
+    />
   );
 }
