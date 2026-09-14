@@ -36,6 +36,8 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     action: formData.get("action") ?? "draft",
     scheduled_at: formData.get("scheduled_at") ?? "",
     media: formData.get("media") ?? "[]",
+    poll_options: formData.get("poll_options") ?? "",
+    poll_closes_at: formData.get("poll_closes_at") ?? "",
   });
 
   if (!parsed.success) {
@@ -108,10 +110,27 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     id = data.id;
   }
 
+  // Sondage : question = titre ; options recréées tant qu'aucun vote n'existe
+  if (v.type === "poll") {
+    const { count: votes } = await supabase.from("poll_votes").select("poll_id", { count: "exact", head: true }).eq("poll_id", id);
+    const closes = v.poll_closes_at ? new Date(v.poll_closes_at).toISOString() : null;
+    const { error: pollError } = await supabase.from("polls").upsert({ post_id: id, question: v.title!, closes_at: closes });
+    if (pollError) return { status: "error", message: friendlyDbError(pollError.message) };
+    if ((votes ?? 0) === 0) {
+      await supabase.from("poll_options").delete().eq("poll_id", id);
+      const { error: optError } = await supabase.from("poll_options").insert(v.poll_options.map((label, i) => ({ poll_id: id!, label, position: i })));
+      if (optError) return { status: "error", message: friendlyDbError(optError.message) };
+    } else {
+      // Des votes existent : seuls les libellés des options existantes sont mis à jour, dans l'ordre
+      const { data: existing } = await supabase.from("poll_options").select("id, position").eq("poll_id", id).order("position");
+      await Promise.all((existing ?? []).map((o, i) => (v.poll_options[i] ? supabase.from("poll_options").update({ label: v.poll_options[i] }).eq("id", o.id) : Promise.resolve())));
+    }
+  }
+
   // Synchronisation des médias rattachés (ordre + texte alternatif)
   const { error: delError } = await supabase.from("post_media").delete().eq("post_id", id);
   if (delError) return { status: "error", message: friendlyDbError(delError.message) };
-  const attached = v.type === "article" ? v.media.slice(0, 1) : v.type === "text" ? [] : v.media;
+  const attached = v.type === "article" ? v.media.slice(0, 1) : v.type === "text" || v.type === "poll" ? [] : v.media;
   if (attached.length > 0) {
     const { error: pmError } = await supabase.from("post_media").insert(
       attached.map((m, i) => ({ post_id: id!, media_id: m.id, position: i, alt: m.alt || null })),

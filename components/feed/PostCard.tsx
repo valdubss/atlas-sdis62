@@ -20,6 +20,7 @@ import { Comments } from "./Comments";
 import { Markdown } from "./Markdown";
 import { PhotoCarousel } from "./PhotoCarousel";
 import { VideoPlayer } from "./VideoPlayer";
+import { PollCard } from "./PollCard";
 
 /**
  * Carte de post : média 28 px en haut, puis zone opaque --bg-1 (16 px) avec
@@ -212,7 +213,8 @@ export function PostCard({
                   </p>
                 )
               )}
-              {clampable && !expanded && shown.type !== "article" && (
+              {shown.type === "poll" && shown.poll && <PollCard postId={shown.id} poll={shown.poll} preview={preview} />}
+            {clampable && !expanded && shown.type !== "article" && (
                 <button
                   type="button"
                   onClick={() => setExpanded(true)}

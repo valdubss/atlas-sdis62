@@ -14,12 +14,14 @@ export function Lightbox({
   alt,
   layoutId,
   onClose,
+  caption,
 }: {
   open: boolean;
   src: string;
   alt: string;
   layoutId: string;
   onClose: () => void;
+  caption?: React.ReactNode;
 }) {
   const reduced = useReducedMotion();
 
@@ -65,6 +67,11 @@ export function Lightbox({
             onClick={(e) => e.stopPropagation()}
             draggable={false}
           />
+          {caption && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-[max(env(safe-area-inset-bottom),20px)] flex justify-center px-5" onClick={(e) => e.stopPropagation()}>
+              {caption}
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

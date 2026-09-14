@@ -21,7 +21,7 @@ const TYPES: { id: EditorPostType | "poll"; label: string; hint: string; soon?: 
   { id: "video", label: "Vidéo", hint: "Une vidéo MP4 (H.264), lecture automatique muette dans le fil." },
   { id: "text", label: "Annonce", hint: "Texte court sans média (2000 caractères max)." },
   { id: "article", label: "Article", hint: "Titre, chapô, texte long mis en forme et image de couverture." },
-  { id: "poll", label: "Sondage", hint: "Question à choix unique.", soon: true },
+  { id: "poll", label: "Sondage", hint: "Une question, 2 à 6 réponses, résultats visibles après le vote." },
 ];
 
 const initial: PostFormState = { status: "idle" };
@@ -51,7 +51,7 @@ export function PostEditor({
   const fields = state.status === "error" ? state.fields ?? {} : {};
 
   const initialType: EditorPostType =
-    post && (["text", "photo", "video", "article"] as string[]).includes(post.type) ? (post.type as EditorPostType) : "photo";
+    post && (["text", "photo", "video", "article", "poll"] as string[]).includes(post.type) ? (post.type as EditorPostType) : "photo";
 
   const [type, setType] = useState<EditorPostType>(initialType);
   const [title, setTitle] = useState(post?.title ?? "");
@@ -66,6 +66,9 @@ export function PostEditor({
   const [schedule, setSchedule] = useState(post?.status === "scheduled");
   const [scheduledAt, setScheduledAt] = useState(toDatetimeLocal(post?.scheduled_at));
   const [previewFull, setPreviewFull] = useState(false);
+  const [pollOptions, setPollOptions] = useState(post?.poll?.options.map((o) => o.label).join("\n") ?? "");
+  const [pollCloses, setPollCloses] = useState(toDatetimeLocal(post?.poll?.closes_at));
+  const pollVotes = post?.poll?.total_votes ?? 0;
   const [media, setMedia] = useState<EditorMedia[]>(() => {
     const list = post ? (post.type === "article" && post.cover ? [post.cover] : post.media) : [];
     return list.map((m) => ({ ...m, status: "ready" as const, progress: 1 }));
@@ -94,13 +97,26 @@ export function PostEditor({
       author: { name: authorDisplay === "service_com" ? "Service Communication" : authorName, avatar_key: null },
       cover: type === "article" ? readyMedia[0] ?? null : null,
       media: type === "text" ? [] : readyMedia,
-      poll: null,
+      poll:
+        type === "poll"
+          ? {
+              question: title,
+              closes_at: pollCloses ? new Date(pollCloses).toISOString() : null,
+              total_votes: post?.poll?.total_votes ?? 0,
+              my_option_id: null,
+              options: pollOptions
+                .split("\n")
+                .map((o) => o.trim())
+                .filter(Boolean)
+                .map((label, i) => ({ id: post?.poll?.options[i]?.id ?? `opt-${i}`, label, position: i, votes: post?.poll?.options[i]?.votes ?? 0 })),
+            }
+          : null,
       reaction_counts: post?.reaction_counts ?? {},
       comment_count: post?.comment_count ?? 0,
       my_reaction: null,
       is_bookmarked: false,
     }),
-    [post, type, title, excerpt, body, tags, pinned, commentsEnabled, authorDisplay, categoryId, centerId, categories, centers, authorName, readyMedia],
+    [post, type, title, excerpt, body, tags, pinned, commentsEnabled, authorDisplay, categoryId, centerId, categories, centers, authorName, readyMedia, pollOptions, pollCloses],
   );
 
   const status = post?.status ?? "draft";
@@ -111,7 +127,7 @@ export function PostEditor({
   function changeType(next: EditorPostType) {
     setType(next);
     setMedia((prev) => {
-      if (next === "text") return [];
+      if (next === "text" || next === "poll") return [];
       if (next === "video") return prev.filter((m) => m.kind === "video").slice(0, 1);
       if (next === "article") return prev.filter((m) => m.kind === "image").slice(0, 1);
       return prev.filter((m) => m.kind === "image");
@@ -174,7 +190,7 @@ export function PostEditor({
           <p className="mt-2 text-[13px] text-text-3">{TYPES.find((t) => t.id === type)?.hint}</p>
         </fieldset>
 
-        {type !== "text" && (
+        {type !== "text" && type !== "poll" && (
           <section className="rounded-[16px] bg-bg-1 p-5">
             <MediaUploader items={media} onChange={setMedia} accept={uploaderAccept} />
             {fields.media && (
@@ -187,14 +203,28 @@ export function PostEditor({
 
         <section className="space-y-4 rounded-[16px] bg-bg-1 p-5">
           <Field
-            label={type === "article" ? "Titre" : "Titre (facultatif)"}
+            label={type === "article" ? "Titre" : type === "poll" ? "Question" : "Titre (facultatif)"}
             name="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={200}
             error={fields.title}
-            placeholder={type === "article" ? "Exercice feux de forêt à Hesdin" : "Bienvenue aux nouvelles recrues"}
+            placeholder={type === "article" ? "Exercice feux de forêt à Hesdin" : type === "poll" ? "Quel créneau pour la séance de sport ?" : "Bienvenue aux nouvelles recrues"}
           />
+          {type === "poll" && (
+            <>
+              <TextareaField
+                label="Réponses (une par ligne, 2 à 6)"
+                name="poll_options"
+                value={pollOptions}
+                onChange={(e) => setPollOptions(e.target.value)}
+                rows={4}
+                error={fields.poll_options}
+                hint={pollVotes > 0 ? `${pollVotes} vote(s) enregistré(s) : seuls les libellés peuvent encore changer.` : "Choix unique. Les résultats apparaissent après le vote."}
+              />
+              <Field label="Clôture (facultatif)" name="poll_closes_at" type="datetime-local" value={pollCloses} onChange={(e) => setPollCloses(e.target.value)} error={fields.poll_closes_at} className="max-w-xs" />
+            </>
+          )}
           {type === "article" && (
             <TextareaField
               label="Chapô"
@@ -208,7 +238,7 @@ export function PostEditor({
             />
           )}
           <TextareaField
-            label={type === "article" ? "Texte de l'article (Markdown)" : type === "text" ? "Texte" : "Légende (facultatif)"}
+            label={type === "article" ? "Texte de l'article (Markdown)" : type === "text" ? "Texte" : type === "poll" ? "Précisions (facultatif)" : "Légende (facultatif)"}
             name="body"
             value={body}
             onChange={(e) => setBody(e.target.value)}
