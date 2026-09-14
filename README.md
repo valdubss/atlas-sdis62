@@ -313,8 +313,8 @@ docs/ARCHITECTURE.md       plan d'architecture
 - **Push** : clés VAPID générées par `npm run vapid` (→ `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
   `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`). Un trigger SQL enfile une notification à chaque
   mise en ligne ; l'envoi part juste après la publication, puis `/api/cron/dispatch`
-  (Vercel Cron toutes les 5 min, `vercel.json`) reprend ce qui resterait. Sur l'offre
-  Vercel Hobby (cron quotidien), configurez plutôt **pg_cron + pg_net** dans Supabase :
+  (Vercel Cron quotidien à 6 h, `vercel.json`, limite de l'offre Hobby) reprend ce qui
+  resterait. Pour une reprise toutes les 5 min, configurez **pg_cron + pg_net** dans Supabase :
 
 ```sql
 select cron.schedule('atlas-dispatch', '*/5 * * * *', $$
