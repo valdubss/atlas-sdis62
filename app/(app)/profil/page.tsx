@@ -9,6 +9,7 @@ import { createClient, getCurrentUser, isEditorRole } from "@/lib/supabase/serve
 import { ROLE_LABELS } from "@/lib/config";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
+import { NotificationSettings } from "@/components/profile/NotificationSettings";
 import { signOut } from "./actions";
 
 export const metadata: Metadata = { title: "Profil" };
@@ -19,7 +20,12 @@ export default async function ProfilPage() {
   const { profile } = current;
 
   const supabase = await createClient();
-  const { data: centers } = await supabase.from("centers").select("*").eq("is_active", true).order("sort_order").order("name");
+  const [{ data: centers }, { data: settings }, { count: subCount }] = await Promise.all([
+    supabase.from("centers").select("*").eq("is_active", true).order("sort_order").order("name"),
+    supabase.from("user_settings").select("push_new_posts, push_pinned, digest_email").eq("user_id", profile.id).maybeSingle(),
+    supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id),
+  ]);
+  const prefs = { push_new_posts: settings?.push_new_posts ?? true, push_pinned: settings?.push_pinned ?? true, digest_email: settings?.digest_email ?? true };
 
   const incomplete = !profile.first_name || !profile.last_name;
   const fullName = `${profile.first_name} ${profile.last_name}`.trim();
@@ -56,6 +62,11 @@ export default async function ProfilPage() {
           <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
         </Link>
       )}
+
+      <section className="rounded-[16px] bg-bg-1 py-3">
+        <h2 className="px-5 pb-1 text-[17px] font-semibold tracking-[-0.02em] text-text-1">Notifications</h2>
+        <NotificationSettings prefs={prefs} hasSubscriptions={(subCount ?? 0) > 0} />
+      </section>
 
       <section className="rounded-[16px] bg-bg-1 px-5 py-4">
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Mot de passe</h2>

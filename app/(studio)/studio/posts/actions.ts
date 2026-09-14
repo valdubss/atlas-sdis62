@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
+import { dispatchNotifications } from "@/lib/notifications/dispatch";
 import { createClient } from "@/lib/supabase/server";
 import { postSchema } from "@/lib/validation/post";
 import { friendlyDbError } from "@/lib/validation/comment";
@@ -146,6 +148,16 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
   revalidatePath("/galerie");
   revalidatePath("/studio");
   revalidatePath("/studio/posts");
+  if (status === "published") {
+    // Les push partent après l'envoi de la réponse (le trigger SQL a rempli la file)
+    after(async () => {
+      try {
+        await dispatchNotifications(50);
+      } catch (e) {
+        console.error("dispatch", e);
+      }
+    });
+  }
   redirect(`/studio/posts/${id}?ok=${status}`);
 }
 
