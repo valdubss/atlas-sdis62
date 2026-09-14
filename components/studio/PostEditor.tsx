@@ -5,7 +5,7 @@ import { useActionState, useMemo, useState, useTransition } from "react";
 import { deletePost, savePost, type PostFormState } from "@/app/(studio)/studio/posts/actions";
 import type { FeedPost } from "@/lib/feed/types";
 import { toDatetimeLocal } from "@/lib/format";
-import { FEATURES } from "@/lib/config";
+import { LIMITS, FEATURES } from "@/lib/config";
 import type { EditorPostType } from "@/lib/validation/post";
 import { Button } from "@/components/ui/Button";
 import { CheckboxField, Field, SelectField, TextareaField } from "@/components/ui/Field";
@@ -17,7 +17,7 @@ import { cn } from "@/lib/cn";
 type Ref = { id: string; name: string; slug: string };
 
 const TYPES: { id: EditorPostType | "poll"; label: string; hint: string; soon?: boolean }[] = [
-  { id: "photo", label: "Photos", hint: "1 à 20 photos en carrousel, avec un texte en dessous." },
+  { id: "photo", label: "Photos", hint: `1 à ${LIMITS.imagesPerPost} photos en carrousel, avec un texte en dessous.` },
   { id: "video", label: "Vidéo", hint: "Une vidéo MP4 (H.264), lecture automatique muette dans le fil." },
   { id: "text", label: "Annonce", hint: "Texte court sans média (2000 caractères max)." },
   { id: "article", label: "Article", hint: "Titre, chapô, texte long mis en forme et image de couverture." },

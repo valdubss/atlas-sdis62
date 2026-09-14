@@ -10,7 +10,7 @@ import { Logo } from "@/components/brand/Logo";
  * sort de l'écran, la barre se teinte et le titre réduit apparaît, centré
  * (largeTitleDisplayMode). Sans grand titre sur la page, elle est toujours teintée.
  */
-export function TopBar({ title, right }: { title?: string; right?: React.ReactNode }) {
+export function TopBar({ title, right, leading }: { title?: string; right?: React.ReactNode; leading?: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -30,13 +30,15 @@ export function TopBar({ title, right }: { title?: string; right?: React.ReactNo
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="relative mx-auto flex h-12 max-w-[680px] items-center justify-between px-5 sm:px-8">
-        <Link href="/" aria-label="Accueil" className="pressable flex items-center">
-          <Logo height={22} />
-        </Link>
+        {leading ?? (
+          <Link href="/" aria-label="Accueil" className="pressable flex items-center">
+            <Logo height={22} />
+          </Link>
+        )}
         {title && (
           <span
             className={cn(
-              "pointer-events-none absolute inset-x-16 truncate text-center text-[17px] font-semibold tracking-[-0.02em] text-text-1 transition-opacity duration-200",
+              "pointer-events-none absolute inset-x-24 truncate text-center text-[17px] font-semibold tracking-[-0.02em] text-text-1 transition-opacity duration-200",
               collapsed ? "opacity-100" : "opacity-0",
             )}
           >

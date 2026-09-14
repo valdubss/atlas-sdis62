@@ -6,6 +6,8 @@ import { Logo } from "@/components/brand/Logo";
 import { ROLE_LABELS } from "@/lib/config";
 import { getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { StudioNav } from "@/components/studio/StudioNav";
+import { BottomNav } from "@/components/layout/BottomNav";
+import { RoleProvider } from "@/components/layout/RoleContext";
 
 /**
  * Studio (desktop) : panneau latéral 280 px --bg-1, zone de travail --bg-0,
@@ -20,6 +22,7 @@ export default async function StudioLayout({ children }: { children: React.React
   const name = `${profile.first_name} ${profile.last_name}`.trim() || profile.email;
 
   return (
+    <RoleProvider canEdit>
     <div className="flex min-h-dvh bg-bg-0">
       <aside className="hidden w-[280px] shrink-0 flex-col bg-bg-1 md:flex">
         <div className="flex h-14 items-center gap-2 px-6">
@@ -38,8 +41,12 @@ export default async function StudioLayout({ children }: { children: React.React
           <Logo height={24} />
           <StudioNav compact />
         </header>
-        <main className="flex-1 px-5 py-6 md:px-8 md:py-8">{children}</main>
+        <main className="flex-1 px-5 pb-28 pt-6 md:px-8 md:py-8">{children}</main>
+        <div className="md:hidden">
+          <BottomNav />
+        </div>
       </div>
     </div>
+    </RoleProvider>
   );
 }

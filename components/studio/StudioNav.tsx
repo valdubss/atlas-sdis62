@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ArrowLeft, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const NAV = [
@@ -18,22 +18,25 @@ const NAV = [
 
 export function StudioNav({ compact = false }: { compact?: boolean }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   if (compact) {
     return (
-      <select
-        aria-label="Navigation du studio"
-        value={NAV.find((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))?.href ?? "/studio"}
-        onChange={(e) => (window.location.href = e.target.value)}
-        className="h-9 appearance-none rounded-[10px] bg-bg-2 px-3 text-[13px] text-text-1"
-      >
-        {NAV.map((n) => (
-          <option key={n.href} value={n.href}>
-            {n.label}
-          </option>
-        ))}
-        <option value="/">Retour au fil</option>
-      </select>
+      <label className="relative flex items-center">
+        <select
+          aria-label="Navigation du studio"
+          value={NAV.find((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))?.href ?? "/studio"}
+          onChange={(e) => router.push(e.target.value)}
+          className="h-10 appearance-none rounded-[10px] bg-bg-2 pl-3 pr-9 text-[15px] font-medium text-text-1"
+        >
+          {NAV.map((n) => (
+            <option key={n.href} value={n.href}>
+              {n.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" className="pointer-events-none absolute right-3 text-text-3" />
+      </label>
     );
   }
 

@@ -82,7 +82,7 @@ export function Sheet({
       {open && (
         <motion.div
           key="veil"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-[4px] sm:items-center sm:p-6"
+          className="fixed inset-0 z-50 flex min-h-dvh items-end justify-center bg-black/50 backdrop-blur-[4px] sm:items-center sm:p-6"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.18 } }}

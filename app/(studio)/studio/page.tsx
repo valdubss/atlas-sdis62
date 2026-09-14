@@ -28,15 +28,15 @@ export default async function StudioDashboardPage() {
         </Link>
       </div>
 
-      <section className="grid gap-3 sm:grid-cols-3">
+      <section className="grid grid-cols-3 gap-3">
         {[
           ["Brouillons", stats.drafts, "/studio/posts?statut=draft"],
           ["Programmées", stats.scheduled, "/studio/posts?statut=scheduled"],
           ["Publiées", stats.published, "/studio/posts?statut=published"],
         ].map(([label, value, href]) => (
-          <Link key={String(label)} href={String(href)} className="pressable rounded-[16px] bg-bg-1 px-5 py-4">
+          <Link key={String(label)} href={String(href)} className="pressable rounded-[16px] bg-bg-1 px-4 py-4 sm:px-5">
             <p className="text-[13px] text-text-2">{label}</p>
-            <p className="mt-1 text-[28px] font-semibold tracking-[-0.02em] text-text-1">{value}</p>
+            <p className="mt-1 text-[24px] font-semibold tracking-[-0.02em] text-text-1 sm:text-[28px]">{value}</p>
           </Link>
         ))}
       </section>
@@ -65,13 +65,18 @@ export default async function StudioDashboardPage() {
             <p className="px-5 py-8 text-center text-[15px] text-text-2">Pas encore de publication cette semaine.</p>
           ) : (
             stats.top.map((p, i) => (
-              <Link key={p.id} href={`/studio/posts/${p.id}`} className="pressable flex h-[52px] items-center gap-4 px-5">
-                <span className="w-5 text-[15px] tabular-nums text-text-3">{i + 1}</span>
+              <Link key={p.id} href={`/studio/posts/${p.id}`} className="pressable flex items-center gap-4 px-5 py-3 sm:h-[52px] sm:py-0">
+                <span className="w-5 shrink-0 text-[15px] tabular-nums text-text-3">{i + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[15px] text-text-1">{p.title ?? "Sans titre"}</span>
-                  <span className="block text-[13px] text-text-3">{formatRelative(p.published_at)}</span>
+                  <span className="block truncate text-[13px] text-text-3">
+                    {formatRelative(p.published_at)}
+                    <span className="sm:hidden">
+                      {" "}· {p.views} vues · {p.reactions} réactions · {p.comments} commentaires
+                    </span>
+                  </span>
                 </span>
-                <span className="flex gap-4 text-[13px] tabular-nums text-text-2">
+                <span className="hidden shrink-0 gap-4 text-[13px] tabular-nums text-text-2 sm:flex">
                   <span>{p.views} vues</span>
                   <span>{p.reactions} réactions</span>
                   <span>{p.comments} commentaires</span>
