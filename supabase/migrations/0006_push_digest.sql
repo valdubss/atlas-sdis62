@@ -19,7 +19,7 @@ begin
     v_text := coalesce(new.title, left(regexp_replace(coalesce(new.body, ''), '\s+', ' ', 'g'), 120));
     insert into public.notification_queue (kind, payload)
     values (
-      case when new.pinned_at is not null then 'push_pinned' else 'push_category' end,
+      (case when new.pinned_at is not null then 'push_pinned' else 'push_category' end)::public.notification_kind,
       jsonb_build_object(
         'post_id', new.id,
         'slug', new.slug,

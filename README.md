@@ -90,6 +90,7 @@ redirige vers `/login`.
 | `0005_polls_gallery.sql` | vote de sondage, galerie paginée |
 | `0006_push_digest.sql` | file de notifications à la publication, statistiques push, préférence « nouvelles publications » |
 | `0007_sso_feedback_onboarding.sql` | réglages de connexion, profil SSO prérempli, accueil de première connexion, table `feedback`, images des agents |
+| `0008_fix_enqueue_kind.sql` | correctif : cast explicite vers `notification_kind` dans le trigger de mise en ligne (publication bloquée depuis 0006) |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
