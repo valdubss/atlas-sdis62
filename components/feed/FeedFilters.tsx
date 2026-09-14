@@ -96,7 +96,7 @@ export function FeedFilters({
       )}
 
       {showCategories && (
-        <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:-mx-8 sm:px-8">
+        <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3 sm:-mx-8 sm:px-8">
           <Chip active={!category} onClick={() => push({ categorie: "" })}>
             Tout
           </Chip>

@@ -148,7 +148,7 @@ export function PostCard({
           />
         )}
 
-        <div className={cn(variant === "feed" ? (hasMedia ? "px-3.5 pb-0.5 pt-2.5" : "px-3.5 pb-0.5 pt-3.5") : hasMedia ? "px-4 pb-1 pt-3" : "px-4 pb-1 pt-4")}>
+        <div className={cn(variant === "feed" ? (hasMedia ? "px-3 pb-0 pt-2" : "px-3.5 pb-0.5 pt-3.5") : hasMedia ? "px-4 pb-1 pt-3" : "px-4 pb-1 pt-4")}>
           {/* Fil : auteur et date sur une seule ligne, l'image garde la place */}
           <header className="flex items-center gap-2.5">
             <Avatar
@@ -175,7 +175,7 @@ export function PostCard({
           </header>
 
           {(shown.title || body) && (
-            <div className={variant === "feed" ? "mt-1.5" : "mt-3"}>
+            <div className={variant === "feed" ? "mt-1" : "mt-3"}>
               {shown.title && (
                 <h2 className={cn("mb-0.5 font-semibold tracking-[-0.02em] leading-[1.2] text-text-1", variant === "feed" ? "text-[17px]" : "text-[22px]")}>
                   {variant === "feed" && shown.type === "article" ? (
@@ -235,7 +235,7 @@ export function PostCard({
             </div>
           )}
 
-          <footer className={cn("flex items-center justify-between", variant === "feed" ? "-mx-1 mt-0" : "mt-1")}>
+          <footer className={cn("flex items-center justify-between", variant === "feed" ? "-mx-1 -mt-0.5 [&_button]:h-10" : "mt-1")}>
             <ReactionBar
               counts={shown.reaction_counts}
               mine={shown.my_reaction}

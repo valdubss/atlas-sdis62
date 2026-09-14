@@ -15,7 +15,7 @@ export function StoryBar({ bar, canEdit }: { bar: StoryBarData; canEdit: boolean
 
   return (
     <>
-      <div className="no-scrollbar -mx-5 flex gap-1 overflow-x-auto px-4 pb-1 sm:-mx-8 sm:px-7" role="list" aria-label="Stories">
+      <div className="no-scrollbar -mx-3 flex gap-1 overflow-x-auto px-2 pb-1 sm:-mx-8 sm:px-7" role="list" aria-label="Stories">
         {groups.map((g, i) => (
           <button key={`${g.kind}-${g.id}`} type="button" role="listitem" onClick={() => setOpen(i)} className="pressable shrink-0" aria-label={`${g.title}, ${g.count} ${g.count > 1 ? "stories" : "story"}${g.all_seen ? ", vues" : ""}`}>
             <StoryRing label={g.title} seen={g.all_seen} src={g.cover ? (g.cover.kind === "video" ? posterSrc(g.cover) : imageSrc(g.cover, "thumb")) : null} />
