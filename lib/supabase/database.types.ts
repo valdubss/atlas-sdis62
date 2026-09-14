@@ -166,6 +166,7 @@ export type Database = {
           push_pinned: boolean;
           push_followed_categories: boolean;
           digest_email: boolean;
+          push_new_posts: boolean;
           theme: "system" | "light" | "dark";
           updated_at: Timestamp;
         };
@@ -174,6 +175,7 @@ export type Database = {
           push_pinned?: boolean;
           push_followed_categories?: boolean;
           digest_email?: boolean;
+          push_new_posts?: boolean;
           theme?: "system" | "light" | "dark";
           updated_at?: Timestamp;
         };
@@ -182,9 +184,22 @@ export type Database = {
           push_pinned?: boolean;
           push_followed_categories?: boolean;
           digest_email?: boolean;
+          push_new_posts?: boolean;
           theme?: "system" | "light" | "dark";
           updated_at?: Timestamp;
         };
+        Relationships: [];
+      };
+      push_subscriptions: {
+        Row: { id: string; user_id: string; endpoint: string; p256dh: string; auth: string; user_agent: string | null; created_at: Timestamp };
+        Insert: { id?: string; user_id: string; endpoint: string; p256dh: string; auth: string; user_agent?: string | null; created_at?: Timestamp };
+        Update: { p256dh?: string; auth?: string; user_agent?: string | null };
+        Relationships: [];
+      };
+      notification_queue: {
+        Row: { id: number; kind: string; payload: Json; status: "pending" | "sent" | "failed"; attempts: number; created_at: Timestamp; sent_at: Timestamp | null; error: string | null };
+        Insert: { kind: string; payload: Json; status?: "pending" | "sent" | "failed"; attempts?: number; sent_at?: Timestamp | null; error?: string | null };
+        Update: { status?: "pending" | "sent" | "failed"; attempts?: number; sent_at?: Timestamp | null; error?: string | null };
         Relationships: [];
       };
       posts: {
@@ -341,6 +356,7 @@ export type Database = {
       record_story_view: { Args: { p_story_id: string }; Returns: undefined };
       get_story_by_id: { Args: { p_id: string }; Returns: Json };
       vote_poll: { Args: { p_post_id: string; p_option_id: string }; Returns: Json };
+      get_notification_stats: { Args: Record<string, never>; Returns: Json };
       get_gallery: { Args: { p_limit?: number; p_cursor_at?: string | null; p_cursor_id?: string | null }; Returns: Json[] };
     };
     Enums: {
