@@ -156,12 +156,14 @@ set value = '["contact.vdubois@gmail.com"]'
 where key = 'allowed_emails';
 ```
 
-### 3.5 Connexion par mot de passe (optionnelle)
+### 3.5 Parcours de connexion
 
-Le lien magique est le mode par défaut. Un utilisateur peut aussi **définir un mot
-de passe** depuis sa page Profil (10 caractères minimum) ; l'onglet « Mot de passe »
-de la page de connexion devient alors utilisable. Aucun réglage Supabase
-supplémentaire n'est nécessaire (le provider Email couvre les deux). Pour renforcer
+- **Connexion** (défaut) : e-mail et mot de passe.
+- **Première connexion ou mot de passe oublié** : l'agent saisit son adresse, reçoit
+  un lien magique (Supabase Auth) et arrive sur `/bienvenue` où il renseigne prénom,
+  nom et mot de passe (10 caractères minimum). Le mot de passe se change ensuite
+  depuis la page Profil. Aucun réglage Supabase supplémentaire n'est nécessaire (le
+  provider Email couvre les deux modes). Pour renforcer
 la sécurité : **Authentication → Providers → Email → Password requirements** et
 activer la détection des mots de passe compromis (offre Pro).
 
