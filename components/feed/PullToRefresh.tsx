@@ -18,6 +18,8 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
   const [pull, setPull] = useState(0);
   const [refreshing, startTransition] = useTransition();
   const startY = useRef<number | null>(null);
+  const startX = useRef(0);
+  const engaged = useRef(false);
   const pullRef = useRef(0);
   const reduced = useReducedMotion();
 
@@ -32,6 +34,8 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
       const target = e.target as Element | null;
       const inOverlay = overlayOpen() || Boolean(target?.closest?.('[role="dialog"]'));
       startY.current = window.scrollY <= 0 && !refreshing && !inOverlay ? e.touches[0].clientY : null;
+      startX.current = e.touches[0].clientX;
+      engaged.current = false;
     };
     const onMove = (e: TouchEvent) => {
       if (startY.current === null) return;
@@ -42,6 +46,17 @@ export function PullToRefresh({ children }: { children: React.ReactNode }) {
         return;
       }
       const dy = e.touches[0].clientY - startY.current;
+      const dx = e.touches[0].clientX - startX.current;
+      if (!engaged.current) {
+        // Verrouillage de direction : un carrousel ou un glissement horizontal
+        // ne doit jamais faire bouger le fil.
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6) {
+          startY.current = null;
+          return;
+        }
+        if (dy < 10) return;
+        engaged.current = true;
+      }
       // Résistance progressive
       pullRef.current = dy <= 0 || window.scrollY > 0 ? 0 : Math.min(MAX_PULL, dy * 0.5);
       setPull(pullRef.current);

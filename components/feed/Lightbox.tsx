@@ -5,8 +5,9 @@ import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-
 import { SPRING } from "@/lib/motion";
 
 /**
- * Lightbox plein écran : la photo grandit depuis sa position (layoutId partagé),
- * le fond fond en noir, fermeture au swipe vertical avec suivi du doigt.
+ * Lightbox plein écran : la photo grandit depuis sa position (layoutId partagé)
+ * ou apparaît par un léger zoom ; le fond fond en noir, fermeture au swipe
+ * vertical avec suivi du doigt.
  */
 export function Lightbox({
   open,
@@ -19,7 +20,7 @@ export function Lightbox({
   open: boolean;
   src: string;
   alt: string;
-  layoutId: string;
+  layoutId?: string;
   onClose: () => void;
   caption?: React.ReactNode;
 }) {
@@ -56,6 +57,8 @@ export function Lightbox({
         >
           <motion.img
             layoutId={reduced ? undefined : layoutId}
+            initial={layoutId || reduced ? undefined : { scale: 0.92, opacity: 0 }}
+            animate={layoutId || reduced ? undefined : { scale: 1, opacity: 1 }}
             src={src}
             alt={alt}
             drag="y"

@@ -22,6 +22,21 @@ export function imageSrc(m: MediaItem, size: "thumb" | "medium" | "full" = "medi
   return mediaUrl(m.variants[size] ?? m.variants.medium ?? m.variants.full ?? m.original_key);
 }
 
+/** Largeurs maximales des variantes générées par sharp (lib/media/variants.ts). */
+const VARIANT_WIDTHS = { thumb: 400, medium: 1200, full: 2400 } as const;
+
+/** srcset des variantes disponibles : le navigateur choisit selon la densité d'écran. */
+export function imageSrcSet(m: MediaItem): string | undefined {
+  if (m.preview_url) return undefined;
+  const parts = (Object.keys(VARIANT_WIDTHS) as (keyof typeof VARIANT_WIDTHS)[])
+    .filter((k) => m.variants[k])
+    .map((k) => `${mediaUrl(m.variants[k])} ${Math.min(VARIANT_WIDTHS[k], m.width ?? VARIANT_WIDTHS[k])}w`);
+  return parts.length > 1 ? parts.join(", ") : undefined;
+}
+
+/** Largeur d'affichage d'un média du fil (pleine largeur jusqu'à 680 px). */
+export const imageSizes = "(max-width: 680px) 100vw, 680px";
+
 export function videoSrc(m: MediaItem) {
   return m.preview_url ?? mediaUrl(m.original_key);
 }
