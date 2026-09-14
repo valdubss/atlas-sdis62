@@ -175,7 +175,11 @@ export function PostCard({
           </header>
 
           {(shown.title || body) && (
-            <div className={variant === "feed" ? "mt-1" : "mt-3"}>
+            <div
+              className={cn(variant === "feed" ? "mt-1" : "mt-3", variant === "feed" && !preview && "cursor-pointer")}
+              // Fil : le texte ouvre la publication, comme la photo
+              onClick={variant === "feed" && !preview ? () => router.push(href) : undefined}
+            >
               {shown.title && (
                 <h2 className={cn("mb-0.5 font-semibold tracking-[-0.02em] leading-[1.2] text-text-1", variant === "feed" ? "text-[17px]" : "text-[22px]")}>
                   {variant === "feed" && shown.type === "article" ? (
@@ -223,11 +227,18 @@ export function PostCard({
                   </p>
                 )
               )}
-              {shown.type === "poll" && shown.poll && <PollCard postId={shown.id} poll={shown.poll} preview={preview} />}
+              {shown.type === "poll" && shown.poll && (
+                <div onClick={(e) => e.stopPropagation()}>
+                  <PollCard postId={shown.id} poll={shown.poll} preview={preview} />
+                </div>
+              )}
               {clampable && shown.type !== "article" && (
                 <button
                   type="button"
-                  onClick={() => setExpanded((v) => !v)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded((v) => !v);
+                  }}
                   className="mt-0.5 text-[13px] font-medium text-text-3 hover:text-text-1"
                 >
                   {expanded ? "moins" : "plus"}
