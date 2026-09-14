@@ -15,10 +15,12 @@ import { PostCard } from "./PostCard";
  * est ajoutée pour que le bouton Retour du téléphone referme la vue ; le
  * partage et les liens utilisent toujours la page /post/<slug>.
  */
-export function PostOverlay({ post, canModerate, onClose }: { post: FeedPost; canModerate: boolean; onClose: () => void }) {
+export function PostOverlay({ post, canModerate, onClose }: { post: FeedPost; canModerate: boolean; onClose: (viaHistory: boolean) => void }) {
   const reduced = useReducedMotion();
   const pushed = useRef(false);
   const closing = useRef(false);
+  // Fermeture demandée par la vue elle-même (bouton, Échap) : on garde l'animation de sortie
+  const manual = useRef(false);
 
   useEffect(() => {
     lockScroll();
@@ -27,15 +29,18 @@ export function PostOverlay({ post, canModerate, onClose }: { post: FeedPost; ca
     window.history.pushState({ ...(window.history.state ?? {}), atlasOverlay: true }, "");
     pushed.current = true;
     const onPop = () => {
+      // Retour du téléphone (geste ou bouton) : le système a déjà animé la
+      // sortie, la vue disparaît sans rejouer la sienne.
       closing.current = true;
-      onClose();
+      onClose(!manual.current);
     };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
     const close = () => {
       if (pushed.current && !closing.current) {
         closing.current = true;
+        manual.current = true;
         window.history.back();
-      } else onClose();
+      } else onClose(false);
     };
     window.addEventListener("popstate", onPop);
     document.addEventListener("keydown", onKey);
@@ -50,8 +55,9 @@ export function PostOverlay({ post, canModerate, onClose }: { post: FeedPost; ca
   function requestClose() {
     if (pushed.current && !closing.current) {
       closing.current = true;
+      manual.current = true;
       window.history.back();
-    } else onClose();
+    } else onClose(false);
   }
 
   return (
@@ -62,7 +68,8 @@ export function PostOverlay({ post, canModerate, onClose }: { post: FeedPost; ca
       className="fixed inset-0 z-[45] min-h-dvh overflow-y-auto overscroll-contain bg-bg-0"
       initial={reduced ? false : { x: "100%" }}
       animate={{ x: 0 }}
-      exit={{ x: "100%", transition: { duration: 0.2 } }}
+      variants={{ exit: (instant: boolean) => (instant ? { opacity: 0, transition: { duration: 0 } } : { x: "100%", transition: { duration: 0.2 } }) }}
+      exit="exit"
       transition={SPRING}
     >
       <header className="glass fixed inset-x-0 top-0 z-10" style={{ paddingTop: "env(safe-area-inset-top)" }}>

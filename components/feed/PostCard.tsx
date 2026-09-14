@@ -47,6 +47,8 @@ export function PostCard({
   const [commentsOpen, setCommentsOpen] = useState(false);
   // Fil : la publication s'ouvre en exergue instantanément (données déjà chargées)
   const [openFull, setOpenFull] = useState(false);
+  // Fermeture par l'historique (geste retour) : sortie immédiate, sans double animation
+  const [exitInstant, setExitInstant] = useState(false);
   const [, startTransition] = useTransition();
   const openPost = () => setOpenFull(true);
   const setCommentCount = useCallback((n: number) => setPost((p) => (p.comment_count === n ? p : { ...p, comment_count: n })), []);
@@ -292,7 +294,18 @@ export function PostCard({
       )}
 
       {variant === "feed" && !preview && (
-        <AnimatePresence>{openFull && <PostOverlay post={shown} canModerate={canModerate} onClose={() => setOpenFull(false)} />}</AnimatePresence>
+        <AnimatePresence custom={exitInstant}>
+          {openFull && (
+            <PostOverlay
+              post={shown}
+              canModerate={canModerate}
+              onClose={(viaHistory) => {
+                setExitInstant(viaHistory);
+                setOpenFull(false);
+              }}
+            />
+          )}
+        </AnimatePresence>
       )}
 
       {variant === "feed" && !preview && (
