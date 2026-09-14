@@ -7,7 +7,7 @@ interagissent (réactions, commentaires, favoris).
 - **Stack** : Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · Supabase
   (Postgres, Auth, RLS, Realtime) · stockage S3 compatible (Scaleway / R2) · Vercel.
 - **Architecture** : voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération (signalements, commentaires masqués, fermeture des commentaires) et gestion des utilisateurs (rôles, désactivation, export et suppression RGPD, administrateur uniquement).
+- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération et gestion des utilisateurs. Lot (d) : stories (bandeau de bulles, viewer plein écran tactile, expiration configurable, archive, à-la-une, suivi des vues pour les éditeurs).
 
 ---
 
@@ -86,6 +86,7 @@ redirige vers `/login`.
 | `0001_init.sql` | schéma complet, rôles, RLS, triggers métier, audit |
 | `0002_ensure_profile.sql` | auto-réparation d'un compte sans profil |
 | `0003_feed.sql` | fil paginé, recherche, réactions, favoris, commentaires temps réel, statistiques studio |
+| `0004_stories.sql` | bandeau de stories, viewer, vues, à-la-une |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -209,6 +210,10 @@ Parcours à tester :
 3. `/profil` : renseigner prénom, nom, centre → « Profil enregistré ».
 4. `/studio` en tant que `reader` → redirection vers `/` avec le message d'accès refusé ;
    en tant qu'`admin` → tableau de bord du studio.
+4a. Studio → **Stories** → **Nouvelle story** : une photo ou une vidéo (30 s max), un
+   texte, une série, **Publier** → la bulle apparaît en haut du fil ; tap à droite pour
+   avancer, maintien pour mettre en pause, glisser vers le bas pour fermer. Après 48 h
+   (réglable), la story rejoint l'archive et peut être ajoutée à un **à-la-une**.
 4b. Studio → **Utilisateurs** (admin) : changer un rôle, désactiver un compte, exporter
    ou supprimer les données d'un agent. Studio → **Modération** : signaler un
    commentaire depuis le fil avec un second compte, puis le masquer ou le laisser en ligne.
@@ -259,6 +264,7 @@ app/
   (studio)/studio/         espace éditeur (desktop), garde par rôle
     page.tsx               tableau de bord (compteurs, 7 jours, top 5)
     posts/                 liste, éditeur (aperçu agent en temps réel), actions
+    stories/               liste (en ligne, programmées, brouillons, archive), à-la-une, éditeur
     moderation/            signalements, commentaires masqués, derniers commentaires
     utilisateurs/          rôles, désactivation, export / suppression RGPD (admin)
     dev-ui/                composants du système de design dans tous leurs états
@@ -267,6 +273,7 @@ components/
   layout/                  TopBar, BottomNav
   ui/                      Button, Field, Card, Sheet, Avatar, Badge, EmptyState
   feed/                    PostCard, PhotoCarousel, VideoPlayer, ReactionBar, Comments…
+  stories/                 StoryBar (bulles), StoryViewer (plein écran), StoryMedia
   studio/                  PostEditor, MediaUploader (glisser-déposer, progression, alt)
 lib/
   config.ts                nom de l'app, limites, réactions
