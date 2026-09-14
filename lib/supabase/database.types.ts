@@ -211,9 +211,9 @@ export type Database = {
         Relationships: [];
       };
       notification_queue: {
-        Row: { id: number; kind: string; payload: Json; status: "pending" | "sent" | "failed"; attempts: number; created_at: Timestamp; sent_at: Timestamp | null; error: string | null };
-        Insert: { kind: string; payload: Json; status?: "pending" | "sent" | "failed"; attempts?: number; sent_at?: Timestamp | null; error?: string | null };
-        Update: { status?: "pending" | "sent" | "failed"; attempts?: number; sent_at?: Timestamp | null; error?: string | null };
+        Row: { id: number; kind: string; payload: Json; status: "pending" | "sent" | "failed"; attempts: number; created_at: Timestamp; sent_at: Timestamp | null; error: string | null; stats: string | null };
+        Insert: { kind: string; payload: Json; status?: "pending" | "sent" | "failed"; attempts?: number; sent_at?: Timestamp | null; error?: string | null; stats?: string | null };
+        Update: { status?: "pending" | "sent" | "failed"; attempts?: number; sent_at?: Timestamp | null; error?: string | null; stats?: string | null };
         Relationships: [];
       };
       posts: {

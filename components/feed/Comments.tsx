@@ -21,12 +21,15 @@ export function Comments({
   canModerate,
   onCountChange,
   autoFocus,
+  layout = "inline",
 }: {
   postId: string;
   enabled: boolean;
   canModerate: boolean;
   onCountChange?: (n: number) => void;
   autoFocus?: boolean;
+  /** "sheet" : liste défilante + composeur épinglé en bas (feuille mobile) */
+  layout?: "inline" | "sheet";
 }) {
   const [items, setItems] = useState<CommentItem[] | null>(null);
   const [replyTo, setReplyTo] = useState<CommentItem | null>(null);
@@ -75,18 +78,21 @@ export function Comments({
   const roots = (items ?? []).filter((c) => !c.parent_id);
   const repliesOf = (id: string) => (items ?? []).filter((c) => c.parent_id === id);
 
+  const sheet = layout === "sheet";
+
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 px-4 pb-4">
+    <div className={cn("flex flex-col", sheet ? "min-h-0 flex-1" : "h-full")}>
+      <div className={cn("flex-1 px-4 pb-4", sheet && "min-h-0 overflow-y-auto overscroll-contain")}>
         {items === null ? (
           <>
             <CommentSkeleton />
             <CommentSkeleton />
           </>
         ) : roots.length === 0 ? (
-          <p className="py-10 text-center text-[15px] text-text-2">
-            {enabled ? "Soyez le premier à commenter." : "Les commentaires sont désactivés."}
-          </p>
+          <div className="flex h-full min-h-[160px] flex-col items-center justify-center gap-1 py-10 text-center">
+            <p className="text-[17px] font-semibold text-text-1">{enabled ? "Aucun commentaire" : "Commentaires désactivés"}</p>
+            <p className="text-[15px] text-text-2">{enabled ? "Lancez la conversation." : "Le service communication a fermé les commentaires."}</p>
+          </div>
         ) : (
           roots.map((c) => (
             <div key={c.id}>
@@ -112,7 +118,7 @@ export function Comments({
       </div>
 
       {enabled && (
-        <div className="sticky bottom-0 bg-bg-2 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
+        <div className={cn("bg-bg-2 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-2", sheet ? "shrink-0 border-t border-line" : "sticky bottom-0")}>
           {replyTo && (
             <div className="mb-1 flex items-center justify-between text-[13px] text-text-3">
               <span>
@@ -124,7 +130,7 @@ export function Comments({
             </div>
           )}
           <form
-            className="flex items-end gap-2"
+            className="flex items-end gap-2 rounded-[22px] bg-bg-1 py-1 pl-1 pr-2 ring-1 ring-transparent focus-within:ring-glass-edge"
             onSubmit={(e) => {
               e.preventDefault();
               submit();
@@ -142,14 +148,15 @@ export function Comments({
               }}
               rows={1}
               maxLength={LIMITS.commentMaxLength}
-              placeholder="Ajouter un commentaire"
+              placeholder={replyTo ? "Votre réponse…" : "Ajouter un commentaire…"}
               aria-label="Votre commentaire"
-              className="max-h-32 min-h-11 flex-1 resize-none rounded-[10px] bg-bg-1 px-3.5 py-2.5 text-[15px] leading-[1.45] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
+              enterKeyHint="send"
+              className="max-h-32 min-h-10 flex-1 resize-none bg-transparent px-3 py-2.5 text-[16px] leading-[1.4] text-text-1 outline-none"
             />
             <button
               type="submit"
               disabled={pending || !body.trim()}
-              className="h-11 px-2 text-[15px] font-semibold text-text-1 disabled:text-text-4"
+              className="h-10 shrink-0 px-2 text-[15px] font-semibold text-red-text disabled:text-text-4"
             >
               Publier
             </button>

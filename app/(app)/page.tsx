@@ -4,6 +4,7 @@ import { getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { FEATURES } from "@/lib/config";
 import { FeedHeader } from "@/components/feed/FeedHeader";
 import { InfiniteFeed } from "@/components/feed/InfiniteFeed";
+import { PullToRefresh } from "@/components/feed/PullToRefresh";
 import { PostCard } from "@/components/feed/PostCard";
 import { StoryBar } from "@/components/stories/StoryBar";
 
@@ -46,19 +47,23 @@ export default async function FeedPage({
         </p>
       )}
 
-      <StoryBar bar={storyBar} canEdit={canModerate} />
+      <PullToRefresh>
+        <div className="space-y-3">
+          <StoryBar bar={storyBar} canEdit={canModerate} />
 
-      {pinned.map((p) => (
-        <PostCard key={p.id} post={p} canModerate={canModerate} />
-      ))}
+          {pinned.map((p) => (
+            <PostCard key={p.id} post={p} canModerate={canModerate} />
+          ))}
 
-      <InfiniteFeed
-        initial={posts.filter((p) => !pinnedIds.has(p.id))}
-        params={params}
-        canModerate={canModerate}
-        emptyTitle={filtered ? "Aucun résultat" : "Aucune actualité pour le moment"}
-        emptyDescription={filtered ? "Essayez un autre mot ou retirez un filtre." : "Les publications du service communication apparaîtront ici."}
-      />
+          <InfiniteFeed
+            initial={posts.filter((p) => !pinnedIds.has(p.id))}
+            params={params}
+            canModerate={canModerate}
+            emptyTitle={filtered ? "Aucun résultat" : "Aucune actualité pour le moment"}
+            emptyDescription={filtered ? "Essayez un autre mot ou retirez un filtre." : "Les publications du service communication apparaîtront ici."}
+          />
+        </div>
+      </PullToRefresh>
     </div>
   );
 }

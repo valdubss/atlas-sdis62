@@ -23,18 +23,20 @@ export type PushPayload = { title: string; body: string; url: string; tag?: stri
 export async function sendPush(
   sub: { endpoint: string; p256dh: string; auth: string },
   payload: PushPayload,
-): Promise<"sent" | "gone" | "error"> {
-  if (!ensureConfigured()) return "error";
+): Promise<{ status: "sent" } | { status: "gone" } | { status: "error"; message: string }> {
+  if (!ensureConfigured()) return { status: "error", message: "clés VAPID absentes" };
   try {
     await webPush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify(payload), {
       TTL: 60 * 60 * 24,
       urgency: "normal",
     });
-    return "sent";
+    return { status: "sent" };
   } catch (e) {
     const status = (e as { statusCode?: number }).statusCode;
-    if (status === 404 || status === 410) return "gone";
-    console.error("web-push", status, (e as Error).message);
-    return "error";
+    if (status === 404 || status === 410) return { status: "gone" };
+    const body = (e as { body?: string }).body?.slice(0, 120);
+    const message = `${status ?? "réseau"} ${body || (e as Error).message}`.trim();
+    console.error("web-push", message);
+    return { status: "error", message };
   }
 }

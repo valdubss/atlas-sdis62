@@ -1,26 +1,37 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-motion";
 import { SPRING } from "@/lib/motion";
+import { cn } from "@/lib/cn";
 
 /**
  * Bottom sheet 22 px avec poignée (mobile) / panneau centré 480 px (desktop).
  * Voile rgba(0,0,0,.5) + blur 4 px ; fermeture au swipe et au tap sur le voile.
  * Pose data-sheet-open sur <html> : les barres en verre passent en opaque.
+ *
+ * `tall` : hauteur fixe (≈ 85 % de l'écran) façon Instagram, pour les listes
+ * qui se remplissent (commentaires). `scroll={false}` : l'enfant gère lui-même
+ * son défilement (liste + composeur épinglé). Sur mobile, la feuille suit le
+ * clavier grâce à visualViewport.
  */
 export function Sheet({
   open,
   onClose,
   title,
   children,
+  tall = false,
+  scroll = true,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  tall?: boolean;
+  scroll?: boolean;
 }) {
   const reduced = useReducedMotion();
+  const keyboard = useKeyboardInset(open);
 
   useEffect(() => {
     if (!open) return;
@@ -65,7 +76,11 @@ export function Sheet({
             animate={{ y: 0 }}
             exit={{ y: "100%", transition: { duration: 0.22 } }}
             transition={SPRING}
-            className="floating flex max-h-[88dvh] w-full flex-col rounded-t-[22px] sm:max-h-[80vh] sm:w-[480px] sm:rounded-[22px]"
+            style={keyboard.inset ? { marginBottom: keyboard.inset, maxHeight: keyboard.height } : undefined}
+            className={cn(
+              "floating flex w-full flex-col rounded-t-[22px] sm:w-[480px] sm:rounded-[22px]",
+              tall ? "h-[85dvh] sm:h-[80vh]" : "max-h-[88dvh] sm:max-h-[80vh]",
+            )}
           >
             <div className="flex shrink-0 cursor-grab touch-none flex-col items-center pt-2">
               <span className="h-[5px] w-9 rounded-full bg-white/20" aria-hidden="true" />
@@ -73,10 +88,40 @@ export function Sheet({
                 <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">{title}</h2>
               </div>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+            {scroll ? (
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+            ) : (
+              <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+            )}
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
   );
+}
+
+/**
+ * Hauteur du clavier virtuel (iOS Safari ne réduit pas la fenêtre, seulement
+ * le visualViewport) : la feuille remonte d'autant et sa hauteur est bornée.
+ */
+function useKeyboardInset(active: boolean) {
+  const [state, setState] = useState({ inset: 0, height: 0 });
+  useEffect(() => {
+    if (!active) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const inset = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      setState({ inset: inset > 60 ? inset : 0, height: Math.round(vv.height) });
+    };
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      setState({ inset: 0, height: 0 });
+    };
+  }, [active]);
+  return state;
 }

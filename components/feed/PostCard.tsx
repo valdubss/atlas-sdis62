@@ -214,13 +214,13 @@ export function PostCard({
                 )
               )}
               {shown.type === "poll" && shown.poll && <PollCard postId={shown.id} poll={shown.poll} preview={preview} />}
-            {clampable && !expanded && shown.type !== "article" && (
+              {clampable && shown.type !== "article" && (
                 <button
                   type="button"
-                  onClick={() => setExpanded(true)}
+                  onClick={() => setExpanded((v) => !v)}
                   className="mt-0.5 text-[15px] font-medium text-text-2 hover:text-text-1"
                 >
-                  plus
+                  {expanded ? "moins" : "plus"}
                 </button>
               )}
             </div>
@@ -283,12 +283,14 @@ export function PostCard({
           open={commentsOpen}
           onClose={() => setCommentsOpen(false)}
           title="Commentaires"
+          tall
+          scroll={false}
         >
           <Comments
             postId={shown.id}
             enabled={shown.comments_enabled}
             canModerate={canModerate}
-            autoFocus
+            layout="sheet"
             onCountChange={(n) => setPost((p) => ({ ...p, comment_count: n }))}
           />
         </Sheet>

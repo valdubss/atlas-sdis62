@@ -5,8 +5,17 @@ import { flushQueue, sendDigestTest, setAppSetting, setDigestEnabled } from "@/a
 import { CheckboxField } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
+import { formatDateTime } from "@/lib/format";
 
-type Stats = { subscribers: number; devices: number; digest_recipients: number; pending: number; sent_7d: number };
+type Stats = {
+  subscribers: number;
+  devices: number;
+  digest_recipients: number;
+  pending: number;
+  sent_7d: number;
+  failed_7d?: number;
+  last?: { kind: string; status: string; at: string; stats: string | null } | null;
+};
 type AuthPrefs = { passwordEnabled: boolean; magicLinkEnabled: boolean; ssoForced: boolean; ssoConfigured: boolean; feedbackEmail: string };
 
 export function SettingsPanel({
@@ -61,9 +70,15 @@ export function SettingsPanel({
             </div>
           ))}
         </div>
+        {stats.last && (
+          <p className="text-[13px] text-text-2">
+            Dernier envoi {formatDateTime(stats.last.at)} : {stats.last.stats ?? stats.last.status}
+            {stats.failed_7d ? ` · ${stats.failed_7d} échec${stats.failed_7d > 1 ? "s" : ""} sur 7 jours` : ""}
+          </p>
+        )}
         <p className="text-[13px] text-text-3">
           {pushConfigured
-            ? "Une notification part à chaque mise en ligne, immédiatement puis par le cron toutes les cinq minutes en secours."
+            ? "Une notification part à chaque mise en ligne, immédiatement, puis le cron quotidien reprend ce qui resterait."
             : "Clés VAPID absentes : renseignez NEXT_PUBLIC_VAPID_PUBLIC_KEY et VAPID_PRIVATE_KEY."}
         </p>
         {isAdmin && (

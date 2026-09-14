@@ -34,25 +34,39 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
         .eq("id", item.id);
       continue;
     }
-    // Destinataires : abonnés dont la préférence correspond
+    // Destinataires : tous les abonnements, filtrés par la préférence de leur
+    // propriétaire (user_settings est lu séparément : pas de relation directe
+    // entre les deux tables pour PostgREST).
     const prefColumn = item.kind === "push_pinned" ? "push_pinned" : "push_new_posts";
-    const { data: subs } = await admin
-      .from("push_subscriptions")
-      .select("id, endpoint, p256dh, auth, user_id, settings:user_settings!push_subscriptions_user_id_fkey(push_pinned, push_new_posts)")
-      .limit(5000);
-
-    const targets = ((subs ?? []) as unknown as { id: string; endpoint: string; p256dh: string; auth: string; settings: Record<string, boolean> | null }[]).filter(
-      (s) => s.settings?.[prefColumn] !== false,
-    );
+    const [{ data: subs, error: subsError }, { data: settings }] = await Promise.all([
+      admin.from("push_subscriptions").select("id, endpoint, p256dh, auth, user_id").limit(5000),
+      admin.from("user_settings").select("user_id, push_pinned, push_new_posts"),
+    ]);
+    if (subsError) {
+      console.error("dispatch: abonnements illisibles", subsError.message);
+      await admin
+        .from("notification_queue")
+        .update({ status: item.attempts + 1 >= 3 ? "failed" : "pending", attempts: item.attempts + 1, error: subsError.message.slice(0, 300) })
+        .eq("id", item.id);
+      continue;
+    }
+    const optOut = new Set((settings ?? []).filter((s) => s[prefColumn] === false).map((s) => s.user_id));
+    const targets = (subs ?? []).filter((s) => !optOut.has(s.user_id));
 
     const payload: PushPayload = { title: item.payload.title, body: item.payload.body, url: item.payload.url, tag: item.payload.post_id };
     const gone: string[] = [];
     let ok = 0;
+    let failed = 0;
+    let lastError: string | null = null;
     await Promise.all(
       targets.map(async (s) => {
         const r = await sendPush(s, payload);
-        if (r === "sent") ok++;
-        if (r === "gone") gone.push(s.id);
+        if (r.status === "sent") ok++;
+        else if (r.status === "gone") gone.push(s.id);
+        else {
+          failed++;
+          lastError = r.message;
+        }
       }),
     );
     if (gone.length) {
@@ -60,9 +74,10 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
       removed += gone.length;
     }
     sent += ok;
+    const summary = `${ok}/${targets.length} envoyés` + (gone.length ? `, ${gone.length} expirés` : "") + (failed ? `, ${failed} en erreur (${lastError})` : "");
     await admin
       .from("notification_queue")
-      .update({ status: "sent", sent_at: new Date().toISOString(), attempts: item.attempts + 1, error: null })
+      .update({ status: "sent", sent_at: new Date().toISOString(), attempts: item.attempts + 1, error: failed ? summary : null, stats: summary })
       .eq("id", item.id);
   }
   return { processed: (queue ?? []).length, sent, removed };
