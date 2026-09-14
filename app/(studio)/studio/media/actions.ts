@@ -52,6 +52,11 @@ export async function createUpload(input: unknown): Promise<CreateUploadResult> 
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Session expirée." };
 
+  // Les agents (lecteurs) ne peuvent envoyer que des images (signalement, contribution)
+  const { data: me } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const editor = me?.role === "editor" || me?.role === "admin";
+  if (!editor && v.kind !== "image") return { ok: false, error: "Seules les images sont acceptées." };
+
   const id = crypto.randomUUID();
   const key = v.kind === "video" ? mediaKeys.video(id) : mediaKeys.original(id, extensionFor(v.mime));
   const posterKey = v.kind === "video" && v.hasPoster ? mediaKeys.poster(id) : null;

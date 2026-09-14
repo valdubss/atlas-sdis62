@@ -16,12 +16,13 @@ export type EditorMedia = MediaItem & {
   error?: string;
 };
 
-type Accept = "images" | "video" | "cover" | "story";
+type Accept = "images" | "video" | "cover" | "story" | "screenshot";
 
 const LABELS: Record<Accept, { title: string; hint: string; max: number; kinds: ("image" | "video")[] }> = {
   images: { title: "Photos", hint: `Glissez vos photos ou touchez pour choisir, jusqu'à ${LIMITS.imagesPerPost}. JPG, PNG, WebP, HEIC.`, max: LIMITS.imagesPerPost, kinds: ["image"] },
   video: { title: "Vidéo", hint: "Une vidéo MP4 (H.264), 200 Mo au plus. MOV accepté si H.264.", max: 1, kinds: ["video"] },
   cover: { title: "Image de couverture (facultatif)", hint: "Une image affichée en tête de l'article.", max: 1, kinds: ["image"] },
+  screenshot: { title: "Capture d'écran (facultatif)", hint: "Une image pour illustrer le problème.", max: 1, kinds: ["image"] },
   story: { title: "Média de la story", hint: `Une photo ou une vidéo de ${LIMITS.storyVideoMaxSeconds} s au plus, format vertical conseillé.`, max: 1, kinds: ["image", "video"] },
 };
 
@@ -181,7 +182,7 @@ export function MediaUploader({
         >
           <Upload size={22} strokeWidth={1.75} className="text-text-2" aria-hidden="true" />
           <p className="text-[15px] font-medium text-text-1">
-            Ajouter {accept === "video" ? "une vidéo" : accept === "cover" ? "une image" : accept === "story" ? "une photo ou une vidéo" : "des photos"}
+            Ajouter {accept === "video" ? "une vidéo" : accept === "cover" || accept === "screenshot" ? "une image" : accept === "story" ? "une photo ou une vidéo" : "des photos"}
           </p>
           <p className="text-[13px] text-text-3">{cfg.hint}</p>
           <input

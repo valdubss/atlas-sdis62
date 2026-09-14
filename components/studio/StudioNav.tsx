@@ -10,6 +10,7 @@ const NAV = [
   { href: "/studio/posts", label: "Publications" },
   { href: "/studio/stories", label: "Stories" },
   { href: "/studio/moderation", label: "Modération" },
+  { href: "/studio/retours", label: "Retours" },
   { href: "/studio/utilisateurs", label: "Utilisateurs" },
   { href: "/studio/parametres", label: "Paramètres" },
   { href: "/studio/dev-ui", label: "Composants" },

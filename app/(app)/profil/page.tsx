@@ -75,6 +75,10 @@ export default async function ProfilPage() {
       </section>
 
       <div className="hairline rounded-[16px] bg-bg-1">
+        <Link href="/profil/signaler" className="pressable flex h-12 items-center justify-between px-5 text-[15px] text-text-1">
+          Signaler un problème
+          <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
+        </Link>
         <Link href="/a-propos" className="pressable flex h-12 items-center justify-between px-5 text-[15px] text-text-1">
           À propos, charte et données personnelles
           <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
