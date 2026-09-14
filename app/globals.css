@@ -127,3 +127,46 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .ecg-animate { animation: none; stroke-dashoffset: 0; }
 }
+
+/* Animations d'interaction (façon Instagram) */
+@keyframes sheet-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+@keyframes heart {
+  0% { transform: scale(0.4); opacity: 0; }
+  30% { transform: scale(1.15); opacity: 1; }
+  70% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-\[sheet-in_\.22s_ease-out\],
+  .animate-\[pop_\.3s_ease-out\],
+  .animate-\[heart_\.7s_ease-out\] { animation: none; }
+}
+
+/* Rendu Markdown des articles */
+.prose-atlas { color: var(--body); font-size: 16px; line-height: 1.65; }
+.prose-atlas > * + * { margin-top: 0.9em; }
+.prose-atlas h1, .prose-atlas h2, .prose-atlas h3, .prose-atlas h4 {
+  font-family: var(--font-display); text-transform: uppercase; color: var(--ink);
+  line-height: 1.15; margin-top: 1.4em;
+}
+.prose-atlas h1 { font-size: 1.6em; } .prose-atlas h2 { font-size: 1.35em; } .prose-atlas h3 { font-size: 1.15em; }
+.prose-atlas a { color: var(--navy); text-decoration: underline; text-underline-offset: 2px; }
+.prose-atlas strong { color: var(--ink); }
+.prose-atlas ul, .prose-atlas ol { padding-left: 1.4em; }
+.prose-atlas ul { list-style: disc; } .prose-atlas ol { list-style: decimal; }
+.prose-atlas li + li { margin-top: 0.3em; }
+.prose-atlas blockquote { border-left: 3px solid var(--red); padding-left: 1em; color: var(--muted); font-style: italic; }
+.prose-atlas img { border-radius: 12px; max-width: 100%; height: auto; }
+.prose-atlas code { background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 6px; font-size: 0.9em; }
+.prose-atlas pre { background: var(--surface-2); padding: 0.8em 1em; border-radius: 12px; overflow-x: auto; }
+.prose-atlas hr { border: 0; border-top: 1px solid var(--line); }
+.prose-atlas table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
+.prose-atlas th, .prose-atlas td { border: 1px solid var(--line); padding: 0.4em 0.6em; text-align: left; }

@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "À propos" };
 
 export default function AProposPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-0">
       <SectionTitle>À propos</SectionTitle>
 
       <Card className="space-y-4 p-5 text-sm leading-relaxed text-body">

@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Galerie" };
 
 export default function GaleriePage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-0">
       <SectionTitle>Galerie</SectionTitle>
       {/* Lot (f) : grille de toutes les photos publiées, filtres, lightbox */}
       <EmptyState

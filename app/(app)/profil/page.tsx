@@ -30,7 +30,7 @@ export default async function ProfilPage() {
     (profile.first_name[0] ?? "") + (profile.last_name[0] ?? "") || profile.email[0];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-0">
       <SectionTitle>Profil</SectionTitle>
 
       <Card className="p-5">

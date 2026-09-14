@@ -11,7 +11,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="min-h-dvh bg-bg">
       <TopBar showStudio={isEditorRole(current.profile.role)} />
-      <main className="mx-auto w-full max-w-2xl px-4 pb-24 pt-4">{children}</main>
+      {/* Mobile : contenu bord à bord (les pages gèrent leur marge) ; desktop : colonne centrée */}
+      <main className="mx-auto w-full max-w-lg pb-24 pt-3 sm:px-4 sm:pt-5">{children}</main>
       <BottomNav />
     </div>
   );
