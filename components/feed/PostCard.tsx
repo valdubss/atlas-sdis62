@@ -198,7 +198,7 @@ export function PostCard({
                   </>
                 ) : (
                   <>
-                    <p className="clamp-4 text-[15px] text-text-1">
+                    <p className={cn("clamp-4 text-text-1", variant === "feed" ? "text-[13px] leading-[1.4] text-text-2" : "text-[15px]")}>
                       {shown.excerpt ??
                         body.replace(/[#*_>`\[\]]/g, "").slice(0, 320)}
                     </p>
@@ -214,7 +214,8 @@ export function PostCard({
                 body && (
                   <p
                     className={cn(
-                      "whitespace-pre-line break-words text-[15px] text-text-1",
+                      "whitespace-pre-line break-words",
+                      variant === "feed" ? "text-[13px] leading-[1.4] text-text-2" : "text-[15px] text-text-1",
                       clampable && !expanded && (hasMedia ? "clamp-2" : "clamp-4"),
                     )}
                   >
@@ -227,7 +228,7 @@ export function PostCard({
                 <button
                   type="button"
                   onClick={() => setExpanded((v) => !v)}
-                  className="mt-0.5 text-[15px] font-medium text-text-2 hover:text-text-1"
+                  className="mt-0.5 text-[13px] font-medium text-text-3 hover:text-text-1"
                 >
                   {expanded ? "moins" : "plus"}
                 </button>
