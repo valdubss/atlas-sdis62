@@ -7,7 +7,7 @@ interagissent (réactions, commentaires, favoris).
 - **Stack** : Next.js 15 (App Router) · TypeScript · Tailwind CSS 4 · Supabase
   (Postgres, Auth, RLS, Realtime) · stockage S3 compatible (Scaleway / R2) · Vercel.
 - **Architecture** : voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`).
+- **Avancement** : lots (a), (b) et (c) livrés — auth, rôles, schéma SQL, RLS, fil d'actualités, publications photos / vidéo / annonce / article, upload direct vers le stockage avec variantes WebP, réactions, commentaires temps réel, favoris, recherche, studio (éditeur avec aperçu, liste, statistiques). Catégories, centres et tags sont désactivés par défaut (`FEATURES` dans `lib/config.ts`). Lot (e) : modération (signalements, commentaires masqués, fermeture des commentaires) et gestion des utilisateurs (rôles, désactivation, export et suppression RGPD, administrateur uniquement).
 
 ---
 
@@ -181,6 +181,10 @@ where email = 'prenom.nom@sdis62.fr';
    depuis la page Profil pour les connexions suivantes. Les administrateurs pourront ensuite changer
    les rôles depuis le studio (lot e).
 
+> **Performance en développement** : `npm run dev` compile chaque page à la première
+> visite, d'où des navigations lentes la première fois. Pour juger la vitesse réelle
+> (préchargement des liens, pages compilées) : `npm run build` puis `npm start`.
+
 ## 5. Vérifier que tout fonctionne
 
 ```bash
@@ -203,6 +207,9 @@ Parcours à tester :
 3. `/profil` : renseigner prénom, nom, centre → « Profil enregistré ».
 4. `/studio` en tant que `reader` → redirection vers `/` avec le message d'accès refusé ;
    en tant qu'`admin` → tableau de bord du studio.
+4b. Studio → **Utilisateurs** (admin) : changer un rôle, désactiver un compte, exporter
+   ou supprimer les données d'un agent. Studio → **Modération** : signaler un
+   commentaire depuis le fil avec un second compte, puis le masquer ou le laisser en ligne.
 5. Désactivation : `update public.profiles set is_active = false where email = '…'` →
    à la prochaine navigation, déconnexion et message « compte désactivé ».
 
@@ -250,6 +257,9 @@ app/
   (studio)/studio/         espace éditeur (desktop), garde par rôle
     page.tsx               tableau de bord (compteurs, 7 jours, top 5)
     posts/                 liste, éditeur (aperçu agent en temps réel), actions
+    moderation/            signalements, commentaires masqués, derniers commentaires
+    utilisateurs/          rôles, désactivation, export / suppression RGPD (admin)
+    dev-ui/                composants du système de design dans tous leurs états
 components/
   brand/                   Logo, tracé ECG (séparateur, loader, état vide)
   layout/                  TopBar, BottomNav
