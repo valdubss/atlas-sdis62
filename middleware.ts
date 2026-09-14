@@ -13,6 +13,6 @@ export const config = {
      *  - favicon, manifest, icônes, images publiques
      *  - routes API cron (protégées par CRON_SECRET)
      */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons/|api/cron/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icons/|api/cron/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
