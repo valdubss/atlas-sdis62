@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition } from "react";
 import { Bookmark, MessageCircle } from "lucide-react";
 import type { FeedPost } from "@/lib/feed/types";
@@ -23,6 +21,8 @@ import { Markdown } from "./Markdown";
 import { PhotoCarousel } from "./PhotoCarousel";
 import { VideoPlayer } from "./VideoPlayer";
 import { PollCard } from "./PollCard";
+import { PostOverlay } from "./PostOverlay";
+import { AnimatePresence } from "framer-motion";
 
 /**
  * Carte de post : média 28 px en haut, puis zone opaque --bg-1 (16 px) avec
@@ -45,8 +45,10 @@ export function PostCard({
   const [post, setPost] = useState(initial);
   const [expanded, setExpanded] = useState(variant === "full");
   const [commentsOpen, setCommentsOpen] = useState(false);
+  // Fil : la publication s'ouvre en exergue instantanément (données déjà chargées)
+  const [openFull, setOpenFull] = useState(false);
   const [, startTransition] = useTransition();
-  const router = useRouter();
+  const openPost = () => setOpenFull(true);
   const setCommentCount = useCallback((n: number) => setPost((p) => (p.comment_count === n ? p : { ...p, comment_count: n })), []);
   const toast = useToast();
 
@@ -108,7 +110,6 @@ export function PostCard({
   const video = shown.media.find((m) => m.kind === "video") ?? null;
   const cover =
     shown.cover ?? (shown.type === "article" ? (images[0] ?? null) : null);
-  const href = `/post/${shown.slug}`;
   const hasMedia =
     (shown.type === "photo" && images.length > 0) ||
     (shown.type === "video" && !!video) ||
@@ -123,7 +124,7 @@ export function PostCard({
             media={images}
             size={variant === "full" ? "full" : "medium"}
             onDoubleTap={onDoubleTap}
-            onTap={variant === "feed" ? () => router.push(href) : undefined}
+            onTap={variant === "feed" ? openPost : undefined}
             interactive={!preview}
             rounded={false}
           />
@@ -142,7 +143,7 @@ export function PostCard({
             media={[cover]}
             size={variant === "full" ? "full" : "medium"}
             onDoubleTap={onDoubleTap}
-            onTap={variant === "feed" ? () => router.push(href) : undefined}
+            onTap={variant === "feed" ? openPost : undefined}
             interactive={!preview}
             rounded={false}
           />
@@ -178,15 +179,11 @@ export function PostCard({
             <div
               className={cn(variant === "feed" ? "mt-1" : "mt-3", variant === "feed" && !preview && "cursor-pointer")}
               // Fil : le texte ouvre la publication, comme la photo
-              onClick={variant === "feed" && !preview ? () => router.push(href) : undefined}
+              onClick={variant === "feed" && !preview ? openPost : undefined}
             >
               {shown.title && (
                 <h2 className={cn("mb-0.5 font-semibold tracking-[-0.02em] leading-[1.2] text-text-1", variant === "feed" ? "text-[17px]" : "text-[22px]")}>
-                  {variant === "feed" && shown.type === "article" ? (
-                    <Link href={href}>{shown.title}</Link>
-                  ) : (
-                    shown.title
-                  )}
+                  {shown.title}
                 </h2>
               )}
 
@@ -206,12 +203,7 @@ export function PostCard({
                       {shown.excerpt ??
                         body.replace(/[#*_>`\[\]]/g, "").slice(0, 320)}
                     </p>
-                    <Link
-                      href={href}
-                      className="pressable mt-1 inline-block text-[15px] font-medium text-text-2 hover:text-text-1"
-                    >
-                      Lire l&apos;article
-                    </Link>
+                    <span className="pressable mt-1 inline-block text-[13px] font-medium text-text-3">Lire l&apos;article</span>
                   </>
                 )
               ) : (
@@ -297,6 +289,10 @@ export function PostCard({
             onCountChange={setCommentCount}
           />
         </section>
+      )}
+
+      {variant === "feed" && !preview && (
+        <AnimatePresence>{openFull && <PostOverlay post={shown} canModerate={canModerate} onClose={() => setOpenFull(false)} />}</AnimatePresence>
       )}
 
       {variant === "feed" && !preview && (
