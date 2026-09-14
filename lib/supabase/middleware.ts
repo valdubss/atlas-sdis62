@@ -58,7 +58,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const meta = (user.app_metadata ?? {}) as { role?: string; is_active?: boolean };
+  const meta = (user.app_metadata ?? {}) as { role?: string; is_active?: boolean; onboarded?: boolean };
 
   if (meta.is_active === false) {
     await supabase.auth.signOut();
@@ -71,6 +71,14 @@ export async function updateSession(request: NextRequest) {
   if (pathname === "/login") {
     const url = request.nextUrl.clone();
     url.pathname = "/";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  // Première connexion : l'accueil s'affiche une fois (onboarded copié dans le JWT par trigger)
+  if (meta.onboarded === false && !pathname.startsWith("/bienvenue") && !pathname.startsWith("/api/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/bienvenue";
     url.search = "";
     return NextResponse.redirect(url);
   }
