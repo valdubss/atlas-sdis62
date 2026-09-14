@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { APP_NAME, ORG_LONG_NAME } from "@/lib/config";
 import { BackBar } from "@/components/layout/BackBar";
+import { LargeTitle } from "@/components/layout/TopBar";
 
 export const metadata: Metadata = { title: "À propos" };
 
@@ -8,7 +9,7 @@ export default function AProposPage() {
   return (
     <div className="space-y-3">
       <BackBar title="À propos" href="/profil" />
-      <h1 className="pb-1 pt-1 text-[34px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">À propos</h1>
+      <LargeTitle>À propos</LargeTitle>
 
       <section className="rounded-[16px] bg-bg-1 px-5 py-4 text-[15px] text-text-1">
         <p>
