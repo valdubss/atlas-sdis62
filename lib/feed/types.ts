@@ -88,6 +88,13 @@ export function totalReactions(counts: ReactionCounts) {
   return Object.values(counts).reduce((a, b) => a + (b ?? 0), 0);
 }
 
+/** Élément de galerie : une image et sa publication. */
+export type GalleryItem = {
+  media: MediaItem;
+  post: { id: string; slug: string; title: string | null; published_at: string };
+  position: number;
+};
+
 /** Story sérialisée par story_to_json(). */
 export type StoryOverlay = { text?: string; position?: "top" | "middle" | "bottom" } | null;
 

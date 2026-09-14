@@ -234,6 +234,24 @@ export type Database = {
         Update: { position?: number; alt?: string | null; crop?: Json | null };
         Relationships: [];
       };
+      polls: {
+        Row: { post_id: string; question: string; closes_at: Timestamp | null };
+        Insert: { post_id: string; question: string; closes_at?: Timestamp | null };
+        Update: { question?: string; closes_at?: Timestamp | null };
+        Relationships: [];
+      };
+      poll_options: {
+        Row: { id: string; poll_id: string; label: string; position: number };
+        Insert: { id?: string; poll_id: string; label: string; position?: number };
+        Update: { label?: string; position?: number };
+        Relationships: [];
+      };
+      poll_votes: {
+        Row: { poll_id: string; option_id: string; user_id: string; created_at: Timestamp };
+        Insert: { poll_id: string; option_id: string; user_id: string; created_at?: Timestamp };
+        Update: never;
+        Relationships: [];
+      };
       story_series: {
         Row: { id: string; title: string; cover_media_id: string | null; created_by: string | null; created_at: Timestamp };
         Insert: { id?: string; title: string; cover_media_id?: string | null; created_by?: string | null; created_at?: Timestamp };
@@ -322,6 +340,8 @@ export type Database = {
       get_highlight_items: { Args: { p_highlight_id: string }; Returns: Json[] };
       record_story_view: { Args: { p_story_id: string }; Returns: undefined };
       get_story_by_id: { Args: { p_id: string }; Returns: Json };
+      vote_poll: { Args: { p_post_id: string; p_option_id: string }; Returns: Json };
+      get_gallery: { Args: { p_limit?: number; p_cursor_at?: string | null; p_cursor_id?: string | null }; Returns: Json[] };
     };
     Enums: {
       user_role: UserRole;

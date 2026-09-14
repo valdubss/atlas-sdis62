@@ -15,7 +15,7 @@ const optionalUuid = z
   .pipe(z.uuid("Valeur invalide.").nullable());
 
 /** Types disponibles dans l'éditeur (sondage : lot f). */
-export const EDITOR_POST_TYPES = ["text", "photo", "video", "article"] as const;
+export const EDITOR_POST_TYPES = ["text", "photo", "video", "article", "poll"] as const;
 export type EditorPostType = (typeof EDITOR_POST_TYPES)[number];
 
 const mediaRef = z.object({
@@ -55,6 +55,14 @@ export const postSchema = z
     pinned: z.boolean(),
     action: z.enum(["draft", "publish", "schedule"]),
     scheduled_at: z
+      .string()
+      .trim()
+      .transform((v) => (v === "" ? null : v)),
+    poll_options: z
+      .string()
+      .transform((v) => v.split("\n").map((o) => o.trim()).filter(Boolean))
+      .pipe(z.array(z.string().max(120, "Option trop longue (120 caractères max).")).max(6, "6 options maximum.")),
+    poll_closes_at: z
       .string()
       .trim()
       .transform((v) => (v === "" ? null : v)),
@@ -99,6 +107,13 @@ export const postSchema = z
     }
     if (v.type === "article" && (videos.length > 0 || images.length > 1)) {
       ctx.addIssue({ code: "custom", path: ["media"], message: "Un article accepte une seule image de couverture." });
+    }
+    if (v.type === "poll") {
+      if (!v.title) ctx.addIssue({ code: "custom", path: ["title"], message: "La question du sondage est obligatoire." });
+      if (v.poll_options.length < 2) ctx.addIssue({ code: "custom", path: ["poll_options"], message: "Au moins deux options." });
+      if (new Set(v.poll_options.map((o) => o.toLowerCase())).size !== v.poll_options.length) ctx.addIssue({ code: "custom", path: ["poll_options"], message: "Deux options sont identiques." });
+      if (v.media.length > 0) ctx.addIssue({ code: "custom", path: ["media"], message: "Un sondage ne contient pas de média." });
+      if (v.poll_closes_at && Number.isNaN(new Date(v.poll_closes_at).getTime())) ctx.addIssue({ code: "custom", path: ["poll_closes_at"], message: "Date de clôture invalide." });
     }
     if (v.type === "text" && v.media.length > 0) {
       ctx.addIssue({ code: "custom", path: ["media"], message: "Une annonce ne contient pas de média : choisissez Photos ou Vidéo." });

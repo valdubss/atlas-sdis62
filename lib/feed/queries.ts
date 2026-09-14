@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import type { FeedCursor, FeedParams, FeedPost, StoryBar, StoryItem } from "./types";
+import type { FeedCursor, FeedParams, FeedPost, GalleryItem, StoryBar, StoryItem } from "./types";
 
 export const FEED_PAGE_SIZE = 10;
 
@@ -85,4 +85,11 @@ export async function fetchStoryById(id: string): Promise<StoryItem | null> {
   const { data, error } = await supabase.rpc("get_story_by_id", { p_id: id });
   if (error || !data) return null;
   return data as unknown as StoryItem;
+}
+
+export async function fetchGallery(limit = 30): Promise<GalleryItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_gallery", { p_limit: limit, p_cursor_at: null, p_cursor_id: null });
+  if (error) return [];
+  return (data ?? []) as unknown as GalleryItem[];
 }

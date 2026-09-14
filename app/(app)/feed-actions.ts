@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { fetchFeed } from "@/lib/feed/queries";
-import type { CommentItem, FeedCursor, FeedParams, FeedPost, ReactionCounts } from "@/lib/feed/types";
+import type { CommentItem, FeedCursor, FeedParams, FeedPost, GalleryItem, Poll, ReactionCounts } from "@/lib/feed/types";
 import type { ReactionKind } from "@/lib/config";
 import { commentSchema, friendlyDbError, reportSchema } from "@/lib/validation/comment";
 
@@ -28,6 +28,24 @@ export async function toggleBookmark(postId: string): Promise<{ ok: true; bookma
   if (error) return { ok: false, error: friendlyDbError(error.message) };
   revalidatePath("/favoris");
   return { ok: true, bookmarked: Boolean(data) };
+}
+
+export async function votePoll(postId: string, optionId: string): Promise<{ ok: true; poll: Poll } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("vote_poll", { p_post_id: postId, p_option_id: optionId });
+  if (error) {
+    const m = error.message;
+    const msg = m.includes("SONDAGE_CLOS") ? "Ce sondage est clos." : m.includes("DEJA_VOTE") ? "Vous avez déjà voté." : friendlyDbError(m);
+    return { ok: false, error: msg };
+  }
+  return { ok: true, poll: data as unknown as Poll };
+}
+
+export async function loadMoreGallery(cursor: { at: string; id: string } | null): Promise<GalleryItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_gallery", { p_limit: 30, p_cursor_at: cursor?.at ?? null, p_cursor_id: cursor?.id ?? null });
+  if (error) return [];
+  return (data ?? []) as unknown as GalleryItem[];
 }
 
 export async function recordView(postId: string) {
