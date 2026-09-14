@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAllowedEmail, getAllowedDomains } from "@/lib/auth/domains";
 import { loginSchema, passwordLoginSchema } from "@/lib/validation/auth";
+import { getAuthSettings } from "@/lib/auth/settings";
+import { azureOAuthOptions } from "@/lib/auth/providers";
 
 export type LoginState =
   | { status: "idle" }
@@ -28,6 +30,8 @@ export async function sendMagicLink(
   _prev: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
+  const auth = await getAuthSettings();
+  if (!auth.magicLinkEnabled) return { status: "error", message: "La connexion par lien e-mail est désactivée." };
   const parsed = loginSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0]?.message ?? "Adresse invalide." };
@@ -80,6 +84,8 @@ export async function signInWithPassword(
   _prev: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
+  const auth = await getAuthSettings();
+  if (!auth.passwordEnabled) return { status: "error", message: "La connexion par mot de passe est désactivée." };
   const parsed = passwordLoginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -108,4 +114,17 @@ export async function signInWithPassword(
   }
 
   redirect(safeNext(formData.get("next") as string | null));
+}
+
+/** SSO Microsoft Entra ID : redirige vers Microsoft via Supabase Auth. */
+export async function startSso(_prev: LoginState, formData: FormData): Promise<LoginState> {
+  const auth = await getAuthSettings();
+  if (!auth.ssoEnabled) return { status: "error", message: "La connexion Microsoft n'est pas configurée." };
+  const h = await headers();
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
+  const next = safeNext(formData.get("next") as string | null);
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth(azureOAuthOptions(`${origin}/auth/callback?next=${encodeURIComponent(next)}`));
+  if (error || !data.url) return { status: "error", message: "La connexion Microsoft a échoué. Réessayez." };
+  redirect(data.url);
 }

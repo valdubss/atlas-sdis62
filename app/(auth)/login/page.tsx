@@ -4,6 +4,7 @@ import path from "node:path";
 import { Logo } from "@/components/brand/Logo";
 import { APP_NAME } from "@/lib/config";
 import { getAllowedDomains } from "@/lib/auth/domains";
+import { getAuthSettings } from "@/lib/auth/settings";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = { title: "Connexion" };
@@ -12,6 +13,8 @@ const ERRORS: Record<string, string> = {
   desactive: "Votre compte a été désactivé. Contactez le service communication.",
   lien: "Ce lien de connexion est invalide ou a expiré. Demandez-en un nouveau.",
   profil: "Votre compte n'a pas de profil valide. Reconnectez-vous ; si le problème persiste, contactez l'administrateur.",
+  sso: "La connexion Microsoft a échoué. Réessayez, ou utilisez votre adresse e-mail.",
+  mode: "Ce mode de connexion est désactivé.",
 };
 
 // Photo d'intervention plein écran (public/login-bg.jpg), détectée au démarrage du serveur.
@@ -25,6 +28,7 @@ const HAS_BG = existsSync(path.join(process.cwd(), "public", BG_FILE));
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; erreur?: string }> }) {
   const { next = "/", erreur } = await searchParams;
   const domains = getAllowedDomains();
+  const auth = await getAuthSettings();
 
   return (
     <main className="relative flex min-h-dvh flex-col bg-bg-0">
@@ -52,7 +56,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               {ERRORS[erreur]}
             </p>
           )}
-          <LoginForm next={next} domains={domains} />
+          <LoginForm next={next} domains={domains} auth={auth} />
         </section>
       </div>
     </main>

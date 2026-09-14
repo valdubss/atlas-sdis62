@@ -37,8 +37,22 @@ type ProfileRow = {
   role: UserRole;
   avatar_key: string | null;
   is_active: boolean;
+  onboarded_at: Timestamp | null;
   created_at: Timestamp;
   updated_at: Timestamp;
+};
+
+type FeedbackRow = {
+  id: string;
+  user_id: string | null;
+  category: "bug" | "content" | "suggestion";
+  description: string;
+  screenshot_key: string | null;
+  context: Json;
+  status: "new" | "seen" | "done";
+  handled_by: string | null;
+  handled_at: Timestamp | null;
+  created_at: Timestamp;
 };
 
 type RefRow = {
@@ -138,7 +152,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: ProfileRow;
-        Insert: Optional<ProfileRow, "first_name" | "last_name" | "center_id" | "role" | "avatar_key" | "is_active" | "created_at" | "updated_at">;
+        Insert: Optional<ProfileRow, "first_name" | "last_name" | "center_id" | "role" | "avatar_key" | "is_active" | "onboarded_at" | "created_at" | "updated_at">;
         Update: Partial<ProfileRow>;
         Relationships: [];
       };
@@ -247,6 +261,12 @@ export type Database = {
         Row: { post_id: string; media_id: string; position: number; alt: string | null; crop: Json | null };
         Insert: { post_id: string; media_id: string; position?: number; alt?: string | null; crop?: Json | null };
         Update: { position?: number; alt?: string | null; crop?: Json | null };
+        Relationships: [];
+      };
+      feedback: {
+        Row: FeedbackRow;
+        Insert: Optional<FeedbackRow, "id" | "user_id" | "screenshot_key" | "context" | "status" | "handled_by" | "handled_at" | "created_at">;
+        Update: Partial<FeedbackRow>;
         Relationships: [];
       };
       polls: {

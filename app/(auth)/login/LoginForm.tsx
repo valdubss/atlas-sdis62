@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { sendMagicLink, signInWithPassword, type LoginState } from "./actions";
+import { sendMagicLink, signInWithPassword, startSso, type LoginState } from "./actions";
+import type { AuthSettings } from "@/lib/auth/providers";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 
@@ -11,14 +12,15 @@ type Mode = "password" | "link";
 const input = "h-11 w-full rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge";
 
 /**
- * Connexion par e-mail et mot de passe (défaut). « Première connexion » ou
- * « mot de passe oublié » : l'agent saisit son adresse, reçoit un lien, puis
- * définit son mot de passe sur /bienvenue. Un seul bouton rouge.
+ * Connexion : SSO Microsoft en premier s'il est configuré, puis e-mail + mot de
+ * passe, puis « première connexion ou mot de passe oublié » (lien e-mail).
+ * Un seul bouton rouge : le SSO s'il existe, sinon le bouton du mode courant.
  */
-export function LoginForm({ next, domains }: { next: string; domains: string[] }) {
-  const [mode, setMode] = useState<Mode>("password");
+export function LoginForm({ next, domains, auth }: { next: string; domains: string[]; auth: AuthSettings }) {
+  const [mode, setMode] = useState<Mode>(auth.passwordEnabled ? "password" : "link");
   const [pwdState, pwdAction, pwdPending] = useActionState(signInWithPassword, initial);
   const [linkState, linkAction, linkPending] = useActionState(sendMagicLink, initial);
+  const [ssoState, ssoAction, ssoPending] = useActionState(startSso, initial);
 
   if (linkState.status === "sent") {
     return (
@@ -34,12 +36,28 @@ export function LoginForm({ next, domains }: { next: string; domains: string[] }
 
   const placeholder = domains[0] ? `prenom.nom@${domains[0]}` : "Adresse e-mail";
   const error = mode === "password" ? (pwdState.status === "error" ? pwdState.message : null) : linkState.status === "error" ? linkState.message : null;
+  const secondaryVariant = auth.ssoEnabled ? "secondary" : "primary";
 
   return (
     <div className="space-y-4">
-      <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">{mode === "password" ? "Connexion" : "Première connexion"}</p>
+      <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">{auth.ssoForced ? "Connexion" : mode === "password" || auth.ssoEnabled ? "Connexion" : "Première connexion"}</p>
 
-      {mode === "password" ? (
+      {auth.ssoEnabled && (
+        <form action={ssoAction} className="space-y-3">
+          <input type="hidden" name="next" value={next} />
+          <Button type="submit" className="w-full" loading={ssoPending}>
+            Continuer avec Microsoft
+          </Button>
+          {ssoState.status === "error" && (
+            <p className="text-[13px] text-red-text" role="alert">
+              {ssoState.message}
+            </p>
+          )}
+          {auth.ssoForced && <p className="text-[13px] text-text-3">Utilisez votre compte professionnel du SDIS 62.</p>}
+        </form>
+      )}
+
+      {!auth.ssoForced && mode === "password" && auth.passwordEnabled && (
         <form action={pwdAction} className="space-y-3" noValidate>
           <input type="hidden" name="next" value={next} />
           <input name="email" type="email" autoComplete="username" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail" required className={input} />
@@ -49,14 +67,15 @@ export function LoginForm({ next, domains }: { next: string; domains: string[] }
               {error}
             </p>
           )}
-          <Button type="submit" className="w-full" loading={pwdPending}>
+          <Button type="submit" variant={secondaryVariant} className="w-full" loading={pwdPending}>
             Se connecter
           </Button>
         </form>
-      ) : (
+      )}
+
+      {!auth.ssoForced && mode === "link" && auth.magicLinkEnabled && (
         <form action={linkAction} className="space-y-3" noValidate>
-          {/* Après le lien, l'agent définit son mot de passe */}
-          <input type="hidden" name="next" value="/bienvenue" />
+          <input type="hidden" name="next" value="/bienvenue?mdp=1" />
           <p className="text-[15px] text-text-2">Saisissez votre adresse : vous recevrez un lien pour créer votre mot de passe.</p>
           <input name="email" type="email" autoComplete="email" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail" required className={cn(input, error && "ring-red")} />
           {error && (
@@ -64,19 +83,21 @@ export function LoginForm({ next, domains }: { next: string; domains: string[] }
               {error}
             </p>
           )}
-          <Button type="submit" className="w-full" loading={linkPending}>
+          <Button type="submit" variant={secondaryVariant} className="w-full" loading={linkPending}>
             Recevoir mon lien
           </Button>
         </form>
       )}
 
-      <button
-        type="button"
-        onClick={() => setMode((m) => (m === "password" ? "link" : "password"))}
-        className="block w-full text-center text-[15px] font-medium text-text-2 hover:text-text-1"
-      >
-        {mode === "password" ? "Première connexion ou mot de passe oublié" : "J'ai déjà un mot de passe"}
-      </button>
+      {!auth.ssoForced && auth.passwordEnabled && auth.magicLinkEnabled && (
+        <button
+          type="button"
+          onClick={() => setMode((m) => (m === "password" ? "link" : "password"))}
+          className="block w-full text-center text-[15px] font-medium text-text-2 hover:text-text-1"
+        >
+          {mode === "password" ? "Première connexion ou mot de passe oublié" : "J'ai déjà un mot de passe"}
+        </button>
+      )}
     </div>
   );
 }
