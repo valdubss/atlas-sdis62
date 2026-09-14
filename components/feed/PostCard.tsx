@@ -112,8 +112,8 @@ export function PostCard({
   return (
     <article
       className={cn(
-        "relative bg-surface",
-        variant === "feed" && "border-b border-line sm:rounded-card sm:border sm:shadow-soft",
+        "glass relative overflow-hidden border-x-0 sm:border-x",
+        variant === "feed" && "sm:rounded-card sm:shadow-soft",
         variant === "full" && "sm:rounded-card sm:shadow-soft",
       )}
       aria-label={shown.title ?? "Publication"}

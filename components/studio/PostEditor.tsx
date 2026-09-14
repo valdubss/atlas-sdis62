@@ -125,7 +125,7 @@ export function PostEditor({
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-3xl font-bold uppercase text-navy">
+            <h1 className="font-display text-3xl font-bold uppercase text-ink">
               {post ? "Modifier" : "Nouvelle publication"}
             </h1>
             <StatusBadge status={status} />
@@ -148,7 +148,7 @@ export function PostEditor({
 
         {/* Type */}
         <fieldset>
-          <legend className="mb-2 text-sm font-semibold text-navy">Type de publication</legend>
+          <legend className="mb-2 text-sm font-semibold text-ink">Type de publication</legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             {TYPES.map((t) => {
               const active = type === t.id;
@@ -157,7 +157,7 @@ export function PostEditor({
                   key={t.id}
                   className={cn(
                     "cursor-pointer rounded-xl border px-3 py-2 text-sm",
-                    active ? "border-navy bg-navy/5 text-navy" : "border-line text-body hover:border-navy/40",
+                    active ? "border-white bg-white/10 text-ink" : "border-line text-body hover:border-line-strong",
                     t.soon && "cursor-not-allowed opacity-50",
                   )}
                   title={t.hint}
@@ -329,8 +329,8 @@ export function PostEditor({
             </button>
           )}
         </div>
-        <div className="mx-auto w-full max-w-[400px] overflow-hidden rounded-[28px] border-[6px] border-navy/80 bg-bg shadow-soft">
-          <div className="h-6 bg-navy/80" aria-hidden="true" />
+        <div className="mx-auto w-full max-w-[400px] overflow-hidden rounded-[28px] border-[6px] border-white/15 bg-bg shadow-soft">
+          <div className="h-6 bg-white/15" aria-hidden="true" />
           <div className="max-h-[70vh] overflow-y-auto">
             <PostCard key={previewFull ? "full" : "feed"} post={preview} preview variant={previewFull ? "full" : "feed"} />
           </div>

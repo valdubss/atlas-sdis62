@@ -19,7 +19,7 @@ export function LoginForm({ next, domains }: { next: string; domains: string[] }
     return (
       <div className="space-y-4 text-center" role="status" aria-live="polite">
         <Ecg className="mx-auto h-8 w-40 text-red" animate />
-        <h2 className="font-display text-2xl font-bold uppercase text-navy">Lien envoyé</h2>
+        <h2 className="font-display text-2xl font-bold uppercase text-ink">Lien envoyé</h2>
         <p className="text-body">
           Ouvrez l&apos;e-mail reçu sur <strong>{magicState.email}</strong> et cliquez sur le
           lien pour vous connecter. Il est valable une heure.
@@ -54,7 +54,7 @@ export function LoginForm({ next, domains }: { next: string; domains: string[] }
             onClick={() => setMode(id)}
             className={cn(
               "rounded-lg px-3 py-2 transition-colors",
-              mode === id ? "bg-surface text-navy shadow-soft" : "text-muted hover:text-navy",
+              mode === id ? "bg-white text-bg" : "text-muted hover:text-ink",
             )}
           >
             {label}

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Logo, hasLogo } from "@/components/brand/Logo";
+import { Logo } from "@/components/brand/Logo";
 import { EcgDivider } from "@/components/brand/Ecg";
 import { APP_NAME, APP_TAGLINE, ORG_LONG_NAME } from "@/lib/config";
 import { getAllowedDomains } from "@/lib/auth/domains";
@@ -27,20 +27,12 @@ export default async function LoginPage({
     <main className="flex min-h-dvh flex-col items-center justify-center bg-bg px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <Logo height={64} />
-          <h1
-            className={
-              hasLogo()
-                ? "font-display text-4xl font-extrabold uppercase leading-none text-navy"
-                : "sr-only"
-            }
-          >
-            {APP_NAME}
-          </h1>
+          <Logo height={44} />
+          <h1 className="sr-only">{APP_NAME}</h1>
           <p className="text-sm text-muted">{APP_TAGLINE}</p>
         </div>
 
-        <div className="rounded-card bg-surface p-6 shadow-soft">
+        <div className="glass rounded-card p-6 shadow-soft">
           {erreur && ERRORS[erreur] && (
             <p
               role="alert"

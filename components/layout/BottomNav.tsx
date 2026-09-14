@@ -32,7 +32,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navigation principale"
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-surface/85"
+      className="glass fixed inset-x-0 bottom-0 z-30 border-x-0 border-b-0 pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="mx-auto grid max-w-2xl grid-cols-4">
         {NAV_ITEMS.map((item) => {
@@ -45,12 +45,13 @@ export function BottomNav() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold uppercase tracking-wide transition-colors",
-                  active ? "text-red" : "text-muted hover:text-navy",
+                  active ? "text-ink" : "text-muted hover:text-ink",
                 )}
               >
+                <span className={cn("flex h-7 w-12 items-center justify-center rounded-full transition-colors", active && "bg-red/20")}>
                 <svg
                   viewBox="0 0 24 24"
-                  className="h-6 w-6"
+                  className={cn("h-6 w-6", active && "text-red-text")}
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={active ? 2.4 : 1.8}
@@ -58,6 +59,7 @@ export function BottomNav() {
                 >
                   {ICONS[item.icon]}
                 </svg>
+                </span>
                 {item.label}
               </Link>
             </li>

@@ -1,75 +1,36 @@
 @import "tailwindcss";
 
 /* -----------------------------------------------------------------------------
-   Tokens ATLAS — identité SDIS 62
-   Valeurs provisoires : à ajuster avec `node scripts/extract-colors.mjs`
-   une fois public/logo-sdis62.png déposé.
-   Rouge = action (boutons, réactions actives, anneau de story non vue).
-   Marine = titres, navigation, textes forts. Aucune autre couleur hors
-   succès / erreur système.
+   Tokens ATLAS — thème sombre « glass »
+   Fond quasi noir bleuté, surfaces translucides floutées, rouge sapeurs-pompiers
+   réservé aux actions, bleu clair pour les liens et libellés.
 ----------------------------------------------------------------------------- */
 :root {
-  color-scheme: light;
-
-  --red: #c8102e;
-  --red-hover: #a80d27;
-  --red-text: #b30e29; /* rouge lisible en texte sur fond clair (AA) */
-  --navy: #1b2d5c;
-  --navy-hover: #142347;
-
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #eef0f4;
-  --ink: #1b2d5c;      /* titres */
-  --body: #1f2937;     /* texte courant */
-  --muted: #5b6472;    /* texte secondaire (AA sur blanc : 5.6:1) */
-  --line: #e3e6ec;
-
-  --success: #1e7f4f;
-  --danger: #b42318;
-
-  --radius-card: 16px;
-  --shadow-soft: 0 1px 2px rgb(27 45 92 / 0.06), 0 8px 24px -12px rgb(27 45 92 / 0.18);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --red: #d5203c;
-    --red-hover: #e6394f;
-    --red-text: #ff6b7a;
-    --navy: #8ea4dc;   /* marine éclairci pour rester lisible sur fond sombre */
-    --navy-hover: #a9bbe8;
-    --bg: #0f1523;
-    --surface: #161d2e;
-    --surface-2: #1f2840;
-    --ink: #f3f4f6;
-    --body: #d7dbe3;
-    --muted: #9aa3b2;
-    --line: #2a3450;
-    --success: #4ade80;
-    --danger: #f87171;
-    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
-  }
-}
-
-:root[data-theme="dark"] {
   color-scheme: dark;
-  --red: #d5203c;
-  --red-hover: #e6394f;
+
+  --red: #e4293f;
+  --red-hover: #f03d52;
   --red-text: #ff6b7a;
-  --navy: #8ea4dc;
-  --navy-hover: #a9bbe8;
-  --bg: #0f1523;
-  --surface: #161d2e;
-  --surface-2: #1f2840;
-  --ink: #f3f4f6;
-  --body: #d7dbe3;
-  --muted: #9aa3b2;
-  --line: #2a3450;
+  --navy: #8fa8ff; /* accent « marine » lisible sur fond sombre */
+  --navy-hover: #adc0ff;
+
+  --bg: #0a0d14;
+  --surface: rgba(255, 255, 255, 0.045);
+  --surface-2: rgba(255, 255, 255, 0.085);
+  --glass: rgba(14, 18, 28, 0.62);
+  --glass-strong: rgba(14, 18, 28, 0.86);
+  --ink: #f5f7fa;
+  --body: #d7dce6;
+  --muted: #8d95a7;
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.18);
+
   --success: #4ade80;
-  --danger: #f87171;
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  --danger: #ff7b7b;
+
+  --radius-card: 20px;
+  --shadow-soft: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 40px -18px rgba(0, 0, 0, 0.7);
+  --shadow-glow-red: 0 10px 30px -10px rgba(228, 41, 63, 0.6);
 }
 
 @theme inline {
@@ -81,10 +42,13 @@
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-glass: var(--glass);
+  --color-glass-strong: var(--glass-strong);
   --color-ink: var(--ink);
   --color-body: var(--body);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-success: var(--success);
   --color-danger: var(--danger);
 
@@ -93,10 +57,12 @@
 
   --radius-card: var(--radius-card);
   --shadow-soft: var(--shadow-soft);
+  --shadow-glow-red: var(--shadow-glow-red);
 }
 
 html {
   -webkit-text-size-adjust: 100%;
+  background: var(--bg);
 }
 
 body {
@@ -104,12 +70,43 @@ body {
   color: var(--body);
   font-family: var(--font-sans);
   min-height: 100dvh;
+  position: relative;
+}
+
+/* Lumière d'ambiance très douce derrière les surfaces en verre */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 15% -10%, rgba(228, 41, 63, 0.16), transparent 70%),
+    radial-gradient(50% 40% at 100% 100%, rgba(84, 110, 255, 0.14), transparent 70%);
+}
+
+/* Surface en verre dépoli */
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--line);
+}
+.glass-strong {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid var(--line);
 }
 
 /* Focus visible uniforme (accessibilité) */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--navy);
   outline-offset: 2px;
+}
+
+::selection {
+  background: rgba(228, 41, 63, 0.4);
 }
 
 /* Animation du tracé ECG (loader) */
@@ -123,9 +120,6 @@ body {
   65% { stroke-dashoffset: 0; opacity: 1; }
   85% { stroke-dashoffset: 0; opacity: 0; }
   100% { stroke-dashoffset: 1; opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ecg-animate { animation: none; stroke-dashoffset: 0; }
 }
 
 /* Animations d'interaction (façon Instagram) */
@@ -145,6 +139,7 @@ body {
   100% { transform: scale(1.3); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .ecg-animate { animation: none; stroke-dashoffset: 0; }
   .animate-\[sheet-in_\.22s_ease-out\],
   .animate-\[pop_\.3s_ease-out\],
   .animate-\[heart_\.7s_ease-out\] { animation: none; }

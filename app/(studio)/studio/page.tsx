@@ -39,7 +39,7 @@ export default async function StudioDashboardPage() {
           <Link key={String(label)} href={String(href)}>
             <Card className="p-5 transition-shadow hover:shadow-lg">
               <p className="text-sm font-semibold uppercase tracking-wide text-muted">{label}</p>
-              <p className="mt-1 font-display text-4xl font-extrabold text-navy">{value}</p>
+              <p className="mt-1 font-display text-4xl font-extrabold text-ink">{value}</p>
             </Card>
           </Link>
         ))}
@@ -48,7 +48,7 @@ export default async function StudioDashboardPage() {
       <EcgDivider />
 
       <section className="space-y-3">
-        <h2 className="font-display text-xl font-bold uppercase text-navy">7 derniers jours</h2>
+        <h2 className="font-display text-xl font-bold uppercase text-ink">7 derniers jours</h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
             ["Publications", stats.week.posts],
@@ -65,7 +65,7 @@ export default async function StudioDashboardPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-display text-xl font-bold uppercase text-navy">Top 5 de la semaine</h2>
+        <h2 className="font-display text-xl font-bold uppercase text-ink">Top 5 de la semaine</h2>
         <Card className="divide-y divide-line">
           {stats.top.length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-muted">Pas encore de publication cette semaine.</p>

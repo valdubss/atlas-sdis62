@@ -22,7 +22,7 @@ function Messages({ id, error, hint }: { id: string; error?: string; hint?: stri
 
 function Label({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <label htmlFor={id} className="block text-sm font-semibold text-navy">
+    <label htmlFor={id} className="block text-sm font-semibold text-ink">
       {children}
     </label>
   );
@@ -138,7 +138,7 @@ export function CheckboxField({
         {...props}
       />
       <span>
-        <span className="block text-sm font-semibold text-navy">{label}</span>
+        <span className="block text-sm font-semibold text-ink">{label}</span>
         {hint && <span className="block text-xs text-muted">{hint}</span>}
       </span>
     </label>

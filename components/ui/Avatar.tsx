@@ -42,7 +42,7 @@ export function Avatar({
       aria-hidden="true"
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full font-display font-bold uppercase",
-        official ? "bg-navy text-white" : "bg-surface-2 text-navy",
+        official ? "bg-red text-white" : "bg-surface-2 text-ink ring-1 ring-line",
         SIZES[size],
         className,
       )}

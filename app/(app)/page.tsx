@@ -50,7 +50,7 @@ export default async function FeedPage({
       {/* Lot d : bandeau de stories */}
 
       {pinned.length > 0 && (
-        <section aria-label="Publications épinglées" className="space-y-0 sm:space-y-4">
+        <section aria-label="Publications épinglées" className="space-y-2 sm:space-y-4">
           {pinned.map((p) => (
             <PostCard key={p.id} post={p} canModerate={canModerate} />
           ))}

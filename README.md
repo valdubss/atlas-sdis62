@@ -35,7 +35,6 @@ interagissent (réactions, commentaires, favoris).
 | npm | ≥ 10 | dépendances |
 | Compte [Supabase](https://supabase.com) | — | base de données, auth |
 | Supabase CLI *(optionnel)* | ≥ 2 | migrations en ligne de commande (`npx supabase`) |
-| Logo `public/logo-sdis62.png` | — | identité visuelle (PNG, fond transparent ou blanc) |
 
 ## 2. Installation locale
 
@@ -53,9 +52,9 @@ npm run dev
 L'application est disponible sur <http://localhost:3000>. Sans session, toute page
 redirige vers `/login`.
 
-> **Logo** : déposez `logo-sdis62.png` dans `public/`. Tant qu'il est absent, un
-> mot-symbole « ATLAS 62 » s'affiche à la place. Pour caler les couleurs sur le
-> logo : `node scripts/extract-colors.mjs` (nécessite `sharp`, installé au lot c).
+> **Identité** : thème sombre « glass » et logo typographique ATLAS (composant
+> `components/brand/Logo.tsx`). Les couleurs se règlent dans `app/globals.css`
+> (variables `--red`, `--navy`, `--bg`, `--glass`…).
 
 ## 3. Créer le projet Supabase
 

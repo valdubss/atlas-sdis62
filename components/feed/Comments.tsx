@@ -109,7 +109,7 @@ export function Comments({
       </div>
 
       {enabled && (
-        <div className="sticky bottom-0 border-t border-line bg-surface px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2">
+        <div className="glass-strong sticky bottom-0 border-x-0 border-b-0 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2">
           {replyTo && (
             <div className="mb-1 flex items-center justify-between text-xs text-muted">
               <span>
@@ -189,7 +189,7 @@ function CommentRow({
       <div className="min-w-0 flex-1">
         <div className={cn("rounded-2xl bg-surface-2 px-3 py-2", hidden && "opacity-50")}>
           <p className="text-sm">
-            <span className="font-semibold text-navy">{comment.author.name ?? "Agent"}</span>
+            <span className="font-semibold text-ink">{comment.author.name ?? "Agent"}</span>
             {comment.author.center && <span className="text-muted"> · {comment.author.center}</span>}
           </p>
           <p className="whitespace-pre-line break-words text-[15px] leading-snug text-body">{comment.body}</p>
@@ -249,7 +249,7 @@ function CommentRow({
               required
               minLength={3}
             />
-            <button type="submit" disabled={pending} className="h-9 rounded-lg bg-navy px-3 text-xs font-bold text-white">
+            <button type="submit" disabled={pending} className="h-9 rounded-lg bg-white px-3 text-xs font-bold text-bg">
               Envoyer
             </button>
           </form>

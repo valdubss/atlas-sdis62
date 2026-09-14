@@ -136,7 +136,7 @@ export function MediaUploader({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-semibold text-navy">{cfg.title}</p>
+      <p className="text-sm font-semibold text-ink">{cfg.title}</p>
 
       {!full && (
         <div
@@ -156,7 +156,7 @@ export function MediaUploader({
           }}
           className={cn(
             "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-colors",
-            dragging ? "border-red bg-red/5" : "border-line bg-surface-2/50 hover:border-navy/50",
+            dragging ? "border-red bg-red/10" : "border-line-strong bg-surface hover:border-white/40",
           )}
         >
           <svg viewBox="0 0 24 24" className="h-8 w-8 text-navy" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
@@ -227,7 +227,7 @@ export function MediaUploader({
                   </span>
                 )}
                 {accept === "images" && (
-                  <span className="absolute left-1 top-1 rounded-full bg-navy px-2 py-0.5 text-[11px] font-bold text-white">{i + 1}</span>
+                  <span className="absolute left-1 top-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-bg">{i + 1}</span>
                 )}
               </div>
               <div className="space-y-2 p-2">

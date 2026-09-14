@@ -82,7 +82,7 @@ export default async function StudioPostsPage({
             href={t.id ? `/studio/posts?statut=${t.id}` : "/studio/posts"}
             className={cn(
               "rounded-full px-4 py-1.5 text-sm font-semibold",
-              statut === t.id ? "bg-navy text-white" : "bg-surface text-body shadow-soft hover:text-navy",
+              statut === t.id ? "bg-white text-bg" : "glass text-body hover:text-ink",
             )}
           >
             {t.label}

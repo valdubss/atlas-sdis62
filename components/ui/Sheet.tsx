@@ -39,7 +39,7 @@ export function Sheet({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
       onClick={onClose}
       role="presentation"
     >
@@ -50,7 +50,7 @@ export function Sheet({
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "flex max-h-[88dvh] w-full flex-col rounded-t-3xl bg-surface shadow-soft sm:max-h-[80vh] sm:max-w-lg sm:rounded-3xl",
+          "glass-strong flex max-h-[88dvh] w-full flex-col rounded-t-3xl border-b-0 shadow-soft sm:max-h-[80vh] sm:max-w-lg sm:rounded-3xl sm:border-b",
           "animate-[sheet-in_.22s_ease-out]",
           className,
         )}
@@ -64,9 +64,9 @@ export function Sheet({
             if (start !== null && e.changedTouches[0].clientY - start > 70) onClose();
           }}
         >
-          <span className="h-1.5 w-10 rounded-full bg-line" aria-hidden="true" />
+          <span className="h-1.5 w-10 rounded-full bg-line-strong" aria-hidden="true" />
           <div className="flex w-full items-center justify-between px-4 pb-2 pt-3">
-            <h2 className="font-display text-lg font-bold uppercase text-navy">{title}</h2>
+            <h2 className="font-display text-lg font-bold uppercase text-ink">{title}</h2>
             <button
               type="button"
               onClick={onClose}

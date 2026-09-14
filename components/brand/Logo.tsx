@@ -1,55 +1,31 @@
-import { existsSync } from "node:fs";
-import path from "node:path";
 import { Ecg } from "./Ecg";
-import { APP_NAME, APP_WORDMARK } from "@/lib/config";
-
-const LOGO_FILE = "logo-sdis62.png";
-// Évalué une fois au démarrage du serveur : le fichier est-il présent dans public/ ?
-const HAS_LOGO = existsSync(path.join(process.cwd(), "public", LOGO_FILE));
-
-/** Vrai si le logo PNG est présent (sinon le mot-symbole tient lieu de nom). */
-export function hasLogo() {
-  return HAS_LOGO;
-}
+import { APP_NAME } from "@/lib/config";
+import { cn } from "@/lib/cn";
 
 /**
- * Logo SDIS 62 (public/logo-sdis62.png), toujours sur fond blanc, jamais
- * déformé ni recoloré. Si le fichier est absent, le mot-symbole « ATLAS 62 »
- * prend le relais. Composant serveur : aucun JS envoyé au client.
+ * Logo typographique ATLAS : capitales condensées blanches, espacement large,
+ * fine impulsion ECG rouge en signature (optionnelle).
  */
-export function Logo({ height = 36, className }: { height?: number; className?: string }) {
-  if (!HAS_LOGO) return <Wordmark height={height} className={className} />;
-
+export function Logo({
+  height = 28,
+  className,
+  signature = true,
+}: {
+  height?: number;
+  className?: string;
+  signature?: boolean;
+}) {
   return (
     <span
-      className={["inline-flex items-center rounded-md bg-white px-1", className]
-        .filter(Boolean)
-        .join(" ")}
-      style={{ height }}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element -- fichier statique local, dimensions libres */}
-      <img
-        src={`/${LOGO_FILE}`}
-        alt="SDIS 62"
-        style={{ height: height - 4, width: "auto" }}
-        decoding="async"
-      />
-    </span>
-  );
-}
-
-export function Wordmark({ height = 36, className }: { height?: number; className?: string }) {
-  return (
-    <span
-      className={["inline-flex items-end gap-1 font-display uppercase leading-none", className]
-        .filter(Boolean)
-        .join(" ")}
-      style={{ fontSize: height * 0.75 }}
+      className={cn(
+        "inline-flex select-none items-center gap-2 font-display font-extrabold uppercase leading-none tracking-[0.18em] text-white",
+        className,
+      )}
+      style={{ fontSize: height }}
       aria-label={APP_NAME}
     >
-      <span className="font-bold text-navy">{APP_WORDMARK.word}</span>
-      <span className="font-extrabold text-red">{APP_WORDMARK.accent}</span>
-      <Ecg className="mb-1 h-[0.5em] w-[1.6em] text-red" strokeWidth={2.5} />
+      <span>{APP_NAME}</span>
+      {signature && <Ecg className="h-[0.55em] w-[1.9em] text-red" strokeWidth={2.4} />}
     </span>
   );
 }

@@ -1,7 +1,7 @@
 # ATLAS — Plan d'architecture
 
 > Plateforme d'actualités interne du SDIS 62. Diffusion descendante : le service communication publie, les agents consultent et réagissent.
-> Statut : validé le 14/09/2026. Écarts d'implémentation : stockage démarré sur Supabase Storage (pilote interchangeable avec S3, voir README §8) ; catégories / centres / tags désactivés par drapeaux `FEATURES` à la demande du service ; publication programmée déclenchée à la lecture du fil en attendant pg_cron.
+> Statut : validé le 14/09/2026. Écarts d'implémentation : direction artistique passée en thème sombre « glass » avec logo typographique ATLAS blanc (demande du 14/09, le logo PNG SDIS et le mot-symbole « 62 » sont abandonnés) ; stockage démarré sur Supabase Storage (pilote interchangeable avec S3, voir README §8) ; catégories / centres / tags désactivés par drapeaux `FEATURES` à la demande du service ; publication programmée déclenchée à la lecture du fil en attendant pg_cron.
 
 ---
 

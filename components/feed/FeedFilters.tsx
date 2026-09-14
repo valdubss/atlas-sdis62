@@ -41,7 +41,7 @@ export function FeedFilters({
   }
 
   return (
-    <div className={cn("space-y-2 bg-bg", pending && "opacity-70")}>
+    <div className={cn("space-y-2", pending && "opacity-70")}>
       <div className="flex items-center gap-2">
         {showCategories ? (
           <div className="-mx-4 flex flex-1 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -55,14 +55,14 @@ export function FeedFilters({
             ))}
           </div>
         ) : (
-          <h1 className="flex-1 font-display text-2xl font-bold uppercase leading-none text-navy">Fil d&apos;actualités</h1>
+          <h1 className="flex-1 font-display text-2xl font-bold uppercase leading-none tracking-wide text-ink">Fil d&apos;actualités</h1>
         )}
         <button
           type="button"
           aria-label="Rechercher"
           aria-expanded={searchOpen}
           onClick={() => setSearchOpen((v) => !v)}
-          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", searchOpen ? "bg-navy text-white" : "bg-surface text-navy shadow-soft")}
+          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", searchOpen ? "bg-white text-bg" : "glass text-ink")}
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="7" />
@@ -86,7 +86,7 @@ export function FeedFilters({
             placeholder="Rechercher une publication…"
             aria-label="Rechercher"
             autoFocus
-            className="h-10 flex-1 rounded-full border border-line bg-surface px-4 text-base text-body focus:border-navy focus:outline-none"
+            className="glass h-10 flex-1 rounded-full px-4 text-base text-body focus:border-navy focus:outline-none"
           />
           {showCenters && (
           <select
@@ -125,7 +125,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
       aria-pressed={active}
       className={cn(
         "h-9 shrink-0 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-colors",
-        active ? "bg-navy text-white" : "bg-surface text-body shadow-soft hover:text-navy",
+        active ? "bg-white text-bg" : "glass text-body hover:text-ink",
       )}
     >
       {children}

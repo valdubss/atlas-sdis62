@@ -60,7 +60,7 @@ export function InfiniteFeed({
   }
 
   return (
-    <div className="space-y-0 sm:space-y-4">
+    <div className="space-y-2 sm:space-y-4">
       {posts.map((p) => (
         <PostCard key={p.id} post={p} canModerate={canModerate} />
       ))}

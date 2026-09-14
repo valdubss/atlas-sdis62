@@ -35,7 +35,7 @@ export function ShareButton({ slug, title }: { slug: string; title: string | nul
       {copied && (
         <span
           role="status"
-          className="absolute -top-9 right-0 whitespace-nowrap rounded-lg bg-navy px-2 py-1 text-xs font-semibold text-white"
+          className="absolute -top-9 right-0 whitespace-nowrap rounded-lg bg-white px-2 py-1 text-xs font-semibold text-bg"
         >
           Lien copié
         </span>

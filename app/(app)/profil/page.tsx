@@ -36,7 +36,7 @@ export default async function ProfilPage() {
       <Card className="p-5">
         <div className="flex items-center gap-4">
           <div
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-navy font-display text-2xl font-bold uppercase text-white"
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-surface-2 font-display text-2xl font-bold uppercase text-ink ring-1 ring-line-strong"
             aria-hidden="true"
           >
             {initials.toUpperCase()}
@@ -71,7 +71,7 @@ export default async function ProfilPage() {
           </div>
           <Link
             href="/studio"
-            className="rounded-xl bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-hover"
+            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-bg hover:bg-white/90"
           >
             Ouvrir le studio
           </Link>
