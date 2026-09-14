@@ -17,13 +17,13 @@ export function mediaUrl(key: string | null | undefined) {
   return `${BASE}/${key}`;
 }
 
-export function imageSrc(m: MediaItem, size: "thumb" | "medium" | "full" = "medium") {
+export function imageSrc(m: MediaItem, size: "thumb" | "small" | "medium" | "full" = "medium") {
   if (m.preview_url) return m.preview_url;
-  return mediaUrl(m.variants[size] ?? m.variants.medium ?? m.variants.full ?? m.original_key);
+  return mediaUrl(m.variants[size] ?? m.variants.medium ?? m.variants.small ?? m.variants.full ?? m.original_key);
 }
 
 /** Largeurs maximales des variantes générées par sharp (lib/media/variants.ts). */
-const VARIANT_WIDTHS = { thumb: 400, medium: 1200, full: 2400 } as const;
+const VARIANT_WIDTHS = { thumb: 400, small: 800, medium: 1200, full: 2400 } as const;
 
 /** srcset des variantes disponibles : le navigateur choisit selon la densité d'écran. */
 export function imageSrcSet(m: MediaItem): string | undefined {

@@ -93,6 +93,7 @@ redirige vers `/login`.
 | `0008_fix_enqueue_kind.sql` | correctif : cast explicite vers `notification_kind` dans le trigger de mise en ligne (publication bloquée depuis 0006) |
 | `0009_queue_stats.sql` | colonne `stats` sur la file de notifications (résumé d'envoi) et statistiques enrichies pour Studio → Paramètres |
 | `0010_consolidation.sql` | audit de consolidation : comptages de sondage indépendants de la RLS, index manquants, 30 photos par publication, statut `processing` de la file, purge des médias orphelins, galerie sans doublon, garde-fous épinglage/commentaires/audit, `media.owner_id` nullable |
+| `0011_purge_deleted_posts_media.sql` | la purge quotidienne libère les médias des publications supprimées (soft delete) |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -335,7 +336,7 @@ $$);
 ## 8. Stockage des médias (Supabase Storage ou bucket S3)
 
 Les photos et vidéos partent **directement du navigateur** vers le stockage
-(URL signée), puis le serveur génère les variantes WebP (400 / 1200 / 2400 px)
+(URL signée), puis le serveur génère les variantes WebP (400 / 800 / 1200 / 2400 px)
 avec `sharp`. Les vidéos sont stockées telles quelles (MP4 H.264, contrôle du
 codec dans le navigateur) avec un poster généré côté client.
 

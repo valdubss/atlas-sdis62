@@ -1,7 +1,7 @@
 /** Organisation des clés dans le bucket (voir docs/ARCHITECTURE.md §3). */
 export const mediaKeys = {
   original: (id: string, ext: string) => `originals/${id}.${ext}`,
-  variant: (id: string, name: "thumb" | "medium" | "full") => `variants/${id}/${name}.webp`,
+  variant: (id: string, name: "thumb" | "small" | "medium" | "full") => `variants/${id}/${name}.webp`,
   video: (id: string) => `videos/${id}.mp4`,
   poster: (id: string) => `posters/${id}.jpg`,
   avatar: (userId: string) => `avatars/${userId}.webp`,

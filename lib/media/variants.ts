@@ -2,7 +2,7 @@ import "server-only";
 
 import sharp from "sharp";
 
-export const VARIANT_WIDTHS = { thumb: 400, medium: 1200, full: 2400 } as const;
+export const VARIANT_WIDTHS = { thumb: 400, small: 800, medium: 1200, full: 2400 } as const;
 export type VariantName = keyof typeof VARIANT_WIDTHS;
 
 /**
@@ -12,15 +12,16 @@ export type VariantName = keyof typeof VARIANT_WIDTHS;
  */
 export async function makeImageVariants(original: Buffer) {
   const base = sharp(original, { failOn: "none", limitInputPixels: 80_000_000 }).rotate();
-  const out: Record<VariantName, Buffer> = { thumb: Buffer.alloc(0), medium: Buffer.alloc(0), full: Buffer.alloc(0) };
+  const out: Record<VariantName, Buffer> = { thumb: Buffer.alloc(0), small: Buffer.alloc(0), medium: Buffer.alloc(0), full: Buffer.alloc(0) };
   let width = 0;
   let height = 0;
 
-  for (const name of ["full", "medium", "thumb"] as const) {
+  const QUALITY: Record<VariantName, number> = { thumb: 72, small: 78, medium: 78, full: 80 };
+  for (const name of ["full", "medium", "small", "thumb"] as const) {
     const { data, info } = await base
       .clone()
       .resize({ width: VARIANT_WIDTHS[name], withoutEnlargement: true })
-      .webp({ quality: name === "thumb" ? 76 : 82, effort: 3 })
+      .webp({ quality: QUALITY[name], effort: 3 })
       .toBuffer({ resolveWithObject: true });
     out[name] = data;
     if (name === "full") {

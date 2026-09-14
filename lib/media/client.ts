@@ -2,6 +2,7 @@
 
 import { ACCEPTED_IMAGE_MIMES, ACCEPTED_VIDEO_MIMES, LIMITS } from "@/lib/config";
 import { describeVideoCodec, isH264, readSampleEntryTypes } from "./mp4";
+import { canCompressVideo, compressVideo } from "./compress";
 
 export type PreparedFile = {
   blob: Blob;
@@ -12,7 +13,19 @@ export type PreparedFile = {
   height: number;
   duration?: number;
   poster?: Blob;
+  /** Taille du fichier d'origine si la vidéo a été compressée sur l'appareil */
+  originalBytes?: number;
 };
+
+export type PrepareOptions = {
+  /** Progression (0–1) et libellé d'étape, pour l'interface */
+  onProgress?: (fraction: number, label: string) => void;
+  /** Durée maximale acceptée (s) : vérifiée avant toute compression */
+  maxDurationS?: number;
+};
+
+/** Fichier source le plus lourd accepté pour une compression sur l'appareil. */
+const SOURCE_MAX_BYTES = 400 * 1024 * 1024;
 
 const mb = (n: number) => `${Math.round(n / 1024 / 1024)} Mo`;
 
@@ -25,11 +38,11 @@ function isHeic(file: File) {
  * HEIC → JPEG, lecture des dimensions, contrôle H.264 et poster pour les vidéos.
  * Lève une Error avec un message en français en cas de refus.
  */
-export async function prepareFile(file: File): Promise<PreparedFile> {
-  const isVideo = (ACCEPTED_VIDEO_MIMES as readonly string[]).includes(file.type) || /\.(mp4|mov)$/i.test(file.name);
+export async function prepareFile(file: File, options: PrepareOptions = {}): Promise<PreparedFile> {
+  const isVideo = (ACCEPTED_VIDEO_MIMES as readonly string[]).includes(file.type) || file.type.startsWith("video/") || /\.(mp4|mov|m4v|webm|3gp)$/i.test(file.name);
   const isImage = (ACCEPTED_IMAGE_MIMES as readonly string[]).includes(file.type) || isHeic(file);
 
-  if (isVideo) return prepareVideo(file);
+  if (isVideo) return prepareVideo(file, options);
   if (isImage) return prepareImage(file);
   throw new Error(`Format non pris en charge : ${file.name}. Formats acceptés : jpg, png, webp, heic, mp4, mov.`);
 }
@@ -47,12 +60,79 @@ async function prepareImage(file: File): Promise<PreparedFile> {
     mime = "image/jpeg";
   }
   const { width, height } = await imageDimensions(blob);
+  // Réduction sur l'appareil (façon Instagram) : 2400 px de côté au plus, JPEG
+  // 86 % — l'envoi est 3 à 6 fois plus léger et le serveur a moins à faire.
+  const shrunk = await shrinkImage(blob, width, height, mime);
+  if (shrunk) return { blob: shrunk.blob, name: file.name.replace(/\.[^.]+$/, "") + ".jpg", mime: "image/jpeg", kind: "image", width: shrunk.width, height: shrunk.height, originalBytes: file.size };
   return { blob, name: file.name.replace(/\.(heic|heif)$/i, ".jpg"), mime, kind: "image", width, height };
 }
 
-async function prepareVideo(file: File): Promise<PreparedFile> {
+const IMAGE_MAX_SIDE = 2400;
+
+/** Redimensionne et recompresse une image si elle est grande ou lourde ; null si inutile ou impossible. */
+async function shrinkImage(blob: Blob, width: number, height: number, mime: string): Promise<{ blob: Blob; width: number; height: number } | null> {
+  const tooBig = Math.max(width, height) > IMAGE_MAX_SIDE;
+  const heavy = blob.size > 1.5 * 1024 * 1024 && mime !== "image/png";
+  if (!tooBig && !heavy) return null;
+  try {
+    const scale = Math.min(1, IMAGE_MAX_SIDE / Math.max(width, height));
+    const w = Math.round(width * scale);
+    const h = Math.round(height * scale);
+    const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" } as ImageBitmapOptions);
+    const canvas = document.createElement("canvas");
+    // L'orientation EXIF est appliquée par createImageBitmap : les dimensions peuvent être inversées
+    const rotated = (bitmap.width > bitmap.height) !== (width > height);
+    canvas.width = rotated ? h : w;
+    canvas.height = rotated ? w : h;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return null;
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const out = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.86));
+    if (!out || out.size >= blob.size) return null;
+    return { blob: out, width: canvas.width, height: canvas.height };
+  } catch {
+    return null;
+  }
+}
+
+async function prepareVideo(file: File, options: PrepareOptions): Promise<PreparedFile> {
+  // Compression sur l'appareil (façon Instagram) quand le navigateur le permet :
+  // n'importe quel format lisible (HEVC d'iPhone compris) ressort en MP4 H.264
+  // 1080p, léger et lisible partout. Sinon, chemin historique : H.264 exigé.
+  if (file.size <= SOURCE_MAX_BYTES && (await canCompressVideo())) {
+    options.onProgress?.(0, "Analyse de la vidéo…");
+    if (options.maxDurationS) {
+      const d = await quickDuration(file);
+      if (d && d > options.maxDurationS + 0.5) {
+        throw new Error(`Cette vidéo dure ${Math.round(d)} s : ${options.maxDurationS} s au plus ici.`);
+      }
+    }
+    try {
+      const out = await compressVideo(file, (f) => options.onProgress?.(f, `Compression ${Math.round(f * 100)} %`));
+      if (out.blob.size > LIMITS.videoMaxBytes) {
+        throw new Error(`Même compressée, la vidéo dépasse ${mb(LIMITS.videoMaxBytes)} : raccourcissez-la.`);
+      }
+      return {
+        blob: out.blob,
+        name: file.name.replace(/\.[^.]+$/, "") + ".mp4",
+        mime: "video/mp4",
+        kind: "video",
+        width: out.width,
+        height: out.height,
+        duration: out.duration,
+        poster: out.poster,
+        originalBytes: file.size,
+      };
+    } catch (e) {
+      // Compression impossible sur cet appareil : on retombe sur l'envoi direct si le fichier s'y prête
+      if (e instanceof Error && /dépasse|raccourcissez|au plus ici/.test(e.message)) throw e;
+      console.warn("compression vidéo impossible, envoi direct", e);
+    }
+  }
+
   if (file.size > LIMITS.videoMaxBytes) {
-    throw new Error(`${file.name} dépasse ${mb(LIMITS.videoMaxBytes)}.`);
+    throw new Error(`${file.name} dépasse ${mb(LIMITS.videoMaxBytes)}. Sur ce navigateur, la vidéo ne peut pas être compressée : réduisez-la avant l'envoi.`);
   }
   // Les atomes MP4 utiles (moov/stsd) sont en tête ou en queue : on ne lit
   // jamais tout le fichier en mémoire sur le téléphone.
@@ -99,6 +179,31 @@ function imageDimensions(blob: Blob): Promise<{ width: number; height: number }>
       reject(new Error("Image illisible."));
     };
     img.src = url;
+  });
+}
+
+/** Durée d'une vidéo via ses métadonnées seules (rapide), 0 si inconnue. */
+function quickDuration(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    const done = (d: number) => {
+      URL.revokeObjectURL(url);
+      video.removeAttribute("src");
+      resolve(Number.isFinite(d) ? d : 0);
+    };
+    const timer = setTimeout(() => done(0), 8000);
+    video.onloadedmetadata = () => {
+      clearTimeout(timer);
+      done(video.duration);
+    };
+    video.onerror = () => {
+      clearTimeout(timer);
+      done(0);
+    };
+    video.src = url;
   });
 }
 

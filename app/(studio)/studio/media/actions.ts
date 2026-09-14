@@ -118,11 +118,13 @@ export async function finalizeMedia(mediaId: string): Promise<{ ok: true; media:
       const { variants, width, height } = await makeImageVariants(original);
       const keys = {
         thumb: mediaKeys.variant(mediaId, "thumb"),
+        small: mediaKeys.variant(mediaId, "small"),
         medium: mediaKeys.variant(mediaId, "medium"),
         full: mediaKeys.variant(mediaId, "full"),
       };
       await Promise.all([
         storage.putObject(keys.thumb, variants.thumb, "image/webp"),
+        storage.putObject(keys.small, variants.small, "image/webp"),
         storage.putObject(keys.medium, variants.medium, "image/webp"),
         storage.putObject(keys.full, variants.full, "image/webp"),
       ]);

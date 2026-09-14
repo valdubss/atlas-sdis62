@@ -4,7 +4,7 @@ import type { AuthorDisplay, PostStatus, PostType } from "@/lib/supabase/databas
 export type MediaItem = {
   id: string;
   kind: "image" | "video";
-  variants: { thumb?: string; medium?: string; full?: string };
+  variants: { thumb?: string; small?: string; medium?: string; full?: string };
   poster_key: string | null;
   width: number | null;
   height: number | null;

@@ -14,6 +14,8 @@ export type EditorMedia = MediaItem & {
   status: "preparing" | "uploading" | "processing" | "ready" | "error";
   progress: number;
   error?: string;
+  /** Libellé de l'étape en cours (« Compression 42 % ») */
+  label?: string;
   /** Avertissement non bloquant (ex. vidéo très lourde) */
   warning?: string;
 };
@@ -82,8 +84,11 @@ export function MediaUploader({
         onChange((prev) => [...prev, placeholder]);
 
         try {
-          const prepared = await prepareFile(file);
-          if (accept === "story" && prepared.kind === "video" && (prepared.duration ?? 0) > LIMITS.storyVideoMaxSeconds) {
+          const prepared = await prepareFile(file, {
+            maxDurationS: accept === "story" ? LIMITS.storyVideoMaxSeconds : undefined,
+            onProgress: (progress, label) => patch(tempId, { progress, label }),
+          });
+          if (accept === "story" && prepared.kind === "video" && (prepared.duration ?? 0) > LIMITS.storyVideoMaxSeconds + 0.5) {
             throw new Error(`Une story vidéo dure ${LIMITS.storyVideoMaxSeconds} s au plus (${Math.round(prepared.duration ?? 0)} s).`);
           }
           const created = await createUpload({
@@ -126,7 +131,7 @@ export function MediaUploader({
           const done = await finalizeMedia(created.mediaId);
           if (!done.ok) throw new Error(done.error);
           // Vidéo très lourde (4K, 60 i/s) : elle démarre lentement sur mobile
-          const perSecond = prepared.kind === "video" && prepared.duration ? prepared.blob.size / prepared.duration : 0;
+          const perSecond = prepared.kind === "video" && prepared.duration && !prepared.originalBytes ? prepared.blob.size / prepared.duration : 0;
           const warning =
             perSecond > 1.5 * 1024 * 1024
               ? `Vidéo lourde (${Math.round(prepared.blob.size / 1048576)} Mo pour ${Math.round(prepared.duration ?? 0)} s) : elle mettra du temps à démarrer sur mobile. Filmez en 1080p à 30 i/s (Réglages → Appareil photo → Enregistrement vidéo).`
@@ -244,7 +249,7 @@ export function MediaUploader({
                     ) : (
                       <>
                         <span>
-                          {m.status === "preparing" && (m.kind === "video" ? "Analyse de la vidéo…" : "Préparation…")}
+                          {m.status === "preparing" && (m.label ?? (m.kind === "video" ? "Analyse de la vidéo…" : "Préparation…"))}
                           {m.status === "uploading" && `Envoi ${Math.round(m.progress * 100)} %`}
                           {m.status === "processing" && "Traitement"}
                         </span>
