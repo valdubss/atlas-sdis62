@@ -35,10 +35,12 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     pinned: formData.get("pinned") === "on",
     action: formData.get("action") ?? "draft",
     scheduled_at: formData.get("scheduled_at") ?? "",
+    media: formData.get("media") ?? "[]",
   });
 
   if (!parsed.success) {
-    return { status: "error", message: "Vérifiez les champs signalés.", fields: fieldErrors(parsed.error.issues) };
+    const fields = fieldErrors(parsed.error.issues);
+    return { status: "error", message: fields.media ?? "Vérifiez les champs signalés.", fields };
   }
   const v = parsed.data;
 
@@ -47,6 +49,19 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Tous les médias doivent être prêts (variantes générées) avant publication.
+  if (v.media.length > 0) {
+    const { data: rows } = await supabase
+      .from("media")
+      .select("id, status")
+      .in("id", v.media.map((m) => m.id));
+    const ready = new Set((rows ?? []).filter((r) => r.status === "ready").map((r) => r.id));
+    const notReady = v.media.filter((m) => !ready.has(m.id));
+    if (notReady.length > 0 && v.action !== "draft") {
+      return { status: "error", message: "Attendez la fin du traitement des médias avant de publier.", fields: { media: "Médias en cours de traitement." } };
+    }
+  }
 
   const status = v.action === "publish" ? "published" : v.action === "schedule" ? "scheduled" : "draft";
 
@@ -65,7 +80,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     type: v.type,
     title: v.title,
     excerpt: v.type === "article" ? v.excerpt : null,
-    body: v.body,
+    body: v.body || null,
     category_id: v.category_id,
     center_id: v.center_id,
     tags: v.tags,
@@ -74,7 +89,8 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     pinned_at,
     status,
     scheduled_at: status === "scheduled" ? new Date(v.scheduled_at!).toISOString() : null,
-    // published_at : posé par le trigger à la publication ; remis à null si on repasse en brouillon
+    // Article : la première image sert de couverture ; photo/vidéo : médias du carrousel.
+    cover_media_id: v.type === "article" ? (v.media[0]?.id ?? null) : null,
     ...(status === "draft" ? { published_at: null } : {}),
   } as const;
 
@@ -92,7 +108,23 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     id = data.id;
   }
 
+  // Synchronisation des médias rattachés (ordre + texte alternatif)
+  const { error: delError } = await supabase.from("post_media").delete().eq("post_id", id);
+  if (delError) return { status: "error", message: friendlyDbError(delError.message) };
+  const attached = v.type === "article" ? v.media.slice(0, 1) : v.type === "text" ? [] : v.media;
+  if (attached.length > 0) {
+    const { error: pmError } = await supabase.from("post_media").insert(
+      attached.map((m, i) => ({ post_id: id!, media_id: m.id, position: i, alt: m.alt || null })),
+    );
+    if (pmError) return { status: "error", message: friendlyDbError(pmError.message) };
+    // Texte alternatif : conservé aussi sur le média (galerie)
+    await Promise.all(
+      attached.filter((m) => m.alt).map((m) => supabase.from("media").update({ alt: m.alt }).eq("id", m.id)),
+    );
+  }
+
   revalidatePath("/");
+  revalidatePath("/galerie");
   revalidatePath("/studio");
   revalidatePath("/studio/posts");
   redirect(`/studio/posts/${id}?ok=${status}`);

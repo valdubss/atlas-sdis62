@@ -5,23 +5,25 @@ import { useActionState, useMemo, useState, useTransition } from "react";
 import { deletePost, savePost, type PostFormState } from "@/app/(studio)/studio/posts/actions";
 import type { FeedPost } from "@/lib/feed/types";
 import { toDatetimeLocal } from "@/lib/format";
-import { EDITOR_POST_TYPES } from "@/lib/validation/post";
+import { FEATURES } from "@/lib/config";
+import type { EditorPostType } from "@/lib/validation/post";
 import { Button } from "@/components/ui/Button";
 import { CheckboxField, Field, SelectField, TextareaField } from "@/components/ui/Field";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { PostCard } from "@/components/feed/PostCard";
+import { MediaUploader, type EditorMedia } from "./MediaUploader";
 import { cn } from "@/lib/cn";
 
 type Ref = { id: string; name: string; slug: string };
 
-const TYPE_LABELS: Record<string, { label: string; hint: string; soon?: boolean }> = {
-  text: { label: "Annonce", hint: "Texte court, façon post Instagram/LinkedIn (2000 caractères max)." },
-  article: { label: "Article", hint: "Titre, chapô et texte long mis en forme (Markdown)." },
-  photo: { label: "Photos", hint: "1 à 20 images en carrousel.", soon: true },
-  video: { label: "Vidéo", hint: "MP4 H.264 avec poster.", soon: true },
-  poll: { label: "Sondage", hint: "Question à choix unique.", soon: true },
-};
+const TYPES: { id: EditorPostType | "poll"; label: string; hint: string; soon?: boolean }[] = [
+  { id: "photo", label: "Photos", hint: "1 à 20 photos en carrousel, avec un texte en dessous." },
+  { id: "video", label: "Vidéo", hint: "Une vidéo MP4 (H.264), lecture automatique muette dans le fil." },
+  { id: "text", label: "Annonce", hint: "Texte court sans média (2000 caractères max)." },
+  { id: "article", label: "Article", hint: "Titre, chapô, texte long mis en forme et image de couverture." },
+  { id: "poll", label: "Sondage", hint: "Question à choix unique.", soon: true },
+];
 
 const initial: PostFormState = { status: "idle" };
 
@@ -42,10 +44,10 @@ export function PostEditor({
   const [deleting, startDelete] = useTransition();
   const fields = state.status === "error" ? state.fields ?? {} : {};
 
-  // État local pour l'aperçu en temps réel
-  const [type, setType] = useState<(typeof EDITOR_POST_TYPES)[number]>(
-    post && (EDITOR_POST_TYPES as readonly string[]).includes(post.type) ? (post.type as "text" | "article") : "text",
-  );
+  const initialType: EditorPostType =
+    post && (["text", "photo", "video", "article"] as string[]).includes(post.type) ? (post.type as EditorPostType) : "photo";
+
+  const [type, setType] = useState<EditorPostType>(initialType);
   const [title, setTitle] = useState(post?.title ?? "");
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
   const [body, setBody] = useState(post?.body ?? "");
@@ -58,6 +60,13 @@ export function PostEditor({
   const [schedule, setSchedule] = useState(post?.status === "scheduled");
   const [scheduledAt, setScheduledAt] = useState(toDatetimeLocal(post?.scheduled_at));
   const [previewFull, setPreviewFull] = useState(false);
+  const [media, setMedia] = useState<EditorMedia[]>(() => {
+    const list = post ? (post.type === "article" && post.cover ? [post.cover] : post.media) : [];
+    return list.map((m) => ({ ...m, status: "ready" as const, progress: 1 }));
+  });
+
+  const readyMedia = media.filter((m) => m.status === "ready" || m.status === "processing" || m.status === "uploading");
+  const busy = media.some((m) => m.status !== "ready" && m.status !== "error");
 
   const preview: FeedPost = useMemo(
     () => ({
@@ -77,23 +86,42 @@ export function PostEditor({
       category: categories.find((c) => c.id === categoryId) ?? null,
       center: centers.find((c) => c.id === centerId) ?? null,
       author: { name: authorDisplay === "service_com" ? "Service Communication" : authorName, avatar_key: null },
-      cover: post?.cover ?? null,
-      media: post?.media ?? [],
+      cover: type === "article" ? readyMedia[0] ?? null : null,
+      media: type === "text" ? [] : readyMedia,
       poll: null,
       reaction_counts: post?.reaction_counts ?? {},
       comment_count: post?.comment_count ?? 0,
       my_reaction: null,
       is_bookmarked: false,
     }),
-    [post, type, title, excerpt, body, tags, pinned, commentsEnabled, authorDisplay, categoryId, centerId, categories, centers, authorName],
+    [post, type, title, excerpt, body, tags, pinned, commentsEnabled, authorDisplay, categoryId, centerId, categories, centers, authorName, readyMedia],
   );
 
   const status = post?.status ?? "draft";
+  const mediaPayload = JSON.stringify(media.filter((m) => m.status === "ready").map((m) => ({ id: m.id, kind: m.kind, alt: m.alt })));
+  const uploaderAccept = type === "photo" ? "images" : type === "video" ? "video" : "cover";
+
+  function changeType(next: EditorPostType) {
+    setType(next);
+    // Les médias incompatibles avec le nouveau type sont retirés de la liste (pas supprimés du stockage).
+    setMedia((prev) => {
+      if (next === "text") return [];
+      if (next === "video") return prev.filter((m) => m.kind === "video").slice(0, 1);
+      if (next === "article") return prev.filter((m) => m.kind === "image").slice(0, 1);
+      return prev.filter((m) => m.kind === "image");
+    });
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
       <form action={action} className="space-y-5">
         {post && <input type="hidden" name="id" value={post.id} />}
+        <input type="hidden" name="type" value={type} />
+        <input type="hidden" name="media" value={mediaPayload} />
+        {!FEATURES.categories && <input type="hidden" name="category_id" value={categoryId} />}
+        {!FEATURES.centers && <input type="hidden" name="center_id" value={centerId} />}
+        {!FEATURES.tags && <input type="hidden" name="tags" value={tags} />}
+        {!FEATURES.authorChoice && <input type="hidden" name="author_display" value={authorDisplay} />}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -122,11 +150,11 @@ export function PostEditor({
         <fieldset>
           <legend className="mb-2 text-sm font-semibold text-navy">Type de publication</legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-            {Object.entries(TYPE_LABELS).map(([id, t]) => {
-              const active = type === id;
+            {TYPES.map((t) => {
+              const active = type === t.id;
               return (
                 <label
-                  key={id}
+                  key={t.id}
                   className={cn(
                     "cursor-pointer rounded-xl border px-3 py-2 text-sm",
                     active ? "border-navy bg-navy/5 text-navy" : "border-line text-body hover:border-navy/40",
@@ -136,11 +164,11 @@ export function PostEditor({
                 >
                   <input
                     type="radio"
-                    name="type"
-                    value={id}
+                    name="type_choice"
+                    value={t.id}
                     checked={active}
                     disabled={t.soon}
-                    onChange={() => setType(id as "text" | "article")}
+                    onChange={() => !t.soon && changeType(t.id as EditorPostType)}
                     className="sr-only"
                   />
                   <span className="block font-semibold">{t.label}</span>
@@ -149,8 +177,19 @@ export function PostEditor({
               );
             })}
           </div>
-          <p className="mt-1 text-xs text-muted">{TYPE_LABELS[type].hint}</p>
+          <p className="mt-1 text-xs text-muted">{TYPES.find((t) => t.id === type)?.hint}</p>
         </fieldset>
+
+        {type !== "text" && (
+          <Card className="p-5">
+            <MediaUploader items={media} onChange={setMedia} accept={uploaderAccept} />
+            {fields.media && (
+              <p className="mt-2 text-sm text-danger" role="alert">
+                {fields.media}
+              </p>
+            )}
+          </Card>
+        )}
 
         <Card className="space-y-4 p-5">
           <Field
@@ -175,51 +214,50 @@ export function PostEditor({
             />
           )}
           <TextareaField
-            label={type === "article" ? "Texte de l'article (Markdown)" : "Texte"}
+            label={type === "article" ? "Texte de l'article (Markdown)" : type === "text" ? "Texte" : "Légende (facultatif)"}
             name="body"
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            rows={type === "article" ? 16 : 6}
+            rows={type === "article" ? 16 : type === "text" ? 6 : 3}
             error={fields.body}
             hint={
               type === "article"
                 ? "Mise en forme : ## Sous-titre, **gras**, *italique*, - liste, > citation, [lien](https://…)"
                 : `${body.length} / 2000 caractères. Les retours à la ligne sont conservés.`
             }
-            className="font-[inherit]"
           />
         </Card>
 
         <Card className="grid gap-4 p-5 sm:grid-cols-2">
-          <SelectField label="Catégorie" name="category_id" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} error={fields.category_id}>
-            <option value="">— Aucune —</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </SelectField>
-          <SelectField label="Centre concerné (facultatif)" name="center_id" value={centerId} onChange={(e) => setCenterId(e.target.value)} error={fields.center_id}>
-            <option value="">— Tout le SDIS —</option>
-            {centers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </SelectField>
-          <Field
-            label="Tags"
-            name="tags"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="jsp, arras, exercice"
-            hint="Séparés par des virgules, 10 maximum."
-            error={fields.tags}
-          />
-          <SelectField label="Auteur affiché" name="author_display" value={authorDisplay} onChange={(e) => setAuthorDisplay(e.target.value as "service_com" | "agent")}>
-            <option value="service_com">Service Communication</option>
-            <option value="agent">{authorName}</option>
-          </SelectField>
+          {FEATURES.categories && (
+            <SelectField label="Catégorie" name="category_id" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} error={fields.category_id}>
+              <option value="">— Aucune —</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </SelectField>
+          )}
+          {FEATURES.centers && (
+            <SelectField label="Centre concerné (facultatif)" name="center_id" value={centerId} onChange={(e) => setCenterId(e.target.value)} error={fields.center_id}>
+              <option value="">— Tout le SDIS —</option>
+              {centers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </SelectField>
+          )}
+          {FEATURES.tags && (
+            <Field label="Tags" name="tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="jsp, arras, exercice" hint="Séparés par des virgules, 10 maximum." error={fields.tags} />
+          )}
+          {FEATURES.authorChoice && (
+            <SelectField label="Auteur affiché" name="author_display" value={authorDisplay} onChange={(e) => setAuthorDisplay(e.target.value as "service_com" | "agent")}>
+              <option value="service_com">Service Communication</option>
+              <option value="agent">{authorName}</option>
+            </SelectField>
+          )}
           <CheckboxField label="Épingler en haut du fil" name="pinned" checked={pinned} onChange={(e) => setPinned(e.target.checked)} hint="3 publications épinglées maximum." />
           <CheckboxField label="Autoriser les commentaires" name="comments_enabled" checked={commentsEnabled} onChange={(e) => setCommentsEnabled(e.target.checked)} />
         </Card>
@@ -237,16 +275,17 @@ export function PostEditor({
               className="max-w-xs"
             />
           )}
+          {busy && <p className="text-sm font-semibold text-navy">Envoi des médias en cours…</p>}
           <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Button type="submit" name="action" value="draft" variant="ghost" loading={pending}>
+            <Button type="submit" name="action" value="draft" variant="ghost" loading={pending} disabled={busy}>
               Enregistrer le brouillon
             </Button>
             {schedule ? (
-              <Button type="submit" name="action" value="schedule" variant="secondary" loading={pending}>
+              <Button type="submit" name="action" value="schedule" variant="secondary" loading={pending} disabled={busy}>
                 Programmer
               </Button>
             ) : (
-              <Button type="submit" name="action" value="publish" loading={pending}>
+              <Button type="submit" name="action" value="publish" loading={pending} disabled={busy}>
                 {status === "published" ? "Mettre à jour" : "Publier maintenant"}
               </Button>
             )}

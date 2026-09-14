@@ -1,0 +1,263 @@
+"use client";
+
+import { useCallback, useRef, useState } from "react";
+import { createUpload, discardMedia, finalizeMedia } from "@/app/(studio)/studio/media/actions";
+import { prepareFile, uploadWithProgress } from "@/lib/media/client";
+import type { MediaItem } from "@/lib/feed/types";
+import { ACCEPTED_EXTENSIONS, LIMITS } from "@/lib/config";
+import { imageSrc, posterSrc } from "@/lib/media/url";
+import { cn } from "@/lib/cn";
+
+/** Média dans l'éditeur : un MediaItem enrichi de son état d'upload. */
+export type EditorMedia = MediaItem & {
+  status: "preparing" | "uploading" | "processing" | "ready" | "error";
+  progress: number;
+  error?: string;
+};
+
+type Accept = "images" | "video" | "cover";
+
+const LABELS: Record<Accept, { title: string; hint: string; max: number; kinds: ("image" | "video")[] }> = {
+  images: { title: "Photos", hint: `Glissez vos photos ici ou touchez pour choisir · jusqu'à ${LIMITS.imagesPerPost} · jpg, png, webp, heic`, max: LIMITS.imagesPerPost, kinds: ["image"] },
+  video: { title: "Vidéo", hint: "Une vidéo MP4 (H.264), 200 Mo max · mov accepté si H.264", max: 1, kinds: ["video"] },
+  cover: { title: "Image de couverture (facultatif)", hint: "Une image affichée en tête de l'article", max: 1, kinds: ["image"] },
+};
+
+export function MediaUploader({
+  items,
+  onChange,
+  accept,
+}: {
+  items: EditorMedia[];
+  onChange: (next: EditorMedia[] | ((prev: EditorMedia[]) => EditorMedia[])) => void;
+  accept: Accept;
+}) {
+  const cfg = LABELS[accept];
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const [rejected, setRejected] = useState<string[]>([]);
+
+  const patch = useCallback(
+    (id: string, p: Partial<EditorMedia>) => onChange((prev) => prev.map((m) => (m.id === id ? { ...m, ...p } : m))),
+    [onChange],
+  );
+
+  const addFiles = useCallback(
+    async (files: FileList | File[]) => {
+      const list = Array.from(files);
+      const room = cfg.max - items.length;
+      const errors: string[] = [];
+      if (list.length > room) {
+        errors.push(room <= 0 ? `Limite atteinte (${cfg.max}).` : `Seuls ${room} fichier(s) supplémentaire(s) sont acceptés.`);
+      }
+      setRejected(errors);
+
+      for (const file of list.slice(0, Math.max(0, room))) {
+        const tempId = `tmp-${crypto.randomUUID()}`;
+        const previewUrl = URL.createObjectURL(file);
+        const kindGuess: "image" | "video" = /^video\//.test(file.type) || /\.(mp4|mov)$/i.test(file.name) ? "video" : "image";
+        if (!cfg.kinds.includes(kindGuess)) {
+          setRejected((r) => [...r, `${file.name} : ${kindGuess === "video" ? "vidéo" : "image"} refusée ici (${cfg.title}).`]);
+          continue;
+        }
+        const placeholder: EditorMedia = {
+          id: tempId,
+          kind: kindGuess,
+          variants: {},
+          poster_key: null,
+          width: null,
+          height: null,
+          alt: "",
+          mime: file.type,
+          original_key: "",
+          preview_url: kindGuess === "image" ? previewUrl : previewUrl,
+          status: "preparing",
+          progress: 0,
+        };
+        onChange((prev) => [...prev, placeholder]);
+
+        try {
+          const prepared = await prepareFile(file);
+          const created = await createUpload({
+            kind: prepared.kind,
+            mime: prepared.mime,
+            size: prepared.blob.size,
+            width: prepared.width,
+            height: prepared.height,
+            duration: prepared.duration,
+            hasPoster: Boolean(prepared.poster),
+          });
+          if (!created.ok) throw new Error(created.error);
+
+          const posterPreview = prepared.poster ? URL.createObjectURL(prepared.poster) : undefined;
+          onChange((prev) =>
+            prev.map((m) =>
+              m.id === tempId
+                ? { ...m, id: created.mediaId, original_key: created.key, kind: prepared.kind, mime: prepared.mime, width: prepared.width, height: prepared.height, duration_s: prepared.duration ?? null, poster_preview_url: posterPreview, status: "uploading" }
+                : m,
+            ),
+          );
+
+          await uploadWithProgress(created.upload.url, created.upload.headers, prepared.blob, (f) => patch(created.mediaId, { progress: f }));
+          if (created.posterUpload && prepared.poster) {
+            await uploadWithProgress(created.posterUpload.url, created.posterUpload.headers, prepared.poster, () => {});
+          }
+
+          patch(created.mediaId, { status: "processing", progress: 1 });
+          const done = await finalizeMedia(created.mediaId);
+          if (!done.ok) throw new Error(done.error);
+          onChange((prev) => prev.map((m) => (m.id === created.mediaId ? { ...m, ...done.media, preview_url: m.preview_url, poster_preview_url: m.poster_preview_url, status: "ready", progress: 1 } : m)));
+        } catch (e) {
+          const message = e instanceof Error ? e.message : "Échec de l'envoi.";
+          onChange((prev) => prev.map((m) => (m.id === tempId || m.preview_url === previewUrl ? { ...m, status: "error", error: message } : m)));
+        }
+      }
+    },
+    [cfg, items.length, onChange, patch],
+  );
+
+  function remove(m: EditorMedia) {
+    onChange((prev) => prev.filter((x) => x.id !== m.id));
+    if (m.preview_url) URL.revokeObjectURL(m.preview_url);
+    if (!m.id.startsWith("tmp-")) discardMedia(m.id);
+  }
+
+  function move(index: number, dir: -1 | 1) {
+    onChange((prev) => {
+      const next = [...prev];
+      const j = index + dir;
+      if (j < 0 || j >= next.length) return prev;
+      [next[index], next[j]] = [next[j], next[index]];
+      return next;
+    });
+  }
+
+  const full = items.length >= cfg.max;
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-semibold text-navy">{cfg.title}</p>
+
+      {!full && (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            addFiles(e.dataTransfer.files);
+          }}
+          className={cn(
+            "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-colors",
+            dragging ? "border-red bg-red/5" : "border-line bg-surface-2/50 hover:border-navy/50",
+          )}
+        >
+          <svg viewBox="0 0 24 24" className="h-8 w-8 text-navy" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <p className="text-sm font-semibold text-ink">Ajouter {accept === "video" ? "une vidéo" : accept === "cover" ? "une image" : "des photos"}</p>
+          <p className="text-xs text-muted">{cfg.hint}</p>
+          <input
+            ref={inputRef}
+            type="file"
+            accept={accept === "video" ? ".mp4,.mov,video/mp4,video/quicktime" : ".jpg,.jpeg,.png,.webp,.heic,.heif,image/*"}
+            multiple={cfg.max > 1}
+            className="sr-only"
+            onChange={(e) => {
+              if (e.target.files) addFiles(e.target.files);
+              e.target.value = "";
+            }}
+            data-accept-all={ACCEPTED_EXTENSIONS}
+          />
+        </div>
+      )}
+
+      {rejected.length > 0 && (
+        <ul className="space-y-1 text-sm text-danger" role="alert">
+          {rejected.map((r, i) => (
+            <li key={i}>{r}</li>
+          ))}
+        </ul>
+      )}
+
+      {items.length > 0 && (
+        <ul className={cn("grid gap-3", accept === "images" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1")}>
+          {items.map((m, i) => (
+            <li key={m.id} className="overflow-hidden rounded-xl border border-line bg-surface">
+              <div className="relative aspect-[4/3] bg-surface-2">
+                {m.kind === "video" ? (
+                  posterSrc(m) ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- aperçu local
+                    <img src={posterSrc(m)} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <video src={m.preview_url} muted playsInline className="h-full w-full object-cover" />
+                  )
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element -- aperçu local
+                  <img src={imageSrc(m, "thumb")} alt="" className="h-full w-full object-cover" />
+                )}
+                {m.status !== "ready" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50 px-3 text-center text-xs font-semibold text-white">
+                    {m.status === "error" ? (
+                      <span className="text-red-200">{m.error}</span>
+                    ) : (
+                      <>
+                        <span>
+                          {m.status === "preparing" && "Préparation…"}
+                          {m.status === "uploading" && `Envoi ${Math.round(m.progress * 100)} %`}
+                          {m.status === "processing" && "Traitement…"}
+                        </span>
+                        <span className="h-1.5 w-3/4 overflow-hidden rounded-full bg-white/30">
+                          <span className="block h-full bg-red transition-[width]" style={{ width: `${Math.round(m.progress * 100)}%` }} />
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )}
+                {m.kind === "video" && m.duration_s != null && (
+                  <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                    {Math.floor(m.duration_s / 60)}:{String(Math.round(m.duration_s % 60)).padStart(2, "0")}
+                  </span>
+                )}
+                {accept === "images" && (
+                  <span className="absolute left-1 top-1 rounded-full bg-navy px-2 py-0.5 text-[11px] font-bold text-white">{i + 1}</span>
+                )}
+              </div>
+              <div className="space-y-2 p-2">
+                <input
+                  type="text"
+                  value={m.alt}
+                  onChange={(e) => patch(m.id, { alt: e.target.value })}
+                  placeholder="Texte alternatif (description pour l'accessibilité)"
+                  aria-label="Texte alternatif"
+                  maxLength={300}
+                  className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-body focus:border-navy focus:outline-none"
+                />
+                <div className="flex items-center justify-between text-xs">
+                  {accept === "images" ? (
+                    <span className="flex gap-1">
+                      <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="rounded px-2 py-1 font-semibold text-navy hover:bg-surface-2 disabled:opacity-30" aria-label="Déplacer avant">←</button>
+                      <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} className="rounded px-2 py-1 font-semibold text-navy hover:bg-surface-2 disabled:opacity-30" aria-label="Déplacer après">→</button>
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+                  <button type="button" onClick={() => remove(m)} className="rounded px-2 py-1 font-semibold text-danger hover:bg-danger/10">
+                    Retirer
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
