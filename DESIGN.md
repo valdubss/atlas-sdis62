@@ -239,5 +239,6 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
 - Pression : règle globale `:where(button, [role="button"], .pressable):active`.
 - Motion : `lib/motion.ts` (ressort unique, haptique). Cascade du fil dans `InfiniteFeed`, sheet et toast en `framer-motion`, lightbox en `layoutId` partagé.
 - Interrupteurs : piste blanche `--text-1` et bouton `--bg-0` à l'état actif (le rouge reste réservé au bouton principal).
-- Écran de connexion : la photo `public/login-bg.jpg` est détectée au démarrage ; sans fichier, fond `--bg-0`.
+- Écran de connexion : la photo `public/login-bg.jpg` est détectée au démarrage ; sans fichier, fond `--bg-0`. Carte centrée verticalement sur mobile comme sur desktop (demande du 14/09).
+- Carte de post : **une seule bulle** (demande du 14/09) — média en haut, texte en dessous dans la même surface `--bg-1`, rayon 22 px ; le média n'a plus de rayon propre.
 - Captures : Chrome headless applique `backdrop-filter` (style calculé vérifié) mais ne le composite pas toujours dans les PNG ; le flou est visible dans un navigateur réel.

@@ -16,11 +16,13 @@ export function PhotoCarousel({
   size = "medium",
   onDoubleTap,
   interactive = true,
+  rounded = true,
 }: {
   media: MediaItem[];
   size?: "medium" | "full";
   onDoubleTap?: () => void;
   interactive?: boolean;
+  rounded?: boolean;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
@@ -65,7 +67,7 @@ export function PhotoCarousel({
   const current = open !== null ? media[open] : null;
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] bg-bg-1" style={{ aspectRatio: String(ratio) }}>
+    <div className={cn("relative overflow-hidden bg-bg-1", rounded && "rounded-[28px]")} style={{ aspectRatio: String(ratio) }}>
       <div
         ref={scroller}
         className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain"

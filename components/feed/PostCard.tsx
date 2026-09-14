@@ -53,14 +53,20 @@ export function PostCard({
       haptic();
       setPost((p) => {
         const counts = { ...p.reaction_counts };
-        if (p.my_reaction) counts[p.my_reaction] = Math.max(0, (counts[p.my_reaction] ?? 1) - 1);
+        if (p.my_reaction)
+          counts[p.my_reaction] = Math.max(0, (counts[p.my_reaction] ?? 1) - 1);
         const next = p.my_reaction === kind ? null : kind;
         if (next) counts[next] = (counts[next] ?? 0) + 1;
         return { ...p, reaction_counts: counts, my_reaction: next };
       });
       startTransition(async () => {
         const res = await reactToPost(post.id, kind);
-        if (res.ok) setPost((p) => ({ ...p, reaction_counts: res.reaction_counts, my_reaction: res.my_reaction }));
+        if (res.ok)
+          setPost((p) => ({
+            ...p,
+            reaction_counts: res.reaction_counts,
+            my_reaction: res.my_reaction,
+          }));
         else {
           setPost(initial);
           toast(res.error);
@@ -94,98 +100,173 @@ export function PostCard({
   const body = shown.body ?? "";
   const images = shown.media.filter((m) => m.kind === "image");
   const video = shown.media.find((m) => m.kind === "video") ?? null;
-  const cover = shown.cover ?? (shown.type === "article" ? images[0] ?? null : null);
+  const cover =
+    shown.cover ?? (shown.type === "article" ? (images[0] ?? null) : null);
   const href = `/post/${shown.slug}`;
-  const hasMedia = (shown.type === "photo" && images.length > 0) || (shown.type === "video" && !!video) || (shown.type === "article" && !!cover);
+  const hasMedia =
+    (shown.type === "photo" && images.length > 0) ||
+    (shown.type === "video" && !!video) ||
+    (shown.type === "article" && !!cover);
   const clampable = variant === "feed" && body.length > 180;
 
   return (
     <article className="space-y-2" aria-label={shown.title ?? "Publication"}>
-      {shown.type === "photo" && images.length > 0 && (
-        <PhotoCarousel media={images} size={variant === "full" ? "full" : "medium"} onDoubleTap={onDoubleTap} interactive={!preview} />
-      )}
-      {shown.type === "video" && video && (
-        <VideoPlayer media={video} controls={variant === "full"} autoplay={!preview} onDoubleTap={onDoubleTap} />
-      )}
-      {shown.type === "article" && cover && (
-        <PhotoCarousel media={[cover]} size={variant === "full" ? "full" : "medium"} onDoubleTap={onDoubleTap} interactive={!preview} />
-      )}
-
-      <div className={cn("rounded-[16px] bg-bg-1", hasMedia ? "px-4 pb-1 pt-3" : "px-4 pb-1 pt-4")}>
-        <header className="flex items-center gap-3">
-          <Avatar name={shown.author?.name} avatarKey={shown.author?.avatar_key} official={official} />
-          <div className="min-w-0 flex-1 leading-tight">
-            <p className="truncate text-[15px] font-medium text-text-1">{shown.author?.name ?? "Service Communication"}</p>
-            <p className="text-[13px] text-text-3">
-              <time dateTime={shown.published_at ?? undefined}>{formatRelative(shown.published_at ?? shown.scheduled_at) || (preview ? "à l'instant" : "")}</time>
-              {FEATURES.categories && shown.category && <span> — {shown.category.name}</span>}
-            </p>
-          </div>
-          {shown.pinned_at && <Badge tone="red">Épinglé</Badge>}
-        </header>
-
-        {(shown.title || body) && (
-          <div className="mt-3">
-            {shown.title && (
-              <h2 className="mb-1 text-[22px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">
-                {variant === "feed" && shown.type === "article" ? <Link href={href}>{shown.title}</Link> : shown.title}
-              </h2>
-            )}
-
-            {shown.type === "article" ? (
-              variant === "full" ? (
-                <>
-                  {shown.excerpt && <p className="mb-3 text-[17px] text-text-2">{shown.excerpt}</p>}
-                  <Markdown>{body}</Markdown>
-                </>
-              ) : (
-                <>
-                  <p className="clamp-4 text-[15px] text-text-1">
-                    {shown.excerpt ?? body.replace(/[#*_>`\[\]]/g, "").slice(0, 320)}
-                  </p>
-                  <Link href={href} className="pressable mt-1 inline-block text-[15px] font-medium text-text-2 hover:text-text-1">
-                    Lire l&apos;article
-                  </Link>
-                </>
-              )
-            ) : (
-              body && (
-                <p className={cn("whitespace-pre-line break-words text-[15px] text-text-1", clampable && !expanded && "clamp-4")}>
-                  {body}
-                </p>
-              )
-            )}
-            {clampable && !expanded && shown.type !== "article" && (
-              <button type="button" onClick={() => setExpanded(true)} className="mt-0.5 text-[15px] font-medium text-text-2 hover:text-text-1">
-                plus
-              </button>
-            )}
-          </div>
+      <div className="overflow-hidden rounded-[22px] bg-bg-1">
+        {shown.type === "photo" && images.length > 0 && (
+          <PhotoCarousel
+            media={images}
+            size={variant === "full" ? "full" : "medium"}
+            onDoubleTap={onDoubleTap}
+            interactive={!preview}
+            rounded={false}
+          />
+        )}
+        {shown.type === "video" && video && (
+          <VideoPlayer
+            media={video}
+            controls={variant === "full"}
+            autoplay={!preview}
+            onDoubleTap={onDoubleTap}
+            rounded={false}
+          />
+        )}
+        {shown.type === "article" && cover && (
+          <PhotoCarousel
+            media={[cover]}
+            size={variant === "full" ? "full" : "medium"}
+            onDoubleTap={onDoubleTap}
+            interactive={!preview}
+            rounded={false}
+          />
         )}
 
-        <footer className="mt-1 flex items-center justify-between">
-          <ReactionBar counts={shown.reaction_counts} mine={shown.my_reaction} onSelect={react} disabled={preview} />
-          <div className="flex items-center">
-            <IconButton
-              label="Commentaires"
-              icon={MessageCircle}
-              count={shown.comment_count}
-              onClick={() =>
-                !preview &&
-                (variant === "full"
-                  ? document.getElementById(`comments-${shown.id}`)?.scrollIntoView({ behavior: "smooth" })
-                  : setCommentsOpen(true))
-              }
+        <div className={cn(hasMedia ? "px-4 pb-1 pt-3" : "px-4 pb-1 pt-4")}>
+          <header className="flex items-center gap-3">
+            <Avatar
+              name={shown.author?.name}
+              avatarKey={shown.author?.avatar_key}
+              official={official}
             />
-            <IconButton label={shown.is_bookmarked ? "Retirer des favoris" : "Enregistrer"} icon={Bookmark} active={shown.is_bookmarked} onClick={bookmark} />
-            <ShareButton slug={shown.slug} title={shown.title} />
-          </div>
-        </footer>
+            <div className="min-w-0 flex-1 leading-tight">
+              <p className="truncate text-[15px] font-medium text-text-1">
+                {shown.author?.name ?? "Service Communication"}
+              </p>
+              <p className="text-[13px] text-text-3">
+                <time dateTime={shown.published_at ?? undefined}>
+                  {formatRelative(shown.published_at ?? shown.scheduled_at) ||
+                    (preview ? "à l'instant" : "")}
+                </time>
+                {FEATURES.categories && shown.category && (
+                  <span> — {shown.category.name}</span>
+                )}
+              </p>
+            </div>
+            {shown.pinned_at && <Badge tone="red">Épinglé</Badge>}
+          </header>
+
+          {(shown.title || body) && (
+            <div className="mt-3">
+              {shown.title && (
+                <h2 className="mb-1 text-[22px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">
+                  {variant === "feed" && shown.type === "article" ? (
+                    <Link href={href}>{shown.title}</Link>
+                  ) : (
+                    shown.title
+                  )}
+                </h2>
+              )}
+
+              {shown.type === "article" ? (
+                variant === "full" ? (
+                  <>
+                    {shown.excerpt && (
+                      <p className="mb-3 text-[17px] text-text-2">
+                        {shown.excerpt}
+                      </p>
+                    )}
+                    <Markdown>{body}</Markdown>
+                  </>
+                ) : (
+                  <>
+                    <p className="clamp-4 text-[15px] text-text-1">
+                      {shown.excerpt ??
+                        body.replace(/[#*_>`\[\]]/g, "").slice(0, 320)}
+                    </p>
+                    <Link
+                      href={href}
+                      className="pressable mt-1 inline-block text-[15px] font-medium text-text-2 hover:text-text-1"
+                    >
+                      Lire l&apos;article
+                    </Link>
+                  </>
+                )
+              ) : (
+                body && (
+                  <p
+                    className={cn(
+                      "whitespace-pre-line break-words text-[15px] text-text-1",
+                      clampable && !expanded && "clamp-4",
+                    )}
+                  >
+                    {body}
+                  </p>
+                )
+              )}
+              {clampable && !expanded && shown.type !== "article" && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded(true)}
+                  className="mt-0.5 text-[15px] font-medium text-text-2 hover:text-text-1"
+                >
+                  plus
+                </button>
+              )}
+            </div>
+          )}
+
+          <footer className="mt-1 flex items-center justify-between">
+            <ReactionBar
+              counts={shown.reaction_counts}
+              mine={shown.my_reaction}
+              onSelect={react}
+              disabled={preview}
+            />
+            <div className="flex items-center">
+              <IconButton
+                label="Commentaires"
+                icon={MessageCircle}
+                count={shown.comment_count}
+                onClick={() =>
+                  !preview &&
+                  (variant === "full"
+                    ? document
+                        .getElementById(`comments-${shown.id}`)
+                        ?.scrollIntoView({ behavior: "smooth" })
+                    : setCommentsOpen(true))
+                }
+              />
+              <IconButton
+                label={
+                  shown.is_bookmarked ? "Retirer des favoris" : "Enregistrer"
+                }
+                icon={Bookmark}
+                active={shown.is_bookmarked}
+                onClick={bookmark}
+              />
+              <ShareButton slug={shown.slug} title={shown.title} />
+            </div>
+          </footer>
+        </div>
       </div>
 
       {variant === "full" && !preview && (
-        <section id={`comments-${shown.id}`} className="rounded-[16px] bg-bg-1 pt-4">
-          <h3 className="px-4 pb-1 text-[17px] font-semibold tracking-[-0.02em] text-text-1">Commentaires</h3>
+        <section
+          id={`comments-${shown.id}`}
+          className="rounded-[16px] bg-bg-1 pt-4"
+        >
+          <h3 className="px-4 pb-1 text-[17px] font-semibold tracking-[-0.02em] text-text-1">
+            Commentaires
+          </h3>
           <Comments
             postId={shown.id}
             enabled={shown.comments_enabled}
@@ -196,7 +277,11 @@ export function PostCard({
       )}
 
       {variant === "feed" && !preview && (
-        <Sheet open={commentsOpen} onClose={() => setCommentsOpen(false)} title="Commentaires">
+        <Sheet
+          open={commentsOpen}
+          onClose={() => setCommentsOpen(false)}
+          title="Commentaires"
+        >
           <Comments
             postId={shown.id}
             enabled={shown.comments_enabled}

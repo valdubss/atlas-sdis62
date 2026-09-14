@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Volume2, VolumeX } from "lucide-react";
 import type { MediaItem } from "@/lib/feed/types";
 import { posterSrc, videoSrc } from "@/lib/media/url";
+import { cn } from "@/lib/cn";
 
 /**
  * Lecteur vidéo : coins 28 px, lecture automatique muette quand visible, pause hors
@@ -14,11 +15,13 @@ export function VideoPlayer({
   controls = false,
   autoplay = true,
   onDoubleTap,
+  rounded = true,
 }: {
   media: MediaItem;
   controls?: boolean;
   autoplay?: boolean;
   onDoubleTap?: () => void;
+  rounded?: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
@@ -41,7 +44,7 @@ export function VideoPlayer({
   const ratio = media.width && media.height ? Math.min(Math.max(media.width / media.height, 0.56), 1.91) : 16 / 9;
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] bg-bg-1" style={{ aspectRatio: String(ratio) }}>
+    <div className={cn("relative overflow-hidden bg-bg-1", rounded && "rounded-[28px]")} style={{ aspectRatio: String(ratio) }}>
       <video
         ref={ref}
         src={videoSrc(media)}

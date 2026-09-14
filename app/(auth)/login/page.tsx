@@ -41,7 +41,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <h1 className="sr-only">{APP_NAME}</h1>
       </header>
 
-      <div className="relative flex flex-1 flex-col justify-end px-5 pb-[max(env(safe-area-inset-bottom),20px)] sm:mx-auto sm:w-full sm:max-w-[420px] sm:justify-center">
+      <div className="relative flex flex-1 flex-col justify-center px-5 pb-[max(env(safe-area-inset-bottom),20px)] sm:mx-auto sm:w-full sm:max-w-[420px]">
         <section className="glass rounded-[22px] p-5 sm:p-6">
           {erreur && ERRORS[erreur] && (
             <p role="alert" className="mb-4 text-[15px] text-red-text">
