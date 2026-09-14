@@ -14,6 +14,8 @@ export type EditorMedia = MediaItem & {
   status: "preparing" | "uploading" | "processing" | "ready" | "error";
   progress: number;
   error?: string;
+  /** Avertissement non bloquant (ex. vidéo très lourde) */
+  warning?: string;
 };
 
 type Accept = "images" | "video" | "cover" | "story" | "screenshot";
@@ -123,9 +125,15 @@ export function MediaUploader({
           patch(created.mediaId, { status: "processing", progress: 1 });
           const done = await finalizeMedia(created.mediaId);
           if (!done.ok) throw new Error(done.error);
+          // Vidéo très lourde (4K, 60 i/s) : elle démarre lentement sur mobile
+          const perSecond = prepared.kind === "video" && prepared.duration ? prepared.blob.size / prepared.duration : 0;
+          const warning =
+            perSecond > 1.5 * 1024 * 1024
+              ? `Vidéo lourde (${Math.round(prepared.blob.size / 1048576)} Mo pour ${Math.round(prepared.duration ?? 0)} s) : elle mettra du temps à démarrer sur mobile. Filmez en 1080p à 30 i/s (Réglages → Appareil photo → Enregistrement vidéo).`
+              : undefined;
           onChange((prev) =>
             prev.map((m) =>
-              m.id === created.mediaId ? { ...m, ...done.media, preview_url: m.preview_url, poster_preview_url: m.poster_preview_url, status: "ready", progress: 1 } : m,
+              m.id === created.mediaId ? { ...m, ...done.media, preview_url: m.preview_url, poster_preview_url: m.poster_preview_url, status: "ready", progress: 1, warning } : m,
             ),
           );
         } catch (e) {
@@ -246,6 +254,9 @@ export function MediaUploader({
                       </>
                     )}
                   </div>
+                )}
+                {m.status === "ready" && m.warning && (
+                  <p className="absolute inset-x-2 top-2 rounded-[10px] bg-black/70 px-2.5 py-1.5 text-[11px] leading-snug text-white/90">{m.warning}</p>
                 )}
                 {m.kind === "video" && m.duration_s != null && (
                   <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white/90 tabular-nums">
