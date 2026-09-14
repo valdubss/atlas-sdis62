@@ -30,7 +30,7 @@ export function StoryRing({
           )}
         </span>
       </span>
-      <span className="w-full truncate text-center text-[11px] font-medium text-text-2">{label}</span>
+      <span className="clamp-2 w-full text-center text-[11px] font-medium leading-[1.2] text-text-2">{label}</span>
     </span>
   );
 }

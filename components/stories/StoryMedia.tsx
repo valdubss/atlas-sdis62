@@ -29,6 +29,9 @@ export function StoryMedia({
   fit?: "cover" | "contain";
 }) {
   const position = overlay?.position ?? "bottom";
+  // Média plus large que haut : affiché entier (bandes noires) au lieu d'être rogné
+  const landscape = Boolean(media?.width && media?.height && media.width > media.height);
+  const fitClass = fit === "contain" || landscape ? "object-contain" : "object-cover";
   return (
     <div className="relative h-full w-full select-none overflow-hidden bg-black">
       {media?.kind === "video" ? (
@@ -45,11 +48,11 @@ export function StoryMedia({
             if (v.duration > 0) onVideoTime?.(v.currentTime / v.duration);
           }}
           onEnded={onVideoEnded}
-          className={cn("h-full w-full", fit === "cover" ? "object-cover" : "object-contain")}
+          className={cn("h-full w-full", fitClass)}
         />
       ) : media ? (
         // eslint-disable-next-line @next/next/no-img-element -- variante servie par le stockage
-        <img src={imageSrc(media, "full")} alt={media.alt} draggable={false} className={cn("h-full w-full", fit === "cover" ? "object-cover" : "object-contain")} />
+        <img src={imageSrc(media, "full")} alt={media.alt} draggable={false} className={cn("h-full w-full", fitClass)} />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-[15px] text-white/50">Aucun média</div>
       )}
