@@ -84,14 +84,6 @@ export function cursorOf(posts: FeedPost[]): FeedCursor {
   return last?.published_at ? { at: last.published_at, id: last.id } : null;
 }
 
-export function totalReactions(counts: ReactionCounts) {
-  return Object.values(counts).reduce((a, b) => a + (b ?? 0), 0);
-}
-
-/** Élément de galerie : une image et sa publication. */
-  position: number;
-};
-
 /** Story sérialisée par story_to_json(). */
 export type StoryOverlay = { text?: string; position?: "top" | "middle" | "bottom" } | null;
 
