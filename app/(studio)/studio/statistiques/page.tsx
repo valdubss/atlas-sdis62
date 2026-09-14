@@ -75,7 +75,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
           <p className="text-[13px] text-text-3">Vues de publications par heure (heure de Paris)</p>
           <div className="mt-4 flex h-32 items-end gap-[3px]" role="img" aria-label="Répartition des lectures par heure">
             {hours.map((v, h) => (
-              <div key={h} className="flex flex-1 flex-col items-center gap-1" title={`${h} h : ${v}`}>
+              <div key={h} className="flex h-full flex-1 flex-col items-center justify-end gap-1" title={`${h} h : ${v}`}>
                 <div className="w-full rounded-t-[3px] bg-navy-link" style={{ height: `${Math.max(2, (v / maxHour) * 100)}%`, opacity: v ? 1 : 0.25 }} />
                 {h % 6 === 0 && <span className="text-[10px] text-text-4">{h}h</span>}
               </div>
@@ -87,7 +87,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
           <p className="text-[13px] text-text-3">Vues de publications par jour de la semaine</p>
           <div className="mt-4 flex h-32 items-end gap-2" role="img" aria-label="Répartition des lectures par jour">
             {dows.map((v, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-1" title={`${DAYS[i]} : ${v}`}>
+              <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1" title={`${DAYS[i]} : ${v}`}>
                 <div className="w-full rounded-t-[4px] bg-navy-link" style={{ height: `${Math.max(2, (v / maxDow) * 100)}%`, opacity: v ? 1 : 0.25 }} />
                 <span className="text-[10px] text-text-4">{DAYS[i]}</span>
               </div>
