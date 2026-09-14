@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Share } from "lucide-react";
 import { APP_NAME } from "@/lib/config";
+import { useToast } from "@/components/ui/Toast";
 import { IconButton } from "./IconButton";
 
 export function ShareButton({ slug, title }: { slug: string; title: string | null }) {
-  const [copied, setCopied] = useState(false);
+  const toast = useToast();
 
   async function share() {
     const url = `${window.location.origin}/post/${slug}`;
@@ -20,26 +21,11 @@ export function ShareButton({ slug, title }: { slug: string; title: string | nul
     }
     try {
       await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
+      toast("Lien copié");
     } catch {
       window.prompt("Copiez ce lien :", url);
     }
   }
 
-  return (
-    <span className="relative">
-      <IconButton label="Partager le lien interne" onClick={share}>
-        <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 15V3m0 0L8 7m4-4 4 4" strokeLinecap="round" strokeLinejoin="round" />
-      </IconButton>
-      {copied && (
-        <span
-          role="status"
-          className="absolute -top-9 right-0 whitespace-nowrap rounded-lg bg-white px-2 py-1 text-xs font-semibold text-bg"
-        >
-          Lien copié
-        </span>
-      )}
-    </span>
-  );
+  return <IconButton label="Partager le lien interne" icon={Share} onClick={share} />;
 }

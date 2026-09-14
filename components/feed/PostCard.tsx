@@ -1,15 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useRef, useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
+import { Bookmark, MessageCircle } from "lucide-react";
 import type { FeedPost } from "@/lib/feed/types";
 import { FEATURES, type ReactionKind } from "@/lib/config";
 import { formatRelative } from "@/lib/format";
+import { haptic } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 import { reactToPost, toggleBookmark } from "@/app/(app)/feed-actions";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Sheet } from "@/components/ui/Sheet";
+import { useToast } from "@/components/ui/Toast";
 import { ReactionBar } from "./ReactionBar";
 import { IconButton } from "./IconButton";
 import { ShareButton } from "./ShareButton";
@@ -18,13 +21,11 @@ import { Markdown } from "./Markdown";
 import { PhotoCarousel } from "./PhotoCarousel";
 import { VideoPlayer } from "./VideoPlayer";
 
-const TEXT_CLAMP = 300;
-
 /**
- * Carte de publication. Mobile-first : bord à bord, médias plein cadre,
- * double-tap = ❤️, commentaires dans un panneau bas.
- *  - variant "feed" : aperçu (texte tronqué, article → lien)
- *  - variant "full" : page de lecture (Markdown complet, commentaires inline)
+ * Carte de post : média 28 px en haut, puis zone opaque --bg-1 (16 px) avec
+ * auteur 15/500, date 13 --text-3, texte 15/400 sur 4 lignes + « plus », ligne de
+ * réactions minimale. Aucun bord, aucune ombre.
+ *  - variant "feed" : aperçu ; "full" : page de lecture (Markdown, commentaires)
  *  - preview : aperçu studio, interactions désactivées
  */
 export function PostCard({
@@ -39,20 +40,17 @@ export function PostCard({
   preview?: boolean;
 }) {
   const [post, setPost] = useState(initial);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(variant === "full");
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [heartBurst, setHeartBurst] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
-  const lastTap = useRef(0);
+  const toast = useToast();
 
-  // En mode aperçu (studio), la carte suit les changements de l'éditeur.
   const shown = preview ? initial : post;
 
   const react = useCallback(
     (kind: ReactionKind) => {
       if (preview) return;
-      setError(null);
+      haptic();
       setPost((p) => {
         const counts = { ...p.reaction_counts };
         if (p.my_reaction) counts[p.my_reaction] = Math.max(0, (counts[p.my_reaction] ?? 1) - 1);
@@ -65,182 +63,129 @@ export function PostCard({
         if (res.ok) setPost((p) => ({ ...p, reaction_counts: res.reaction_counts, my_reaction: res.my_reaction }));
         else {
           setPost(initial);
-          setError(res.error);
+          toast(res.error);
         }
       });
     },
-    [post.id, preview, initial],
+    [post.id, preview, initial, toast],
   );
 
   function onDoubleTap() {
-    if (preview) return;
-    setHeartBurst(true);
-    setTimeout(() => setHeartBurst(false), 700);
-    if (post.my_reaction !== "heart") react("heart");
-  }
-
-  function handleTap() {
-    const now = Date.now();
-    if (now - lastTap.current < 300) onDoubleTap();
-    lastTap.current = now;
+    if (!preview && post.my_reaction !== "heart") react("heart");
   }
 
   function bookmark() {
     if (preview) return;
-    setPost((p) => ({ ...p, is_bookmarked: !p.is_bookmarked }));
+    const next = !post.is_bookmarked;
+    setPost((p) => ({ ...p, is_bookmarked: next }));
     startTransition(async () => {
       const res = await toggleBookmark(post.id);
-      if (res.ok) setPost((p) => ({ ...p, is_bookmarked: res.bookmarked }));
-      else setPost((p) => ({ ...p, is_bookmarked: !p.is_bookmarked }));
+      if (res.ok) {
+        setPost((p) => ({ ...p, is_bookmarked: res.bookmarked }));
+        toast(res.bookmarked ? "Ajouté aux favoris" : "Retiré des favoris");
+      } else {
+        setPost((p) => ({ ...p, is_bookmarked: !next }));
+        toast(res.error);
+      }
     });
   }
 
   const official = shown.author_display === "service_com";
   const body = shown.body ?? "";
-  const clampable = variant === "feed" && shown.type !== "article" && body.length > TEXT_CLAMP;
-  const shownBody = clampable && !expanded ? body.slice(0, TEXT_CLAMP).trimEnd() + "…" : body;
   const images = shown.media.filter((m) => m.kind === "image");
   const video = shown.media.find((m) => m.kind === "video") ?? null;
   const cover = shown.cover ?? (shown.type === "article" ? images[0] ?? null : null);
   const href = `/post/${shown.slug}`;
-  const meta = [
-    FEATURES.categories && shown.category ? shown.category.name : null,
-    formatRelative(shown.published_at ?? shown.scheduled_at),
-    FEATURES.centers && shown.center ? shown.center.name : null,
-  ].filter(Boolean);
+  const hasMedia = (shown.type === "photo" && images.length > 0) || (shown.type === "video" && !!video) || (shown.type === "article" && !!cover);
+  const clampable = variant === "feed" && body.length > 180;
 
   return (
-    <article
-      className={cn(
-        "glass relative overflow-hidden border-x-0 sm:border-x",
-        variant === "feed" && "sm:rounded-card sm:shadow-soft",
-        variant === "full" && "sm:rounded-card sm:shadow-soft",
-      )}
-      aria-label={shown.title ?? "Publication"}
-    >
-      {/* En-tête */}
-      <header className="flex items-center gap-3 px-4 pt-3 pb-2">
-        <Avatar name={shown.author?.name} avatarKey={shown.author?.avatar_key} official={official} />
-        <div className="min-w-0 flex-1 leading-tight">
-          <p className="truncate text-[15px] font-semibold text-ink">{shown.author?.name ?? "Service Communication"}</p>
-          <p className="truncate text-xs text-muted">{meta.join(" · ")}</p>
-        </div>
-        {shown.pinned_at && (
-          <Badge tone="red" className="shrink-0">
-            Épinglé
-          </Badge>
-        )}
-      </header>
-
-      {/* Médias plein cadre */}
+    <article className="space-y-2" aria-label={shown.title ?? "Publication"}>
       {shown.type === "photo" && images.length > 0 && (
-        <div className="relative">
-          <PhotoCarousel media={images} size={variant === "full" ? "full" : "medium"} onTap={handleTap} onDoubleTap={onDoubleTap} />
-          <HeartBurst show={heartBurst} />
-        </div>
+        <PhotoCarousel media={images} size={variant === "full" ? "full" : "medium"} onDoubleTap={onDoubleTap} interactive={!preview} />
       )}
       {shown.type === "video" && video && (
-        <div className="relative">
-          <VideoPlayer media={video} controls={variant === "full"} autoplay={!preview} onDoubleTap={onDoubleTap} />
-          <HeartBurst show={heartBurst} />
-        </div>
+        <VideoPlayer media={video} controls={variant === "full"} autoplay={!preview} onDoubleTap={onDoubleTap} />
       )}
       {shown.type === "article" && cover && (
-        <div className="relative">
-          <PhotoCarousel media={[cover]} size={variant === "full" ? "full" : "medium"} onTap={handleTap} onDoubleTap={onDoubleTap} />
-          <HeartBurst show={heartBurst} />
-        </div>
+        <PhotoCarousel media={[cover]} size={variant === "full" ? "full" : "medium"} onDoubleTap={onDoubleTap} interactive={!preview} />
       )}
 
-      {/* Corps */}
-      {(shown.title || body) && (
-        <div
-          className="relative px-4 pt-2 pb-1"
-          onClick={shown.media.length ? undefined : handleTap}
-          onDoubleClick={shown.media.length ? undefined : onDoubleTap}
-        >
-          {!shown.media.length && <HeartBurst show={heartBurst} />}
-          {shown.title && (
-            <h2 className="mb-1 font-display text-[22px] font-bold uppercase leading-tight text-ink">
-              {variant === "feed" && shown.type === "article" ? <Link href={href}>{shown.title}</Link> : shown.title}
-            </h2>
-          )}
-
-          {shown.type === "article" ? (
-            variant === "full" ? (
-              <>
-                {shown.excerpt && <p className="mb-3 text-[17px] font-medium leading-snug text-body">{shown.excerpt}</p>}
-                <Markdown>{body}</Markdown>
-              </>
-            ) : (
-              <>
-                <p className="text-[15px] leading-relaxed text-body">
-                  {shown.excerpt ?? body.replace(/[#*_>`\[\]]/g, "").slice(0, 220).trimEnd() + "…"}
-                </p>
-                <Link href={href} className="mt-1 inline-block text-sm font-bold text-red-text">
-                  Lire l&apos;article →
-                </Link>
-              </>
-            )
-          ) : (
-            body && (
-              <p className="whitespace-pre-line break-words text-[15px] leading-relaxed text-body">
-                {shownBody}
-                {clampable && !expanded && (
-                  <>
-                    {" "}
-                    <button type="button" onClick={() => setExpanded(true)} className="font-semibold text-muted">
-                      voir plus
-                    </button>
-                  </>
-                )}
-              </p>
-            )
-          )}
-
-          {FEATURES.tags && shown.tags.length > 0 && (
-            <p className="mt-2 flex flex-wrap gap-x-2 text-xs font-semibold text-navy">
-              {shown.tags.map((t) => (
-                <Link key={t} href={`/?tag=${encodeURIComponent(t)}`}>
-                  #{t}
-                </Link>
-              ))}
+      <div className={cn("rounded-[16px] bg-bg-1", hasMedia ? "px-4 pb-1 pt-3" : "px-4 pb-1 pt-4")}>
+        <header className="flex items-center gap-3">
+          <Avatar name={shown.author?.name} avatarKey={shown.author?.avatar_key} official={official} />
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="truncate text-[15px] font-medium text-text-1">{shown.author?.name ?? "Service Communication"}</p>
+            <p className="text-[13px] text-text-3">
+              <time dateTime={shown.published_at ?? undefined}>{formatRelative(shown.published_at ?? shown.scheduled_at) || (preview ? "à l'instant" : "")}</time>
+              {FEATURES.categories && shown.category && <span> — {shown.category.name}</span>}
             </p>
-          )}
-        </div>
-      )}
+          </div>
+          {shown.pinned_at && <Badge tone="red">Épinglé</Badge>}
+        </header>
 
-      {/* Pied : réactions, commentaires, favori, partage */}
-      <footer className="flex items-center justify-between gap-2 px-3 pb-2 pt-1">
-        <ReactionBar counts={shown.reaction_counts} mine={shown.my_reaction} onSelect={react} disabled={preview} />
-        <div className="flex items-center">
-          <IconButton
-            label="Commentaires"
-            count={shown.comment_count}
-            onClick={() =>
-              !preview &&
-              (variant === "full"
-                ? document.getElementById(`comments-${shown.id}`)?.scrollIntoView({ behavior: "smooth" })
-                : setCommentsOpen(true))
-            }
-          >
-            <path d="M21 12a8 8 0 0 1-11.6 7.2L4 21l1.8-4.6A8 8 0 1 1 21 12z" strokeLinejoin="round" />
-          </IconButton>
-          <IconButton label={shown.is_bookmarked ? "Retirer des favoris" : "Enregistrer"} active={shown.is_bookmarked} onClick={bookmark}>
-            <path d="M6 4h12v17l-6-4-6 4V4z" strokeLinejoin="round" />
-          </IconButton>
-          <ShareButton slug={shown.slug} title={shown.title} />
-        </div>
-      </footer>
-      {error && (
-        <p className="px-4 pb-2 text-xs text-danger" role="alert">
-          {error}
-        </p>
-      )}
+        {(shown.title || body) && (
+          <div className="mt-3">
+            {shown.title && (
+              <h2 className="mb-1 text-[22px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">
+                {variant === "feed" && shown.type === "article" ? <Link href={href}>{shown.title}</Link> : shown.title}
+              </h2>
+            )}
+
+            {shown.type === "article" ? (
+              variant === "full" ? (
+                <>
+                  {shown.excerpt && <p className="mb-3 text-[17px] text-text-2">{shown.excerpt}</p>}
+                  <Markdown>{body}</Markdown>
+                </>
+              ) : (
+                <>
+                  <p className="clamp-4 text-[15px] text-text-1">
+                    {shown.excerpt ?? body.replace(/[#*_>`\[\]]/g, "").slice(0, 320)}
+                  </p>
+                  <Link href={href} className="pressable mt-1 inline-block text-[15px] font-medium text-text-2 hover:text-text-1">
+                    Lire l&apos;article
+                  </Link>
+                </>
+              )
+            ) : (
+              body && (
+                <p className={cn("whitespace-pre-line break-words text-[15px] text-text-1", clampable && !expanded && "clamp-4")}>
+                  {body}
+                </p>
+              )
+            )}
+            {clampable && !expanded && shown.type !== "article" && (
+              <button type="button" onClick={() => setExpanded(true)} className="mt-0.5 text-[15px] font-medium text-text-2 hover:text-text-1">
+                plus
+              </button>
+            )}
+          </div>
+        )}
+
+        <footer className="mt-1 flex items-center justify-between">
+          <ReactionBar counts={shown.reaction_counts} mine={shown.my_reaction} onSelect={react} disabled={preview} />
+          <div className="flex items-center">
+            <IconButton
+              label="Commentaires"
+              icon={MessageCircle}
+              count={shown.comment_count}
+              onClick={() =>
+                !preview &&
+                (variant === "full"
+                  ? document.getElementById(`comments-${shown.id}`)?.scrollIntoView({ behavior: "smooth" })
+                  : setCommentsOpen(true))
+              }
+            />
+            <IconButton label={shown.is_bookmarked ? "Retirer des favoris" : "Enregistrer"} icon={Bookmark} active={shown.is_bookmarked} onClick={bookmark} />
+            <ShareButton slug={shown.slug} title={shown.title} />
+          </div>
+        </footer>
+      </div>
 
       {variant === "full" && !preview && (
-        <section id={`comments-${shown.id}`} className="border-t border-line pt-3">
-          <h3 className="px-4 pb-1 font-display text-lg font-bold uppercase text-navy">Commentaires</h3>
+        <section id={`comments-${shown.id}`} className="rounded-[16px] bg-bg-1 pt-4">
+          <h3 className="px-4 pb-1 text-[17px] font-semibold tracking-[-0.02em] text-text-1">Commentaires</h3>
           <Comments
             postId={shown.id}
             enabled={shown.comments_enabled}
@@ -262,17 +207,5 @@ export function PostCard({
         </Sheet>
       )}
     </article>
-  );
-}
-
-function HeartBurst({ show }: { show: boolean }) {
-  if (!show) return null;
-  return (
-    <span
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 flex items-center justify-center text-7xl drop-shadow-lg animate-[heart_.7s_ease-out]"
-    >
-      ❤️
-    </span>
   );
 }

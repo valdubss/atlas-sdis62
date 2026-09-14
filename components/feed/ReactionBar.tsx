@@ -1,9 +1,13 @@
 "use client";
 
+import { BicepsFlexed, Flame, Heart, ThumbsUp, type LucideIcon } from "lucide-react";
 import { REACTIONS, type ReactionKind } from "@/lib/config";
 import type { ReactionCounts } from "@/lib/feed/types";
 import { cn } from "@/lib/cn";
 
+const ICONS: Record<ReactionKind, LucideIcon> = { clap: ThumbsUp, fire: Flame, heart: Heart, muscle: BicepsFlexed };
+
+/** Ligne de réactions minimale : icône Lucide + compte, actif en --red. */
 export function ReactionBar({
   counts,
   mine,
@@ -16,10 +20,11 @@ export function ReactionBar({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1.5" role="group" aria-label="Réactions">
+    <div className="flex items-center" role="group" aria-label="Réactions">
       {REACTIONS.map((r) => {
         const n = counts[r.kind] ?? 0;
         const active = mine === r.kind;
+        const Icon = ICONS[r.kind];
         return (
           <button
             key={r.kind}
@@ -29,17 +34,13 @@ export function ReactionBar({
             aria-pressed={active}
             aria-label={`${r.label}${n ? ` (${n})` : ""}`}
             className={cn(
-              "flex h-10 min-w-10 select-none items-center gap-1 rounded-full px-2.5 text-sm font-semibold transition-all active:scale-90",
-              active
-                ? "bg-red/12 text-red-text ring-1 ring-red/40"
-                : "bg-surface-2 text-body hover:bg-line",
+              "flex h-11 min-w-11 items-center justify-center gap-1.5 px-1.5 text-[13px] font-medium tabular-nums",
+              active ? "text-red-text" : "text-text-2 hover:text-text-1",
               disabled && "opacity-60",
             )}
           >
-            <span className={cn("text-lg leading-none", active && "animate-[pop_.3s_ease-out]")} aria-hidden="true">
-              {r.emoji}
-            </span>
-            {n > 0 && <span className="tabular-nums">{n}</span>}
+            <Icon size={20} strokeWidth={1.75} fill={active ? "currentColor" : "none"} className={active ? "text-red" : undefined} aria-hidden="true" />
+            {n > 0 && <span>{n}</span>}
           </button>
         );
       })}

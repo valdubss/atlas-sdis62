@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { Logo } from "@/components/brand/Logo";
-import { EcgDivider } from "@/components/brand/Ecg";
-import { APP_NAME, APP_TAGLINE, ORG_LONG_NAME } from "@/lib/config";
+import { APP_NAME } from "@/lib/config";
 import { getAllowedDomains } from "@/lib/auth/domains";
-import { getAuthProviders } from "@/lib/auth/providers";
 import { LoginForm } from "./LoginForm";
 
 export const metadata: Metadata = { title: "Connexion" };
@@ -14,43 +14,42 @@ const ERRORS: Record<string, string> = {
   profil: "Votre compte n'a pas de profil valide. Reconnectez-vous ; si le problème persiste, contactez l'administrateur.",
 };
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ next?: string; erreur?: string }>;
-}) {
+// Photo d'intervention plein écran (public/login-bg.jpg), détectée au démarrage du serveur.
+const BG_FILE = "login-bg.jpg";
+const HAS_BG = existsSync(path.join(process.cwd(), "public", BG_FILE));
+
+/**
+ * Écran de connexion « affiche » : photo assombrie à 55 %, logo en haut à gauche,
+ * champ et bouton en verre en bas. Aucune tagline.
+ */
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; erreur?: string }> }) {
   const { next = "/", erreur } = await searchParams;
   const domains = getAllowedDomains();
-  const sso = getAuthProviders().find((p) => p.id === "azure" && p.enabled);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center bg-bg px-4 py-10">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex flex-col items-center gap-3 text-center">
-          <Logo height={44} />
-          <h1 className="sr-only">{APP_NAME}</h1>
-          <p className="text-sm text-muted">{APP_TAGLINE}</p>
-        </div>
+    <main className="relative flex min-h-dvh flex-col bg-bg-0">
+      {HAS_BG && (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- photo de fond statique */}
+          <img src={`/${BG_FILE}`} alt="" className="absolute inset-0 h-full w-full object-cover" aria-hidden="true" />
+          <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
+        </>
+      )}
 
-        <div className="glass rounded-card p-6 shadow-soft">
+      <div className="relative flex flex-1 flex-col justify-between px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-[max(env(safe-area-inset-top),20px)] sm:mx-auto sm:w-full sm:max-w-[420px] sm:justify-center sm:gap-16">
+        <header className="pt-2">
+          <Logo size={22} />
+          <h1 className="sr-only">{APP_NAME}</h1>
+        </header>
+
+        <section className="glass rounded-[22px] p-5 sm:p-6">
           {erreur && ERRORS[erreur] && (
-            <p
-              role="alert"
-              className="mb-4 rounded-lg border border-red/30 bg-red/5 px-3 py-2 text-sm text-red-text"
-            >
+            <p role="alert" className="mb-4 text-[15px] text-red-text">
               {ERRORS[erreur]}
             </p>
           )}
           <LoginForm next={next} domains={domains} />
-          {sso && (
-            <>
-              <EcgDivider className="my-6" />
-              <p className="text-center text-sm text-muted">{sso.label} : bientôt disponible.</p>
-            </>
-          )}
-        </div>
-
-        <p className="mt-8 text-center text-xs text-muted">{ORG_LONG_NAME}</p>
+        </section>
       </div>
     </main>
   );

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
-import { Card, SectionTitle } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 
@@ -32,20 +31,16 @@ const TABS = [
   { id: "published", label: "Publiées" },
 ] as const;
 
-const STATUS: Record<Row["status"], { label: string; tone: "muted" | "navy" | "success" | "red" }> = {
-  draft: { label: "Brouillon", tone: "muted" },
-  scheduled: { label: "Programmé", tone: "navy" },
-  published: { label: "Publié", tone: "success" },
-  archived: { label: "Archivé", tone: "muted" },
+const STATUS: Record<Row["status"], { label: string; tone: "neutral" | "navy" | "success" | "red" }> = {
+  draft: { label: "Brouillon", tone: "neutral" },
+  scheduled: { label: "Programmée", tone: "navy" },
+  published: { label: "Publiée", tone: "success" },
+  archived: { label: "Archivée", tone: "neutral" },
 };
 
 const TYPE_LABEL: Record<string, string> = { text: "Annonce", article: "Article", photo: "Photos", video: "Vidéo", poll: "Sondage" };
 
-export default async function StudioPostsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ statut?: string; ok?: string }>;
-}) {
+export default async function StudioPostsPage({ searchParams }: { searchParams: Promise<{ statut?: string; ok?: string }> }) {
   const { statut = "", ok } = await searchParams;
   const supabase = await createClient();
   await supabase.rpc("publish_scheduled");
@@ -61,29 +56,26 @@ export default async function StudioPostsPage({
   const rows = (data ?? []) as unknown as Row[];
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SectionTitle>Publications</SectionTitle>
-        <Link href="/studio/posts/new" className="rounded-xl bg-red px-4 py-2.5 text-sm font-bold text-white hover:bg-red-hover">
-          + Nouvelle publication
+    <div className="mx-auto max-w-[960px] space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">Publications</h1>
+        <Link href="/studio/posts/new" className="pressable flex h-11 items-center rounded-[12px] bg-red-fill px-4 text-[15px] font-semibold text-white">
+          Nouvelle publication
         </Link>
       </div>
 
       {ok === "supprime" && (
-        <p role="status" className="rounded-xl bg-surface-2 px-4 py-3 text-sm font-semibold text-body">
+        <p role="status" className="text-[15px] text-text-2">
           Publication supprimée.
         </p>
       )}
 
-      <nav className="flex gap-2 overflow-x-auto" aria-label="Filtrer par statut">
+      <nav className="no-scrollbar flex gap-2 overflow-x-auto" aria-label="Filtrer par statut">
         {TABS.map((t) => (
           <Link
             key={t.id}
             href={t.id ? `/studio/posts?statut=${t.id}` : "/studio/posts"}
-            className={cn(
-              "rounded-full px-4 py-1.5 text-sm font-semibold",
-              statut === t.id ? "bg-white text-bg" : "glass text-body hover:text-ink",
-            )}
+            className={cn("h-9 shrink-0 rounded-full px-4 text-[13px] font-medium leading-9", statut === t.id ? "bg-bg-2 text-text-1" : "text-text-2 hover:text-text-1")}
           >
             {t.label}
           </Link>
@@ -91,47 +83,33 @@ export default async function StudioPostsPage({
       </nav>
 
       {rows.length === 0 ? (
-        <Card>
-          <EmptyState
-            title="Rien ici"
-            description="Créez votre première publication : elle apparaîtra dans le fil des agents."
-            action={
-              <Link href="/studio/posts/new" className="rounded-xl bg-red px-4 py-2 text-sm font-bold text-white">
-                Nouvelle publication
-              </Link>
-            }
-          />
-        </Card>
+        <div className="rounded-[16px] bg-bg-1">
+          <EmptyState title="Rien ici" description="Votre première publication apparaîtra dans le fil des agents." />
+        </div>
       ) : (
-        <Card className="divide-y divide-line">
+        <div className="hairline rounded-[16px] bg-bg-1">
           {rows.map((r) => {
             const s = STATUS[r.status];
             const when = r.status === "scheduled" ? r.scheduled_at : r.published_at ?? r.updated_at;
             return (
-              <Link
-                key={r.id}
-                href={`/studio/posts/${r.id}`}
-                className="flex items-center gap-4 px-5 py-3 hover:bg-surface-2"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-ink">
-                    {r.title ?? (r.body ?? "").slice(0, 80) ?? "Sans titre"}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {TYPE_LABEL[r.type] ?? r.type} · {r.status === "scheduled" ? "prévu le " : ""}
+              <Link key={r.id} href={`/studio/posts/${r.id}`} className="pressable flex min-h-[52px] items-center gap-4 px-5 py-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[15px] text-text-1">{r.title ?? (r.body ?? "").slice(0, 80) ?? "Sans titre"}</span>
+                  <span className="block text-[13px] text-text-3">
+                    {TYPE_LABEL[r.type] ?? r.type}, {r.status === "scheduled" ? "prévue le " : ""}
                     {formatDateTime(when)}
-                    {r.pinned_at && <span className="ml-2 font-semibold text-red-text">Épinglé</span>}
-                  </p>
-                </div>
-                <div className="hidden items-center gap-4 text-xs text-muted sm:flex">
-                  <span title="Réactions">👏 {r.reactions?.[0]?.count ?? 0}</span>
-                  <span title="Commentaires">💬 {r.comments?.[0]?.count ?? 0}</span>
-                </div>
+                    {r.pinned_at && ", épinglée"}
+                  </span>
+                </span>
+                <span className="hidden gap-4 text-[13px] tabular-nums text-text-2 sm:flex">
+                  <span>{r.reactions?.[0]?.count ?? 0} réactions</span>
+                  <span>{r.comments?.[0]?.count ?? 0} commentaires</span>
+                </span>
                 <Badge tone={s.tone}>{s.label}</Badge>
               </Link>
             );
           })}
-        </Card>
+        </div>
       )}
     </div>
   );

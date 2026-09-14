@@ -1,18 +1,20 @@
 "use client";
 
 import type { ButtonHTMLAttributes } from "react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-/** Bouton icône 44 px (zone tactile confortable) avec libellé accessible. */
+/** Bouton icône 44 px : icône Lucide 20 px, --text-2 au repos, --text-1 actif, jamais de fond. */
 export function IconButton({
   label,
+  icon: Icon,
   active,
   count,
   className,
-  children,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   label: string;
+  icon: LucideIcon;
   active?: boolean;
   count?: number;
 }) {
@@ -22,23 +24,14 @@ export function IconButton({
       aria-label={label}
       aria-pressed={active}
       className={cn(
-        "flex h-11 items-center gap-1 rounded-full px-2 text-sm font-semibold transition-colors active:scale-90",
-        active ? "text-red-text" : "text-body hover:text-navy",
+        "flex h-11 min-w-11 items-center justify-center gap-1.5 px-1.5 text-[13px] font-medium tabular-nums",
+        active ? "text-text-1" : "text-text-2 hover:text-text-1",
         className,
       )}
       {...props}
     >
-      <svg
-        viewBox="0 0 24 24"
-        className="h-6 w-6"
-        fill={active ? "currentColor" : "none"}
-        stroke="currentColor"
-        strokeWidth="1.9"
-        aria-hidden="true"
-      >
-        {children}
-      </svg>
-      {typeof count === "number" && count > 0 && <span className="tabular-nums">{count}</span>}
+      <Icon size={20} strokeWidth={1.75} fill={active ? "currentColor" : "none"} aria-hidden="true" />
+      {typeof count === "number" && count > 0 && <span>{count}</span>}
     </button>
   );
 }

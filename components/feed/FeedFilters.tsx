@@ -2,34 +2,40 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 type Ref = { id: string; name: string; slug: string };
 
 /**
- * Filtres du fil : puces de catégories (défilement horizontal), recherche,
- * centre. Tout passe par l'URL (?categorie=&centre=&q=) : partageable, SSR.
+ * Recherche et filtres du fil. Tout passe par l'URL (?q=&categorie=&centre=).
+ * Champ 44 px --bg-1 ; puces --bg-1, active en --red-soft.
  */
 export function FeedFilters({
   categories,
   centers,
   showCategories = true,
   showCenters = true,
+  forceSearch = false,
+  onCloseSearch,
 }: {
   categories: Ref[];
   centers: Ref[];
   showCategories?: boolean;
   showCenters?: boolean;
+  forceSearch?: boolean;
+  onCloseSearch?: () => void;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
   const [pending, startTransition] = useTransition();
-  const [searchOpen, setSearchOpen] = useState(Boolean(sp.get("q")));
   const [q, setQ] = useState(sp.get("q") ?? "");
 
   const category = sp.get("categorie") ?? "";
   const center = sp.get("centre") ?? "";
   const tag = sp.get("tag") ?? "";
+  const activeQ = sp.get("q") ?? "";
+  const searchOpen = forceSearch || Boolean(activeQ);
 
   function push(next: Record<string, string>) {
     const params = new URLSearchParams(sp.toString());
@@ -41,39 +47,10 @@ export function FeedFilters({
   }
 
   return (
-    <div className={cn("space-y-2", pending && "opacity-70")}>
-      <div className="flex items-center gap-2">
-        {showCategories ? (
-          <div className="-mx-4 flex flex-1 gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <Chip active={!category} onClick={() => push({ categorie: "" })}>
-              Tout
-            </Chip>
-            {categories.map((c) => (
-              <Chip key={c.id} active={category === c.slug} onClick={() => push({ categorie: category === c.slug ? "" : c.slug })}>
-                {c.name}
-              </Chip>
-            ))}
-          </div>
-        ) : (
-          <h1 className="flex-1 font-display text-2xl font-bold uppercase leading-none tracking-wide text-ink">Fil d&apos;actualités</h1>
-        )}
-        <button
-          type="button"
-          aria-label="Rechercher"
-          aria-expanded={searchOpen}
-          onClick={() => setSearchOpen((v) => !v)}
-          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", searchOpen ? "bg-white text-bg" : "glass text-ink")}
-        >
-          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="7" />
-            <path d="m20 20-3.5-3.5" strokeLinecap="round" />
-          </svg>
-        </button>
-      </div>
-
+    <div className={cn("space-y-3", pending && "opacity-70")}>
       {searchOpen && (
         <form
-          className="flex gap-2"
+          className="flex items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             push({ q: q.trim() });
@@ -83,35 +60,69 @@ export function FeedFilters({
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Rechercher une publication…"
+            placeholder="Rechercher"
             aria-label="Rechercher"
             autoFocus
-            className="glass h-10 flex-1 rounded-full px-4 text-base text-body focus:border-navy focus:outline-none"
+            className="h-11 flex-1 rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
           />
-          {showCenters && (
-          <select
-            aria-label="Filtrer par centre"
-            value={center}
-            onChange={(e) => push({ centre: e.target.value })}
-            className="h-10 max-w-[40%] rounded-full border border-line bg-surface px-3 text-sm text-body"
+          <button
+            type="button"
+            onClick={() => {
+              setQ("");
+              if (activeQ) push({ q: "" });
+              onCloseSearch?.();
+            }}
+            className="h-11 px-1 text-[15px] font-medium text-text-2 hover:text-text-1"
           >
-            <option value="">Tous les centres</option>
-            {centers.map((c) => (
-              <option key={c.id} value={c.slug}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          )}
+            Annuler
+          </button>
         </form>
       )}
 
-      {(sp.get("q") || center || tag) && (
-        <p className="flex flex-wrap items-center gap-2 text-xs text-muted">
-          {sp.get("q") && <FilterPill onClear={() => { setQ(""); push({ q: "" }); }}>« {sp.get("q")} »</FilterPill>}
+      {searchOpen && showCenters && (
+        <select
+          aria-label="Filtrer par centre"
+          value={center}
+          onChange={(e) => push({ centre: e.target.value })}
+          className="h-11 w-full appearance-none rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1"
+        >
+          <option value="">Tous les centres</option>
+          {centers.map((c) => (
+            <option key={c.id} value={c.slug}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      )}
+
+      {showCategories && (
+        <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:-mx-8 sm:px-8">
+          <Chip active={!category} onClick={() => push({ categorie: "" })}>
+            Tout
+          </Chip>
+          {categories.map((c) => (
+            <Chip key={c.id} active={category === c.slug} onClick={() => push({ categorie: category === c.slug ? "" : c.slug })}>
+              {c.name}
+            </Chip>
+          ))}
+        </div>
+      )}
+
+      {(activeQ || center || tag) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {activeQ && (
+            <FilterPill
+              onClear={() => {
+                setQ("");
+                push({ q: "" });
+              }}
+            >
+              « {activeQ} »
+            </FilterPill>
+          )}
           {center && <FilterPill onClear={() => push({ centre: "" })}>{centers.find((c) => c.slug === center)?.name ?? center}</FilterPill>}
           {tag && <FilterPill onClear={() => push({ tag: "" })}>#{tag}</FilterPill>}
-        </p>
+        </div>
       )}
     </div>
   );
@@ -123,10 +134,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={cn(
-        "h-9 shrink-0 whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-colors",
-        active ? "bg-white text-bg" : "glass text-body hover:text-ink",
-      )}
+      className={cn("h-9 shrink-0 whitespace-nowrap rounded-full px-4 text-[13px] font-medium", active ? "bg-red-soft text-text-1" : "bg-bg-1 text-text-2")}
     >
       {children}
     </button>
@@ -135,12 +143,10 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 
 function FilterPill({ children, onClear }: { children: React.ReactNode; onClear: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 py-1 pl-3 pr-1 font-semibold text-navy">
+    <span className="inline-flex h-8 items-center gap-1 rounded-full bg-bg-1 pl-3 pr-1 text-[13px] font-medium text-text-1">
       {children}
-      <button type="button" onClick={onClear} aria-label="Retirer ce filtre" className="rounded-full p-1 hover:bg-line">
-        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-        </svg>
+      <button type="button" onClick={onClear} aria-label="Retirer ce filtre" className="flex h-6 w-6 items-center justify-center rounded-full text-text-2 hover:text-text-1">
+        <X size={14} strokeWidth={2} />
       </button>
     </span>
   );

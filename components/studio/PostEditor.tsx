@@ -9,7 +9,6 @@ import { FEATURES } from "@/lib/config";
 import type { EditorPostType } from "@/lib/validation/post";
 import { Button } from "@/components/ui/Button";
 import { CheckboxField, Field, SelectField, TextareaField } from "@/components/ui/Field";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { PostCard } from "@/components/feed/PostCard";
 import { MediaUploader, type EditorMedia } from "./MediaUploader";
@@ -26,6 +25,13 @@ const TYPES: { id: EditorPostType | "poll"; label: string; hint: string; soon?: 
 ];
 
 const initial: PostFormState = { status: "idle" };
+
+const STATUS_BADGE: Record<string, { label: string; tone: "neutral" | "navy" | "success" | "red" }> = {
+  draft: { label: "Brouillon", tone: "neutral" },
+  scheduled: { label: "Programmée", tone: "navy" },
+  published: { label: "Publiée", tone: "success" },
+  archived: { label: "Archivée", tone: "neutral" },
+};
 
 export function PostEditor({
   post,
@@ -65,7 +71,7 @@ export function PostEditor({
     return list.map((m) => ({ ...m, status: "ready" as const, progress: 1 }));
   });
 
-  const readyMedia = media.filter((m) => m.status === "ready" || m.status === "processing" || m.status === "uploading");
+  const readyMedia = media.filter((m) => m.status !== "error");
   const busy = media.some((m) => m.status !== "ready" && m.status !== "error");
 
   const preview: FeedPost = useMemo(
@@ -78,9 +84,9 @@ export function PostEditor({
       body,
       tags: tags.split(/[,\n]/).map((t) => t.trim().replace(/^#/, "").toLowerCase()).filter(Boolean),
       status: post?.status ?? "draft",
-      published_at: post?.published_at ?? new Date().toISOString(),
+      published_at: post?.published_at ?? null,
       scheduled_at: null,
-      pinned_at: pinned ? new Date().toISOString() : null,
+      pinned_at: pinned ? (post?.pinned_at ?? "1970-01-01T00:00:00.000Z") : null,
       comments_enabled: commentsEnabled,
       author_display: authorDisplay,
       category: categories.find((c) => c.id === categoryId) ?? null,
@@ -98,12 +104,12 @@ export function PostEditor({
   );
 
   const status = post?.status ?? "draft";
+  const badge = STATUS_BADGE[status] ?? STATUS_BADGE.draft;
   const mediaPayload = JSON.stringify(media.filter((m) => m.status === "ready").map((m) => ({ id: m.id, kind: m.kind, alt: m.alt })));
   const uploaderAccept = type === "photo" ? "images" : type === "video" ? "video" : "cover";
 
   function changeType(next: EditorPostType) {
     setType(next);
-    // Les médias incompatibles avec le nouveau type sont retirés de la liste (pas supprimés du stockage).
     setMedia((prev) => {
       if (next === "text") return [];
       if (next === "video") return prev.filter((m) => m.kind === "video").slice(0, 1);
@@ -113,8 +119,8 @@ export function PostEditor({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-      <form action={action} className="space-y-5">
+    <div className="mx-auto grid max-w-[1200px] gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <form action={action} className="space-y-6">
         {post && <input type="hidden" name="id" value={post.id} />}
         <input type="hidden" name="type" value={type} />
         <input type="hidden" name="media" value={mediaPayload} />
@@ -125,73 +131,61 @@ export function PostEditor({
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="font-display text-3xl font-bold uppercase text-ink">
-              {post ? "Modifier" : "Nouvelle publication"}
-            </h1>
-            <StatusBadge status={status} />
+            <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">{post ? "Modifier" : "Nouvelle publication"}</h1>
+            <Badge tone={badge.tone}>{badge.label}</Badge>
           </div>
-          <Link href="/studio/posts" className="text-sm font-semibold text-navy hover:underline">
-            ← Publications
+          <Link href="/studio/posts" className="pressable text-[15px] font-medium text-text-2 hover:text-text-1">
+            Publications
           </Link>
         </div>
 
         {notice && (
-          <p role="status" className="rounded-xl bg-success/10 px-4 py-3 text-sm font-semibold text-success">
+          <p role="status" className="text-[15px] text-text-2">
             {notice}
           </p>
         )}
         {state.status === "error" && (
-          <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-semibold text-danger">
+          <p role="alert" className="text-[15px] text-red-text">
             {state.message}
           </p>
         )}
 
-        {/* Type */}
         <fieldset>
-          <legend className="mb-2 text-sm font-semibold text-ink">Type de publication</legend>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <legend className="mb-2 text-[13px] font-medium text-text-2">Type de publication</legend>
+          <div className="flex flex-wrap gap-2">
             {TYPES.map((t) => {
               const active = type === t.id;
               return (
                 <label
                   key={t.id}
                   className={cn(
-                    "cursor-pointer rounded-xl border px-3 py-2 text-sm",
-                    active ? "border-white bg-white/10 text-ink" : "border-line text-body hover:border-line-strong",
-                    t.soon && "cursor-not-allowed opacity-50",
+                    "cursor-pointer rounded-full px-4 text-[13px] font-medium leading-9",
+                    active ? "bg-bg-2 text-text-1" : "bg-bg-1 text-text-2 hover:text-text-1",
+                    t.soon && "cursor-not-allowed opacity-40",
                   )}
                   title={t.hint}
                 >
-                  <input
-                    type="radio"
-                    name="type_choice"
-                    value={t.id}
-                    checked={active}
-                    disabled={t.soon}
-                    onChange={() => !t.soon && changeType(t.id as EditorPostType)}
-                    className="sr-only"
-                  />
-                  <span className="block font-semibold">{t.label}</span>
-                  {t.soon && <span className="block text-[10px] uppercase tracking-wide text-muted">bientôt</span>}
+                  <input type="radio" name="type_choice" value={t.id} checked={active} disabled={t.soon} onChange={() => !t.soon && changeType(t.id as EditorPostType)} className="sr-only" />
+                  {t.label}
                 </label>
               );
             })}
           </div>
-          <p className="mt-1 text-xs text-muted">{TYPES.find((t) => t.id === type)?.hint}</p>
+          <p className="mt-2 text-[13px] text-text-3">{TYPES.find((t) => t.id === type)?.hint}</p>
         </fieldset>
 
         {type !== "text" && (
-          <Card className="p-5">
+          <section className="rounded-[16px] bg-bg-1 p-5">
             <MediaUploader items={media} onChange={setMedia} accept={uploaderAccept} />
             {fields.media && (
-              <p className="mt-2 text-sm text-danger" role="alert">
+              <p className="mt-2 text-[13px] text-red-text" role="alert">
                 {fields.media}
               </p>
             )}
-          </Card>
+          </section>
         )}
 
-        <Card className="space-y-4 p-5">
+        <section className="space-y-4 rounded-[16px] bg-bg-1 p-5">
           <Field
             label={type === "article" ? "Titre" : "Titre (facultatif)"}
             name="title"
@@ -199,7 +193,7 @@ export function PostEditor({
             onChange={(e) => setTitle(e.target.value)}
             maxLength={200}
             error={fields.title}
-            placeholder={type === "article" ? "Exercice feux de forêt à Hesdin" : "Ex. : Bienvenue aux nouvelles recrues"}
+            placeholder={type === "article" ? "Exercice feux de forêt à Hesdin" : "Bienvenue aux nouvelles recrues"}
           />
           {type === "article" && (
             <TextareaField
@@ -226,127 +220,130 @@ export function PostEditor({
                 : `${body.length} / 2000 caractères. Les retours à la ligne sont conservés.`
             }
           />
-        </Card>
+        </section>
 
-        <Card className="grid gap-4 p-5 sm:grid-cols-2">
+        <section className="hairline rounded-[16px] bg-bg-1 [&>*]:px-5">
           {FEATURES.categories && (
-            <SelectField label="Catégorie" name="category_id" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} error={fields.category_id}>
-              <option value="">— Aucune —</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </SelectField>
+            <div className="py-3">
+              <SelectField label="Catégorie" name="category_id" value={categoryId} onChange={(e) => setCategoryId(e.target.value)} error={fields.category_id}>
+                <option value="">Aucune</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </SelectField>
+            </div>
           )}
           {FEATURES.centers && (
-            <SelectField label="Centre concerné (facultatif)" name="center_id" value={centerId} onChange={(e) => setCenterId(e.target.value)} error={fields.center_id}>
-              <option value="">— Tout le SDIS —</option>
-              {centers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </SelectField>
+            <div className="py-3">
+              <SelectField label="Centre concerné" name="center_id" value={centerId} onChange={(e) => setCenterId(e.target.value)} error={fields.center_id}>
+                <option value="">Tout le SDIS</option>
+                {centers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </SelectField>
+            </div>
           )}
           {FEATURES.tags && (
-            <Field label="Tags" name="tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="jsp, arras, exercice" hint="Séparés par des virgules, 10 maximum." error={fields.tags} />
+            <div className="py-3">
+              <Field label="Tags" name="tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="jsp, arras, exercice" hint="Séparés par des virgules, 10 maximum." error={fields.tags} />
+            </div>
           )}
           {FEATURES.authorChoice && (
-            <SelectField label="Auteur affiché" name="author_display" value={authorDisplay} onChange={(e) => setAuthorDisplay(e.target.value as "service_com" | "agent")}>
-              <option value="service_com">Service Communication</option>
-              <option value="agent">{authorName}</option>
-            </SelectField>
+            <div className="py-3">
+              <SelectField label="Auteur affiché" name="author_display" value={authorDisplay} onChange={(e) => setAuthorDisplay(e.target.value as "service_com" | "agent")}>
+                <option value="service_com">Service Communication</option>
+                <option value="agent">{authorName}</option>
+              </SelectField>
+            </div>
           )}
-          <CheckboxField label="Épingler en haut du fil" name="pinned" checked={pinned} onChange={(e) => setPinned(e.target.checked)} hint="3 publications épinglées maximum." />
-          <CheckboxField label="Autoriser les commentaires" name="comments_enabled" checked={commentsEnabled} onChange={(e) => setCommentsEnabled(e.target.checked)} />
-        </Card>
-
-        <Card className="space-y-4 p-5">
-          <CheckboxField label="Programmer la publication" name="schedule_toggle" checked={schedule} onChange={(e) => setSchedule(e.target.checked)} hint="La publication paraîtra automatiquement à la date choisie." />
-          {schedule && (
-            <Field
-              label="Date et heure de publication"
-              name="scheduled_at"
-              type="datetime-local"
-              value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
-              error={fields.scheduled_at}
-              className="max-w-xs"
-            />
-          )}
-          {busy && <p className="text-sm font-semibold text-navy">Envoi des médias en cours…</p>}
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Button type="submit" name="action" value="draft" variant="ghost" loading={pending} disabled={busy}>
-              Enregistrer le brouillon
-            </Button>
-            {schedule ? (
-              <Button type="submit" name="action" value="schedule" variant="secondary" loading={pending} disabled={busy}>
-                Programmer
-              </Button>
-            ) : (
-              <Button type="submit" name="action" value="publish" loading={pending} disabled={busy}>
-                {status === "published" ? "Mettre à jour" : "Publier maintenant"}
-              </Button>
-            )}
-            {post && (
-              <Button
-                type="button"
-                variant="danger"
-                size="sm"
-                className="ml-auto"
-                loading={deleting}
-                onClick={() => {
-                  if (window.confirm("Supprimer cette publication ? Elle disparaîtra du fil.")) {
-                    startDelete(async () => {
-                      await deletePost(post.id);
-                    });
-                  }
-                }}
-              >
-                Supprimer
-              </Button>
-            )}
+          <div className="py-2">
+            <CheckboxField label="Épingler en haut du fil" name="pinned" checked={pinned} onChange={(e) => setPinned(e.target.checked)} hint="Trois publications épinglées au maximum" />
           </div>
-          {post?.status === "published" && (
-            <p className="text-xs text-muted">
-              Publication en ligne :{" "}
-              <Link href={`/post/${post.slug}`} className="font-semibold text-navy underline" target="_blank">
-                /post/{post.slug}
-              </Link>
-            </p>
+          <div className="py-2">
+            <CheckboxField label="Autoriser les commentaires" name="comments_enabled" checked={commentsEnabled} onChange={(e) => setCommentsEnabled(e.target.checked)} />
+          </div>
+          <div className="py-2">
+            <CheckboxField label="Programmer la publication" name="schedule_toggle" checked={schedule} onChange={(e) => setSchedule(e.target.checked)} hint="Elle paraîtra automatiquement à la date choisie" />
+          </div>
+          {schedule && (
+            <div className="py-3">
+              <Field
+                label="Date et heure de publication"
+                name="scheduled_at"
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                error={fields.scheduled_at}
+                className="max-w-xs"
+              />
+            </div>
           )}
-        </Card>
+        </section>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {schedule ? (
+            <Button type="submit" name="action" value="schedule" loading={pending} disabled={busy}>
+              Programmer
+            </Button>
+          ) : (
+            <Button type="submit" name="action" value="publish" loading={pending} disabled={busy}>
+              {status === "published" ? "Mettre à jour" : "Publier"}
+            </Button>
+          )}
+          <Button type="submit" name="action" value="draft" variant="secondary" loading={pending} disabled={busy}>
+            Enregistrer le brouillon
+          </Button>
+          {busy && <span className="text-[13px] text-text-3">Envoi des médias en cours</span>}
+          {post && (
+            <Button
+              type="button"
+              variant="danger"
+              size="md"
+              className="ml-auto"
+              loading={deleting}
+              onClick={() => {
+                if (window.confirm("Supprimer cette publication ? Elle disparaîtra du fil.")) {
+                  startDelete(async () => {
+                    await deletePost(post.id);
+                  });
+                }
+              }}
+            >
+              Supprimer
+            </Button>
+          )}
+        </div>
+        {post?.status === "published" && (
+          <p className="text-[13px] text-text-3">
+            En ligne :{" "}
+            <Link href={`/post/${post.slug}`} className="text-navy-link underline underline-offset-2" target="_blank">
+              /post/{post.slug}
+            </Link>
+          </p>
+        )}
       </form>
 
-      {/* Aperçu tel que vu par un agent */}
+      {/* Aperçu tel que vu par un agent, dans un cadre de téléphone */}
       <aside className="lg:sticky lg:top-8 lg:self-start">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-semibold uppercase tracking-wide text-muted">Aperçu agent</p>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="text-[13px] font-medium text-text-2">Aperçu agent</p>
           {type === "article" && (
-            <button type="button" onClick={() => setPreviewFull((v) => !v)} className="text-xs font-semibold text-navy underline">
+            <button type="button" onClick={() => setPreviewFull((v) => !v)} className="text-[13px] font-medium text-text-2 hover:text-text-1">
               {previewFull ? "Vue fil" : "Vue article"}
             </button>
           )}
         </div>
-        <div className="mx-auto w-full max-w-[400px] overflow-hidden rounded-[28px] border-[6px] border-white/15 bg-bg shadow-soft">
-          <div className="h-6 bg-white/15" aria-hidden="true" />
-          <div className="max-h-[70vh] overflow-y-auto">
+        <div className="mx-auto w-full max-w-[360px] overflow-hidden rounded-[36px] bg-bg-0 ring-[6px] ring-bg-2">
+          <div className="mx-auto mt-2 h-[26px] w-[110px] rounded-full bg-bg-2" aria-hidden="true" />
+          <div className="max-h-[70vh] overflow-y-auto px-4 pb-6 pt-3">
             <PostCard key={previewFull ? "full" : "feed"} post={preview} preview variant={previewFull ? "full" : "feed"} />
           </div>
         </div>
       </aside>
     </div>
   );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; tone: "muted" | "navy" | "success" | "red" }> = {
-    draft: { label: "Brouillon", tone: "muted" },
-    scheduled: { label: "Programmé", tone: "navy" },
-    published: { label: "Publié", tone: "success" },
-    archived: { label: "Archivé", tone: "muted" },
-  };
-  const s = map[status] ?? map.draft;
-  return <Badge tone={s.tone}>{s.label}</Badge>;
 }

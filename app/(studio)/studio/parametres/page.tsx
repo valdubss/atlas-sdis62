@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
-import { Card, SectionTitle } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 export const metadata: Metadata = { title: "Paramètres" };
 
 export default function Page() {
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <SectionTitle>Paramètres</SectionTitle>
-      <Card>
-        <EmptyState title="Bientôt disponible" description="Catégories, centres, utilisateurs et notifications : lot e." />
-      </Card>
+    <div className="mx-auto max-w-[960px] space-y-6">
+      <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">Paramètres</h1>
+      <div className="rounded-[16px] bg-bg-1">
+        <EmptyState title="Bientôt disponible" description="Catégories, centres, utilisateurs et notifications." />
+      </div>
     </div>
   );
 }

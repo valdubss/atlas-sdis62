@@ -1,14 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { loadMoreFeed } from "@/app/(app)/feed-actions";
 import { cursorOf, type FeedParams, type FeedPost } from "@/lib/feed/types";
+import { SPRING } from "@/lib/motion";
 import { PostCard } from "./PostCard";
-import { EcgLoader } from "@/components/brand/Ecg";
+import { PostSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 const PAGE = 10;
 
+/**
+ * Fil infini. Une seule animation orchestrée : à l'arrivée, les cartes de la
+ * première page montent de 8 px en cascade (40 ms). Les pages suivantes
+ * apparaissent sans effet.
+ */
 export function InfiniteFeed({
   initial,
   params,
@@ -26,12 +33,14 @@ export function InfiniteFeed({
   const [done, setDone] = useState(initial.length < PAGE);
   const [pending, startTransition] = useTransition();
   const sentinel = useRef<HTMLDivElement>(null);
+  const firstIds = useRef(new Set(initial.map((p) => p.id)));
+  const reduced = useReducedMotion();
   const key = JSON.stringify(params);
 
-  // Nouveau filtre → on repart de la première page reçue du serveur.
   useEffect(() => {
     setPosts(initial);
     setDone(initial.length < PAGE);
+    firstIds.current = new Set(initial.map((p) => p.id));
   }, [initial, key]);
 
   useEffect(() => {
@@ -60,15 +69,23 @@ export function InfiniteFeed({
   }
 
   return (
-    <div className="space-y-2 sm:space-y-4">
-      {posts.map((p) => (
-        <PostCard key={p.id} post={p} canModerate={canModerate} />
-      ))}
+    <div className="space-y-3">
+      {posts.map((p, i) => {
+        const cascade = !reduced && firstIds.current.has(p.id);
+        return (
+          <motion.div
+            key={p.id}
+            initial={cascade ? { opacity: 0, y: 8 } : false}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...SPRING, delay: cascade ? Math.min(i, 8) * 0.04 : 0 }}
+          >
+            <PostCard post={p} canModerate={canModerate} />
+          </motion.div>
+        );
+      })}
       <div ref={sentinel} aria-hidden="true" />
-      {pending && <EcgLoader />}
-      {done && posts.length >= PAGE && (
-        <p className="py-6 text-center text-xs text-muted">Vous êtes à jour.</p>
-      )}
+      {pending && <PostSkeleton />}
+      {done && posts.length >= PAGE && <p className="py-6 text-center text-[13px] text-text-3">Vous êtes à jour.</p>}
     </div>
   );
 }

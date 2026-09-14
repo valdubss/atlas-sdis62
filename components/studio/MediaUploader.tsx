@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Upload, X } from "lucide-react";
 import { createUpload, discardMedia, finalizeMedia } from "@/app/(studio)/studio/media/actions";
 import { prepareFile, uploadWithProgress } from "@/lib/media/client";
 import type { MediaItem } from "@/lib/feed/types";
-import { ACCEPTED_EXTENSIONS, LIMITS } from "@/lib/config";
+import { LIMITS } from "@/lib/config";
 import { imageSrc, posterSrc } from "@/lib/media/url";
 import { cn } from "@/lib/cn";
 
@@ -18,9 +19,9 @@ export type EditorMedia = MediaItem & {
 type Accept = "images" | "video" | "cover";
 
 const LABELS: Record<Accept, { title: string; hint: string; max: number; kinds: ("image" | "video")[] }> = {
-  images: { title: "Photos", hint: `Glissez vos photos ici ou touchez pour choisir · jusqu'à ${LIMITS.imagesPerPost} · jpg, png, webp, heic`, max: LIMITS.imagesPerPost, kinds: ["image"] },
-  video: { title: "Vidéo", hint: "Une vidéo MP4 (H.264), 200 Mo max · mov accepté si H.264", max: 1, kinds: ["video"] },
-  cover: { title: "Image de couverture (facultatif)", hint: "Une image affichée en tête de l'article", max: 1, kinds: ["image"] },
+  images: { title: "Photos", hint: `Glissez vos photos ou touchez pour choisir, jusqu'à ${LIMITS.imagesPerPost}. JPG, PNG, WebP, HEIC.`, max: LIMITS.imagesPerPost, kinds: ["image"] },
+  video: { title: "Vidéo", hint: "Une vidéo MP4 (H.264), 200 Mo au plus. MOV accepté si H.264.", max: 1, kinds: ["video"] },
+  cover: { title: "Image de couverture (facultatif)", hint: "Une image affichée en tête de l'article.", max: 1, kinds: ["image"] },
 };
 
 export function MediaUploader({
@@ -70,7 +71,7 @@ export function MediaUploader({
           alt: "",
           mime: file.type,
           original_key: "",
-          preview_url: kindGuess === "image" ? previewUrl : previewUrl,
+          preview_url: previewUrl,
           status: "preparing",
           progress: 0,
         };
@@ -93,7 +94,18 @@ export function MediaUploader({
           onChange((prev) =>
             prev.map((m) =>
               m.id === tempId
-                ? { ...m, id: created.mediaId, original_key: created.key, kind: prepared.kind, mime: prepared.mime, width: prepared.width, height: prepared.height, duration_s: prepared.duration ?? null, poster_preview_url: posterPreview, status: "uploading" }
+                ? {
+                    ...m,
+                    id: created.mediaId,
+                    original_key: created.key,
+                    kind: prepared.kind,
+                    mime: prepared.mime,
+                    width: prepared.width,
+                    height: prepared.height,
+                    duration_s: prepared.duration ?? null,
+                    poster_preview_url: posterPreview,
+                    status: "uploading",
+                  }
                 : m,
             ),
           );
@@ -106,7 +118,11 @@ export function MediaUploader({
           patch(created.mediaId, { status: "processing", progress: 1 });
           const done = await finalizeMedia(created.mediaId);
           if (!done.ok) throw new Error(done.error);
-          onChange((prev) => prev.map((m) => (m.id === created.mediaId ? { ...m, ...done.media, preview_url: m.preview_url, poster_preview_url: m.poster_preview_url, status: "ready", progress: 1 } : m)));
+          onChange((prev) =>
+            prev.map((m) =>
+              m.id === created.mediaId ? { ...m, ...done.media, preview_url: m.preview_url, poster_preview_url: m.poster_preview_url, status: "ready", progress: 1 } : m,
+            ),
+          );
         } catch (e) {
           const message = e instanceof Error ? e.message : "Échec de l'envoi.";
           onChange((prev) => prev.map((m) => (m.id === tempId || m.preview_url === previewUrl ? { ...m, status: "error", error: message } : m)));
@@ -136,7 +152,7 @@ export function MediaUploader({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-semibold text-ink">{cfg.title}</p>
+      <p className="text-[13px] font-medium text-text-2">{cfg.title}</p>
 
       {!full && (
         <div
@@ -155,15 +171,13 @@ export function MediaUploader({
             addFiles(e.dataTransfer.files);
           }}
           className={cn(
-            "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed px-4 py-8 text-center transition-colors",
-            dragging ? "border-red bg-red/10" : "border-line-strong bg-surface hover:border-white/40",
+            "flex cursor-pointer flex-col items-center justify-center gap-1 rounded-[16px] bg-bg-2 px-4 py-8 text-center ring-1 ring-inset",
+            dragging ? "ring-glass-edge" : "ring-transparent",
           )}
         >
-          <svg viewBox="0 0 24 24" className="h-8 w-8 text-navy" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-            <path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <p className="text-sm font-semibold text-ink">Ajouter {accept === "video" ? "une vidéo" : accept === "cover" ? "une image" : "des photos"}</p>
-          <p className="text-xs text-muted">{cfg.hint}</p>
+          <Upload size={22} strokeWidth={1.75} className="text-text-2" aria-hidden="true" />
+          <p className="text-[15px] font-medium text-text-1">Ajouter {accept === "video" ? "une vidéo" : accept === "cover" ? "une image" : "des photos"}</p>
+          <p className="text-[13px] text-text-3">{cfg.hint}</p>
           <input
             ref={inputRef}
             type="file"
@@ -174,13 +188,12 @@ export function MediaUploader({
               if (e.target.files) addFiles(e.target.files);
               e.target.value = "";
             }}
-            data-accept-all={ACCEPTED_EXTENSIONS}
           />
         </div>
       )}
 
       {rejected.length > 0 && (
-        <ul className="space-y-1 text-sm text-danger" role="alert">
+        <ul className="space-y-1 text-[13px] text-red-text" role="alert">
           {rejected.map((r, i) => (
             <li key={i}>{r}</li>
           ))}
@@ -190,8 +203,8 @@ export function MediaUploader({
       {items.length > 0 && (
         <ul className={cn("grid gap-3", accept === "images" ? "grid-cols-2 sm:grid-cols-3" : "grid-cols-1")}>
           {items.map((m, i) => (
-            <li key={m.id} className="overflow-hidden rounded-xl border border-line bg-surface">
-              <div className="relative aspect-[4/3] bg-surface-2">
+            <li key={m.id} className="overflow-hidden rounded-[16px] bg-bg-2">
+              <div className="relative aspect-[4/3] bg-bg-0">
                 {m.kind === "video" ? (
                   posterSrc(m) ? (
                     // eslint-disable-next-line @next/next/no-img-element -- aperçu local
@@ -204,30 +217,30 @@ export function MediaUploader({
                   <img src={imageSrc(m, "thumb")} alt="" className="h-full w-full object-cover" />
                 )}
                 {m.status !== "ready" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/50 px-3 text-center text-xs font-semibold text-white">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 px-3 text-center text-[13px] font-medium text-white">
                     {m.status === "error" ? (
-                      <span className="text-red-200">{m.error}</span>
+                      <span className="text-red-text">{m.error}</span>
                     ) : (
                       <>
                         <span>
-                          {m.status === "preparing" && "Préparation…"}
+                          {m.status === "preparing" && "Préparation"}
                           {m.status === "uploading" && `Envoi ${Math.round(m.progress * 100)} %`}
-                          {m.status === "processing" && "Traitement…"}
+                          {m.status === "processing" && "Traitement"}
                         </span>
-                        <span className="h-1.5 w-3/4 overflow-hidden rounded-full bg-white/30">
-                          <span className="block h-full bg-red transition-[width]" style={{ width: `${Math.round(m.progress * 100)}%` }} />
+                        <span className="h-1 w-3/4 overflow-hidden rounded-full bg-white/20">
+                          <span className="block h-full bg-white transition-[width]" style={{ width: `${Math.round(m.progress * 100)}%` }} />
                         </span>
                       </>
                     )}
                   </div>
                 )}
                 {m.kind === "video" && m.duration_s != null && (
-                  <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                  <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white/90 tabular-nums">
                     {Math.floor(m.duration_s / 60)}:{String(Math.round(m.duration_s % 60)).padStart(2, "0")}
                   </span>
                 )}
                 {accept === "images" && (
-                  <span className="absolute left-1 top-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-bg">{i + 1}</span>
+                  <span className="absolute left-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white/90 tabular-nums">{i + 1}</span>
                 )}
               </div>
               <div className="space-y-2 p-2">
@@ -235,21 +248,26 @@ export function MediaUploader({
                   type="text"
                   value={m.alt}
                   onChange={(e) => patch(m.id, { alt: e.target.value })}
-                  placeholder="Texte alternatif (description pour l'accessibilité)"
+                  placeholder="Description pour l'accessibilité"
                   aria-label="Texte alternatif"
                   maxLength={300}
-                  className="h-9 w-full rounded-lg border border-line bg-surface px-2 text-sm text-body focus:border-navy focus:outline-none"
+                  className="h-9 w-full rounded-[10px] bg-bg-1 px-3 text-[13px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
                 />
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between">
                   {accept === "images" ? (
-                    <span className="flex gap-1">
-                      <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="rounded px-2 py-1 font-semibold text-navy hover:bg-surface-2 disabled:opacity-30" aria-label="Déplacer avant">←</button>
-                      <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} className="rounded px-2 py-1 font-semibold text-navy hover:bg-surface-2 disabled:opacity-30" aria-label="Déplacer après">→</button>
+                    <span className="flex">
+                      <button type="button" onClick={() => move(i, -1)} disabled={i === 0} className="flex h-8 w-8 items-center justify-center text-text-2 hover:text-text-1 disabled:opacity-30" aria-label="Déplacer avant">
+                        <ArrowLeft size={16} strokeWidth={1.75} />
+                      </button>
+                      <button type="button" onClick={() => move(i, 1)} disabled={i === items.length - 1} className="flex h-8 w-8 items-center justify-center text-text-2 hover:text-text-1 disabled:opacity-30" aria-label="Déplacer après">
+                        <ArrowRight size={16} strokeWidth={1.75} />
+                      </button>
                     </span>
                   ) : (
                     <span />
                   )}
-                  <button type="button" onClick={() => remove(m)} className="rounded px-2 py-1 font-semibold text-danger hover:bg-danger/10">
+                  <button type="button" onClick={() => remove(m)} className="flex h-8 items-center gap-1 px-2 text-[13px] font-medium text-text-2 hover:text-text-1" aria-label="Retirer">
+                    <X size={16} strokeWidth={1.75} />
                     Retirer
                   </button>
                 </div>

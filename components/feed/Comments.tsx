@@ -7,7 +7,8 @@ import type { CommentItem } from "@/lib/feed/types";
 import { formatRelative } from "@/lib/format";
 import { LIMITS } from "@/lib/config";
 import { Avatar } from "@/components/ui/Avatar";
-import { EcgLoader } from "@/components/brand/Ecg";
+import { CommentSkeleton } from "@/components/ui/Skeleton";
+import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
 
 /**
@@ -30,9 +31,9 @@ export function Comments({
   const [items, setItems] = useState<CommentItem[] | null>(null);
   const [replyTo, setReplyTo] = useState<CommentItem | null>(null);
   const [body, setBody] = useState("");
-  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const toast = useToast();
 
   const reload = useCallback(async () => {
     const list = await fetchComments(postId);
@@ -45,11 +46,7 @@ export function Comments({
     const supabase = createClient();
     const channel = supabase
       .channel(`comments:${postId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` },
-        () => reload(),
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "comments", filter: `post_id=eq.${postId}` }, () => reload())
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
@@ -63,11 +60,10 @@ export function Comments({
   function submit() {
     const text = body.trim();
     if (!text) return;
-    setError(null);
     startTransition(async () => {
       const res = await postComment({ post_id: postId, parent_id: replyTo?.id ?? null, body: text });
       if (!res.ok) {
-        setError(res.error);
+        toast(res.error);
         return;
       }
       setBody("");
@@ -81,11 +77,14 @@ export function Comments({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 space-y-1 px-4 pb-4">
+      <div className="flex-1 px-4 pb-4">
         {items === null ? (
-          <EcgLoader label="Chargement des commentaires" />
+          <>
+            <CommentSkeleton />
+            <CommentSkeleton />
+          </>
         ) : roots.length === 0 ? (
-          <p className="py-10 text-center text-sm text-muted">
+          <p className="py-10 text-center text-[15px] text-text-2">
             {enabled ? "Soyez le premier à commenter." : "Les commentaires sont désactivés."}
           </p>
         ) : (
@@ -94,10 +93,14 @@ export function Comments({
               <CommentRow
                 comment={c}
                 canModerate={canModerate}
-                onReply={enabled ? () => {
-                  setReplyTo(c);
-                  inputRef.current?.focus();
-                } : undefined}
+                onReply={
+                  enabled
+                    ? () => {
+                        setReplyTo(c);
+                        inputRef.current?.focus();
+                      }
+                    : undefined
+                }
                 onChanged={reload}
               />
               {repliesOf(c.id).map((r) => (
@@ -109,13 +112,13 @@ export function Comments({
       </div>
 
       {enabled && (
-        <div className="glass-strong sticky bottom-0 border-x-0 border-b-0 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-2">
+        <div className="sticky bottom-0 bg-bg-2 px-4 pb-[max(env(safe-area-inset-bottom),12px)] pt-2">
           {replyTo && (
-            <div className="mb-1 flex items-center justify-between text-xs text-muted">
+            <div className="mb-1 flex items-center justify-between text-[13px] text-text-3">
               <span>
-                Réponse à <strong className="text-navy">{replyTo.author.name ?? "un agent"}</strong>
+                Réponse à <span className="text-text-2">{replyTo.author.name ?? "un agent"}</span>
               </span>
-              <button type="button" onClick={() => setReplyTo(null)} className="font-semibold text-navy">
+              <button type="button" onClick={() => setReplyTo(null)} className="font-medium text-text-2">
                 Annuler
               </button>
             </div>
@@ -139,23 +142,18 @@ export function Comments({
               }}
               rows={1}
               maxLength={LIMITS.commentMaxLength}
-              placeholder="Ajouter un commentaire…"
+              placeholder="Ajouter un commentaire"
               aria-label="Votre commentaire"
-              className="max-h-32 min-h-11 flex-1 resize-none rounded-2xl border border-line bg-surface-2 px-4 py-2.5 text-base leading-snug text-body placeholder:text-muted/70 focus:border-navy focus:outline-none"
+              className="max-h-32 min-h-11 flex-1 resize-none rounded-[10px] bg-bg-1 px-3.5 py-2.5 text-[15px] leading-[1.45] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
             />
             <button
               type="submit"
               disabled={pending || !body.trim()}
-              className="h-11 rounded-full bg-red px-4 text-sm font-bold text-white disabled:opacity-40"
+              className="h-11 px-2 text-[15px] font-semibold text-text-1 disabled:text-text-4"
             >
               Publier
             </button>
           </form>
-          {error && (
-            <p className="mt-1 text-xs text-danger" role="alert">
-              {error}
-            </p>
-          )}
         </div>
       )}
     </div>
@@ -177,34 +175,31 @@ function CommentRow({
 }) {
   const [reporting, setReporting] = useState(false);
   const [reason, setReason] = useState("");
-  const [feedback, setFeedback] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const toast = useToast();
   const hidden = comment.status !== "visible";
 
   if (hidden && !canModerate) return null;
 
   return (
-    <div className={cn("flex gap-3 py-2", reply && "ml-10")}>
+    <div className={cn("flex gap-3 py-2.5", reply && "ml-10")}>
       <Avatar name={comment.author.name} avatarKey={comment.author.avatar_key} size="sm" />
       <div className="min-w-0 flex-1">
-        <div className={cn("rounded-2xl bg-surface-2 px-3 py-2", hidden && "opacity-50")}>
-          <p className="text-sm">
-            <span className="font-semibold text-ink">{comment.author.name ?? "Agent"}</span>
-            {comment.author.center && <span className="text-muted"> · {comment.author.center}</span>}
-          </p>
-          <p className="whitespace-pre-line break-words text-[15px] leading-snug text-body">{comment.body}</p>
-        </div>
-        <div className="mt-1 flex flex-wrap items-center gap-3 px-1 text-xs text-muted">
-          <span>{formatRelative(comment.created_at)}</span>
-          {comment.edited_at && <span>modifié</span>}
-          {hidden && <span className="font-semibold text-danger">masqué</span>}
+        <p className={cn("text-[13px]", hidden && "opacity-50")}>
+          <span className="font-medium text-text-1">{comment.author.name ?? "Agent"}</span>
+          {comment.author.center && <span className="text-text-3"> {comment.author.center}</span>}
+          <span className="text-text-3"> {formatRelative(comment.created_at)}</span>
+          {hidden && <span className="text-red-text"> masqué</span>}
+        </p>
+        <p className={cn("whitespace-pre-line break-words text-[15px] text-text-1", hidden && "opacity-50")}>{comment.body}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-4 text-[13px] font-medium text-text-2">
           {onReply && (
-            <button type="button" onClick={onReply} className="font-semibold text-navy">
+            <button type="button" onClick={onReply} className="hover:text-text-1">
               Répondre
             </button>
           )}
           {!comment.is_mine && !hidden && (
-            <button type="button" onClick={() => setReporting((v) => !v)} className="font-semibold">
+            <button type="button" onClick={() => setReporting((v) => !v)} className="hover:text-text-1">
               Signaler
             </button>
           )}
@@ -215,11 +210,11 @@ function CommentRow({
               onClick={() =>
                 startTransition(async () => {
                   const res = await moderateComment(comment.id, hidden ? "visible" : "hidden");
-                  setFeedback(res.ok ? null : res.error);
+                  if (!res.ok) toast(res.error);
                   onChanged();
                 })
               }
-              className="font-semibold text-red-text"
+              className="hover:text-text-1"
             >
               {hidden ? "Rétablir" : "Masquer"}
             </button>
@@ -232,7 +227,7 @@ function CommentRow({
               e.preventDefault();
               startTransition(async () => {
                 const res = await reportComment({ comment_id: comment.id, reason });
-                setFeedback(res.ok ? "Merci, le signalement est transmis au service communication." : res.error);
+                toast(res.ok ? "Signalement transmis au service communication" : res.error);
                 if (res.ok) {
                   setReporting(false);
                   setReason("");
@@ -245,19 +240,14 @@ function CommentRow({
               onChange={(e) => setReason(e.target.value)}
               placeholder="Raison du signalement"
               aria-label="Raison du signalement"
-              className="h-9 flex-1 rounded-lg border border-line bg-surface px-2 text-sm"
+              className="h-9 flex-1 rounded-[10px] bg-bg-1 px-3 text-[13px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
               required
               minLength={3}
             />
-            <button type="submit" disabled={pending} className="h-9 rounded-lg bg-white px-3 text-xs font-bold text-bg">
+            <button type="submit" disabled={pending} className="h-9 rounded-[10px] bg-bg-1 px-3 text-[13px] font-medium text-text-1">
               Envoyer
             </button>
           </form>
-        )}
-        {feedback && (
-          <p className="mt-1 px-1 text-xs text-muted" role="status">
-            {feedback}
-          </p>
         )}
       </div>
     </div>

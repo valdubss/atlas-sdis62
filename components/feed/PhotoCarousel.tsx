@@ -1,28 +1,32 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { MediaItem } from "@/lib/feed/types";
 import { imageSrc } from "@/lib/media/url";
 import { cn } from "@/lib/cn";
+import { Lightbox } from "./Lightbox";
 
 /**
- * Carrousel photo façon Instagram : défilement horizontal avec accrochage,
- * ratio uniforme (celui de la première image, borné entre 4:5 et 1.91:1),
- * compteur et points de position.
+ * Carrousel photo : coins 28 px, sans liseré, object-fit cover, défilement à
+ * accrochage, compteur discret. Au tap : transition partagée vers la lightbox.
  */
 export function PhotoCarousel({
   media,
   size = "medium",
-  onTap,
   onDoubleTap,
+  interactive = true,
 }: {
   media: MediaItem[];
   size?: "medium" | "full";
-  onTap?: () => void;
   onDoubleTap?: () => void;
+  interactive?: boolean;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
+  const [open, setOpen] = useState<number | null>(null);
+  const lastTap = useRef(0);
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     const el = scroller.current;
@@ -43,28 +47,36 @@ export function PhotoCarousel({
   const ratio = first?.width && first?.height ? Math.min(Math.max(first.width / first.height, 0.8), 1.91) : 4 / 3;
   const many = media.length > 1;
 
-  function go(delta: number) {
-    const el = scroller.current;
-    if (!el) return;
-    const next = Math.min(Math.max(index + delta, 0), media.length - 1);
-    el.scrollTo({ left: next * el.clientWidth, behavior: "smooth" });
+  function tap(i: number) {
+    if (!interactive) return;
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      lastTap.current = 0;
+      onDoubleTap?.();
+      return;
+    }
+    lastTap.current = now;
+    // Simple tap : ouverture différée pour laisser une chance au double-tap
+    setTimeout(() => {
+      if (lastTap.current === now) setOpen(i);
+    }, 280);
   }
 
+  const current = open !== null ? media[open] : null;
+
   return (
-    <div className="relative select-none bg-black" style={{ aspectRatio: String(ratio) }}>
+    <div className="relative overflow-hidden rounded-[28px] bg-bg-1" style={{ aspectRatio: String(ratio) }}>
       <div
         ref={scroller}
-        className="flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        onClick={onTap}
-        onDoubleClick={onDoubleTap}
+        className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
         role={many ? "group" : undefined}
         aria-roledescription={many ? "carrousel" : undefined}
         aria-label={many ? `${media.length} photos` : undefined}
       >
         {media.map((m, i) => (
           <div key={m.id} className="h-full w-full flex-none snap-center" aria-label={many ? `Photo ${i + 1} sur ${media.length}` : undefined}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- variantes WebP servies par le stockage */}
-            <img
+            <motion.img
+              layoutId={reduced || open === i ? undefined : `photo-${m.id}`}
               src={imageSrc(m, size)}
               alt={m.alt}
               width={m.width ?? undefined}
@@ -72,39 +84,21 @@ export function PhotoCarousel({
               loading={i === 0 ? "eager" : "lazy"}
               decoding="async"
               draggable={false}
-              className="h-full w-full object-cover"
+              onClick={() => tap(i)}
+              className={cn("h-full w-full select-none object-cover", interactive && "cursor-zoom-in")}
             />
           </div>
         ))}
       </div>
 
       {many && (
-        <>
-          <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white tabular-nums">
-            {index + 1}/{media.length}
-          </span>
-          <div className="pointer-events-none absolute inset-x-0 bottom-2 flex justify-center gap-1.5" aria-hidden="true">
-            {media.map((m, i) => (
-              <span key={m.id} className={cn("h-1.5 w-1.5 rounded-full transition-colors", i === index ? "bg-white" : "bg-white/40")} />
-            ))}
-          </div>
-          <button
-            type="button"
-            aria-label="Photo précédente"
-            onClick={() => go(-1)}
-            className={cn("absolute left-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-navy shadow-soft sm:flex", index === 0 && "invisible")}
-          >
-            ‹
-          </button>
-          <button
-            type="button"
-            aria-label="Photo suivante"
-            onClick={() => go(1)}
-            className={cn("absolute right-2 top-1/2 hidden h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-navy shadow-soft sm:flex", index === media.length - 1 && "invisible")}
-          >
-            ›
-          </button>
-        </>
+        <span className="pointer-events-none absolute right-3 top-3 rounded-full bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white/90 tabular-nums">
+          {index + 1}/{media.length}
+        </span>
+      )}
+
+      {current && (
+        <Lightbox open src={imageSrc(current, "full")} alt={current.alt} layoutId={`photo-${current.id}`} onClose={() => setOpen(null)} />
       )}
     </div>
   );

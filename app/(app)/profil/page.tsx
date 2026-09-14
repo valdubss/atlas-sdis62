@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Card, SectionTitle } from "@/components/ui/Card";
+import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { EcgDivider } from "@/components/brand/Ecg";
+import { Avatar } from "@/components/ui/Avatar";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { createClient, getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { ROLE_LABELS } from "@/lib/config";
 import { ProfileForm } from "./ProfileForm";
@@ -18,86 +19,61 @@ export default async function ProfilPage() {
   const { profile } = current;
 
   const supabase = await createClient();
-  const { data: centers } = await supabase
-    .from("centers")
-    .select("*")
-    .eq("is_active", true)
-    .order("sort_order")
-    .order("name");
+  const { data: centers } = await supabase.from("centers").select("*").eq("is_active", true).order("sort_order").order("name");
 
   const incomplete = !profile.first_name || !profile.last_name;
-  const initials =
-    (profile.first_name[0] ?? "") + (profile.last_name[0] ?? "") || profile.email[0];
+  const fullName = `${profile.first_name} ${profile.last_name}`.trim();
 
   return (
-    <div className="space-y-6 px-4 sm:px-0">
-      <SectionTitle>Profil</SectionTitle>
+    <div className="space-y-3">
+      <PageHeader title="Profil" />
 
-      <Card className="p-5">
-        <div className="flex items-center gap-4">
-          <div
-            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-surface-2 font-display text-2xl font-bold uppercase text-ink ring-1 ring-line-strong"
-            aria-hidden="true"
-          >
-            {initials.toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <p className="truncate font-display text-xl font-bold uppercase text-ink">
-              {incomplete ? "Bienvenue" : `${profile.first_name} ${profile.last_name}`}
-            </p>
-            <p className="truncate text-sm text-muted">{profile.email}</p>
-            <span className="mt-1 inline-block rounded-full bg-surface-2 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-navy">
-              {ROLE_LABELS[profile.role]}
-            </span>
-          </div>
+      <section className="flex items-center gap-4 rounded-[16px] bg-bg-1 px-5 py-4">
+        <Avatar name={fullName || profile.email} size="lg" />
+        <div className="min-w-0">
+          <p className="truncate text-[17px] font-semibold tracking-[-0.02em] text-text-1">{incomplete ? "Bienvenue" : fullName}</p>
+          <p className="truncate text-[13px] text-text-3">{profile.email}</p>
+          <p className="text-[13px] text-text-2">{ROLE_LABELS[profile.role]}</p>
         </div>
+      </section>
 
-        {incomplete && (
-          <p className="mt-4 rounded-xl bg-red/5 px-3 py-2 text-sm text-red-text" role="status">
-            Complétez votre prénom et votre nom : ils apparaissent dans vos commentaires.
-          </p>
-        )}
-
-        <EcgDivider className="my-5" />
-
-        <ProfileForm profile={profile} centers={centers ?? []} />
-      </Card>
-
-      {isEditorRole(profile.role) && (
-        <Card className="flex items-center justify-between p-5">
-          <div>
-            <p className="font-semibold text-ink">Espace éditeur</p>
-            <p className="text-sm text-muted">Publier et modérer les contenus.</p>
-          </div>
-          <Link
-            href="/studio"
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-bg hover:bg-white/90"
-          >
-            Ouvrir le studio
-          </Link>
-        </Card>
+      {incomplete && (
+        <p role="status" className="rounded-[16px] bg-bg-1 px-5 py-3 text-[15px] text-text-2">
+          Complétez votre prénom et votre nom : ils apparaissent dans vos commentaires.
+        </p>
       )}
 
-      <Card className="p-5">
-        <p className="font-semibold text-ink">Mot de passe</p>
-        <p className="mb-4 text-sm text-muted">
-          Facultatif : permet de se connecter sans attendre le lien par e-mail.
-        </p>
-        <PasswordForm />
-      </Card>
+      <section className="rounded-[16px] bg-bg-1 px-5 py-4">
+        <ProfileForm profile={profile} centers={centers ?? []} />
+      </section>
 
-      <Card className="space-y-3 p-5">
-        <p className="text-sm text-muted">
-          <Link href="/a-propos" className="font-semibold text-navy underline-offset-2 hover:underline">
-            À propos, charte et données personnelles
-          </Link>
-        </p>
-        <form action={signOut}>
-          <Button type="submit" variant="ghost" className="w-full">
+      {isEditorRole(profile.role) && (
+        <Link href="/studio" className="pressable flex items-center justify-between rounded-[16px] bg-bg-1 px-5 py-4">
+          <span>
+            <span className="block text-[15px] text-text-1">Studio</span>
+            <span className="block text-[13px] text-text-3">Publier et modérer les contenus</span>
+          </span>
+          <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
+        </Link>
+      )}
+
+      <section className="rounded-[16px] bg-bg-1 px-5 py-4">
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Mot de passe</h2>
+        <p className="mb-4 mt-1 text-[13px] text-text-3">Facultatif : permet de se connecter sans attendre le lien par e-mail.</p>
+        <PasswordForm />
+      </section>
+
+      <div className="hairline rounded-[16px] bg-bg-1">
+        <Link href="/a-propos" className="pressable flex h-12 items-center justify-between px-5 text-[15px] text-text-1">
+          À propos, charte et données personnelles
+          <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
+        </Link>
+        <form action={signOut} className="px-5 py-2">
+          <Button type="submit" variant="tertiary" className="w-full">
             Se déconnecter
           </Button>
         </form>
-      </Card>
+      </div>
     </div>
   );
 }

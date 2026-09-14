@@ -1,45 +1,44 @@
 import type { Metadata } from "next";
-import { Card, SectionTitle } from "@/components/ui/Card";
-import { EcgDivider } from "@/components/brand/Ecg";
 import { APP_NAME, ORG_LONG_NAME } from "@/lib/config";
+import { BackBar } from "@/components/layout/BackBar";
 
 export const metadata: Metadata = { title: "À propos" };
 
 export default function AProposPage() {
   return (
-    <div className="space-y-6 px-4 sm:px-0">
-      <SectionTitle>À propos</SectionTitle>
+    <div className="space-y-3">
+      <BackBar title="À propos" href="/profil" />
+      <h1 className="pb-1 pt-1 text-[34px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">À propos</h1>
 
-      <Card className="space-y-4 p-5 text-sm leading-relaxed text-body">
+      <section className="rounded-[16px] bg-bg-1 px-5 py-4 text-[15px] text-text-1">
         <p>
-          <strong className="text-ink">{APP_NAME}</strong> est la plateforme d&apos;actualités
-          interne du {ORG_LONG_NAME}. Elle est éditée par le service communication.
+          {APP_NAME} est la plateforme d&apos;actualités interne du {ORG_LONG_NAME}. Elle est éditée par le service communication.
         </p>
-        <EcgDivider />
-        <h3 className="font-display text-lg font-bold uppercase text-navy">
-          Charte d&apos;utilisation
-        </h3>
-        <ul className="list-disc space-y-1 pl-5">
+      </section>
+
+      <section className="rounded-[16px] bg-bg-1 px-5 py-4">
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Charte d&apos;utilisation</h2>
+        <ul className="mt-2 space-y-2 text-[15px] text-text-2">
           <li>Les publications sont réservées au service communication.</li>
-          <li>
-            Les commentaires restent courtois et professionnels ; ils peuvent être modérés
-            ou masqués.
-          </li>
+          <li>Les commentaires restent courtois et professionnels ; ils peuvent être modérés ou masqués.</li>
           <li>Les contenus sont internes : ne les diffusez pas hors du SDIS.</li>
           <li>Tout contenu inapproprié peut être signalé depuis le commentaire.</li>
         </ul>
-        <EcgDivider />
-        <h3 className="font-display text-lg font-bold uppercase text-navy">Données personnelles</h3>
-        <p>
-          Seuls votre nom, votre centre ou service et une photo de profil facultative sont
-          enregistrés. Aucun outil de mesure d&apos;audience tiers n&apos;est utilisé. Vous
-          pouvez demander l&apos;export ou la suppression de votre compte auprès du service
-          communication.
+      </section>
+
+      <section className="rounded-[16px] bg-bg-1 px-5 py-4">
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Données personnelles</h2>
+        <p className="mt-2 text-[15px] text-text-2">
+          Seuls votre nom, votre centre ou service et une photo de profil facultative sont enregistrés. Aucun outil de mesure
+          d&apos;audience tiers n&apos;est utilisé. Vous pouvez demander l&apos;export ou la suppression de votre compte auprès du
+          service communication.
         </p>
-        <EcgDivider />
-        <h3 className="font-display text-lg font-bold uppercase text-navy">Contact</h3>
-        <p>Service communication du SDIS 62 — à compléter par l&apos;administrateur.</p>
-      </Card>
+      </section>
+
+      <section className="rounded-[16px] bg-bg-1 px-5 py-4">
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Contact</h2>
+        <p className="mt-2 text-[15px] text-text-2">Service communication du SDIS 62.</p>
+      </section>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchPostBySlug } from "@/lib/feed/queries";
 import { getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { PostCard } from "@/components/feed/PostCard";
+import { BackBar } from "@/components/layout/BackBar";
 import { ViewTracker } from "./ViewTracker";
 
 export const dynamic = "force-dynamic";
@@ -21,9 +21,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
 
   return (
     <div className="space-y-3">
-      <Link href="/" className="inline-flex items-center gap-1 px-4 text-sm font-semibold text-navy sm:px-0">
-        ← Retour au fil
-      </Link>
+      <BackBar title={post.title ?? "Publication"} />
       <ViewTracker postId={post.id} />
       <PostCard post={post} variant="full" canModerate={isEditorRole(current?.profile.role)} />
     </div>
