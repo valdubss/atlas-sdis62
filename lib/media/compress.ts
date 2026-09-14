@@ -15,9 +15,10 @@ export type CompressResult = { blob: Blob; width: number; height: number; durati
 const MAX_LONG_SIDE = 1920;
 const MAX_SHORT_SIDE = 1080;
 const TARGET_FPS = 30;
-const VIDEO_KBPS_1080 = 4200;
-const VIDEO_KBPS_720 = 2600;
-const AUDIO_KBPS = 96;
+// Débits façon Instagram : lisibles en 4G dès la première seconde
+const VIDEO_KBPS_1080 = 2600;
+const VIDEO_KBPS_720 = 1600;
+const AUDIO_KBPS = 64;
 const KEYFRAME_INTERVAL_S = 2;
 
 let supportCache: Promise<boolean> | null = null;

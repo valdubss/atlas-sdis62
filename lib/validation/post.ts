@@ -30,6 +30,7 @@ export const postSchema = z
     id: optionalUuid,
     type: z.enum(EDITOR_POST_TYPES, { message: "Type de publication invalide." }),
     title: optionalText(200),
+    location: optionalText(120),
     excerpt: optionalText(500),
     body: z.string().trim().max(50000, "Texte trop long."),
     category_id: optionalUuid,

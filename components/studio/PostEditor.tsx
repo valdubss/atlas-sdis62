@@ -55,6 +55,7 @@ export function PostEditor({
 
   const [type, setType] = useState<EditorPostType>(initialType);
   const [title, setTitle] = useState(post?.title ?? "");
+  const [location, setLocation] = useState(post?.location ?? "");
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
   const [body, setBody] = useState(post?.body ?? "");
   const [categoryId, setCategoryId] = useState(post?.category?.id ?? "");
@@ -82,6 +83,7 @@ export function PostEditor({
       id: post?.id ?? "preview",
       type,
       slug: post?.slug ?? "apercu",
+      location: location || null,
       title: title || null,
       excerpt: excerpt || null,
       body,
@@ -116,7 +118,7 @@ export function PostEditor({
       my_reaction: null,
       is_bookmarked: false,
     }),
-    [post, type, title, excerpt, body, tags, pinned, commentsEnabled, authorDisplay, categoryId, centerId, categories, centers, authorName, readyMedia, pollOptions, pollCloses],
+    [post, type, title, location, excerpt, body, tags, pinned, commentsEnabled, authorDisplay, categoryId, centerId, categories, centers, authorName, readyMedia, pollOptions, pollCloses],
   );
 
   const status = post?.status ?? "draft";
@@ -211,6 +213,7 @@ export function PostEditor({
             error={fields.title}
             placeholder={type === "article" ? "Exercice feux de forêt à Hesdin" : type === "poll" ? "Quel créneau pour la séance de sport ?" : "Bienvenue aux nouvelles recrues"}
           />
+          <Field label="Lieu (facultatif)" name="location" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={120} placeholder="CIS Arras, Stade Bollaert, Hesdin…" error={fields.location} hint="Affiché sous l'auteur, comme sur Instagram." />
           {type === "poll" && (
             <>
               <TextareaField

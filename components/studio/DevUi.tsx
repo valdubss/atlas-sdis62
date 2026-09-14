@@ -23,6 +23,7 @@ const samplePost: FeedPost = {
   type: "text",
   slug: "exemple",
   title: "Exercice feux de forêt à Hesdin",
+  location: "Hesdin",
   excerpt: null,
   body:
     "Trente sapeurs-pompiers des centres d'Hesdin, Montreuil et Berck ont participé ce matin à un exercice grandeur nature de lutte contre les feux de forêt. Objectif : coordonner les moyens terrestres et le drone de reconnaissance sur un secteur boisé difficile d'accès.\n\nBravo à toutes les équipes engagées.",

@@ -69,6 +69,7 @@ type PostRow = {
   type: PostType;
   slug: string;
   title: string | null;
+  location: string | null;
   excerpt: string | null;
   body: string | null;
   category_id: string | null;
@@ -238,7 +239,7 @@ export type Database = {
         Row: PostRow;
         Insert: Optional<
           PostRow,
-          | "id" | "slug" | "title" | "excerpt" | "body" | "category_id" | "center_id" | "tags"
+          | "id" | "slug" | "title" | "location" | "excerpt" | "body" | "category_id" | "center_id" | "tags"
           | "author_id" | "author_display" | "status" | "scheduled_at" | "published_at"
           | "pinned_at" | "comments_enabled" | "cover_media_id" | "created_at" | "updated_at" | "deleted_at"
         >;

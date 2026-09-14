@@ -95,6 +95,7 @@ redirige vers `/login`.
 | `0010_consolidation.sql` | audit de consolidation : comptages de sondage indépendants de la RLS, index manquants, 30 photos par publication, statut `processing` de la file, purge des médias orphelins, galerie sans doublon, garde-fous épinglage/commentaires/audit, `media.owner_id` nullable |
 | `0011_purge_deleted_posts_media.sql` | la purge quotidienne libère les médias des publications supprimées (soft delete) |
 | `0012_agenda.sql` | table `events` (agenda du service : titre, dates, lieu, description, publication liée), RLS agents/éditeurs |
+| `0013_post_location.sql` | `posts.location` (lieu affiché sous l'auteur) et `post_to_json` mis à jour |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 

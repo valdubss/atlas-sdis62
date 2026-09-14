@@ -36,6 +36,7 @@ export type FeedPost = {
   type: PostType;
   slug: string;
   title: string | null;
+  location: string | null;
   excerpt: string | null;
   body: string | null;
   tags: string[];

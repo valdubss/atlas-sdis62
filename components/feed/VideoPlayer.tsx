@@ -52,7 +52,7 @@ export function VideoPlayer({
         muted={muted}
         playsInline
         loop
-        preload="metadata"
+        preload="auto"
         controls={controls}
         aria-label={media.alt || "Vidéo"}
         onPlay={() => setPlaying(true)}

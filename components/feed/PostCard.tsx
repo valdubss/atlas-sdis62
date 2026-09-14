@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
-import { Bookmark, MessageCircle } from "lucide-react";
+import Link from "next/link";
+import { Bookmark, MapPin, MessageCircle, MoreHorizontal } from "lucide-react";
 import type { FeedPost } from "@/lib/feed/types";
 import { FEATURES, type ReactionKind } from "@/lib/config";
 import { formatRelative } from "@/lib/format";
@@ -173,9 +174,32 @@ export function PostCard({
                   <span> — {shown.category.name}</span>
                 )}
               </p>
+              {shown.location && variant !== "feed" && (
+                <p className="flex items-center gap-1 text-[13px] text-text-3">
+                  <MapPin size={13} strokeWidth={1.75} aria-hidden="true" />
+                  {shown.location}
+                </p>
+              )}
             </div>
             {shown.pinned_at && <Badge tone="red">Épinglé</Badge>}
+            {canModerate && !preview && (
+              <Link
+                href={`/studio/posts/${shown.id}`}
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Modifier dans le Studio"
+                title="Modifier dans le Studio"
+                className="pressable -mr-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-text-2 hover:text-text-1"
+              >
+                <MoreHorizontal size={20} strokeWidth={1.75} aria-hidden="true" />
+              </Link>
+            )}
           </header>
+          {shown.location && variant === "feed" && (
+            <p className="mt-0.5 flex items-center gap-1 text-[12px] text-text-3">
+              <MapPin size={12} strokeWidth={1.75} aria-hidden="true" />
+              <span className="truncate">{shown.location}</span>
+            </p>
+          )}
 
           {(shown.title || body) && (
             <div

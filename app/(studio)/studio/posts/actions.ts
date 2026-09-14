@@ -28,6 +28,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     id: formData.get("id") ?? "",
     type: formData.get("type"),
     title: formData.get("title") ?? "",
+    location: formData.get("location") ?? "",
     excerpt: formData.get("excerpt") ?? "",
     body: formData.get("body") ?? "",
     category_id: formData.get("category_id") ?? "",
@@ -84,6 +85,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
   const row = {
     type: v.type,
     title: v.title,
+    location: v.location,
     excerpt: v.type === "article" ? v.excerpt : null,
     body: v.body || null,
     category_id: v.category_id,

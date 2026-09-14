@@ -4,7 +4,7 @@ import { lockScroll, unlockScroll } from "@/lib/dom/scroll-lock";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-motion";
-import { Volume2, VolumeX, X } from "lucide-react";
+import { MoreHorizontal, Volume2, VolumeX, X } from "lucide-react";
 import type { StoryGroup, StoryItem } from "@/lib/feed/types";
 import { fetchStoryItems, recordStoryView } from "@/app/(app)/story-actions";
 import { formatRelative } from "@/lib/format";
@@ -253,6 +253,16 @@ export function StoryViewer({
               <span className="block truncate text-[15px] font-semibold text-white">{group.title}</span>
               {story?.published_at && <span className="block text-[13px] text-white/70">{formatRelative(story.published_at)}</span>}
             </span>
+            {canEdit && story && (
+              <Link
+                href={`/studio/stories/${story.id}`}
+                aria-label="Modifier dans le Studio"
+                className="pointer-events-auto flex h-10 w-10 items-center justify-center text-white/90"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal size={22} strokeWidth={1.75} />
+              </Link>
+            )}
             <button type="button" onClick={onClose} aria-label="Fermer" className="pointer-events-auto flex h-10 w-10 items-center justify-center text-white/90">
               <X size={24} strokeWidth={1.75} />
             </button>
