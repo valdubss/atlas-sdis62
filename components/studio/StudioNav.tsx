@@ -7,9 +7,11 @@ import { cn } from "@/lib/cn";
 
 const NAV = [
   { href: "/studio", label: "Tableau de bord", exact: true },
+  { href: "/studio/flash", label: "Flash" },
   { href: "/studio/posts", label: "Publications" },
   { href: "/studio/stories", label: "Stories" },
   { href: "/studio/agenda", label: "Agenda" },
+  { href: "/studio/statistiques", label: "Statistiques" },
   { href: "/studio/moderation", label: "Modération" },
   { href: "/studio/retours", label: "Retours" },
   { href: "/studio/utilisateurs", label: "Utilisateurs" },

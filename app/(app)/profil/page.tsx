@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Avatar } from "@/components/ui/Avatar";
+import { AvatarUploader } from "@/components/profile/AvatarUploader";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { createClient, getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { ROLE_LABELS } from "@/lib/config";
@@ -35,7 +35,7 @@ export default async function ProfilPage() {
       <PageHeader title="Profil" />
 
       <section className="flex items-center gap-4 rounded-[16px] bg-bg-1 px-5 py-4">
-        <Avatar name={fullName || profile.email} size="lg" />
+        <AvatarUploader name={fullName || profile.email} avatarKey={profile.avatar_key} />
         <div className="min-w-0">
           <p className="truncate text-[17px] font-semibold tracking-[-0.02em] text-text-1">{incomplete ? "Bienvenue" : fullName}</p>
           <p className="truncate text-[13px] text-text-3">{profile.email}</p>

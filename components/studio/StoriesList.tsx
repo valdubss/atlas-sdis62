@@ -23,6 +23,7 @@ export type StoryRow = {
   series: { id: string; title: string } | null;
   media: MediaItem | null;
   views: { count: number }[];
+  replies?: { count: number }[];
   highlight_items: { highlight_id: string }[];
 };
 
@@ -89,6 +90,11 @@ export function StoriesList({ stories, highlights, notice }: { stories: StoryRow
             <Link href={`/studio/stories/${s.id}`} className="text-[13px] font-medium text-text-2 hover:text-text-1">
               Modifier
             </Link>
+            {(s.replies?.[0]?.count ?? 0) > 0 && (
+              <Link href={`/studio/stories/${s.id}/reponses`} className="text-[13px] font-medium text-navy-link">
+                {s.replies?.[0]?.count} {(s.replies?.[0]?.count ?? 0) > 1 ? "réponses" : "réponse"}
+              </Link>
+            )}
             {inLive && <TextButton disabled={pending} onClick={() => run(() => expireStory(s.id), "Story retirée du bandeau")}>Retirer maintenant</TextButton>}
             {archive.includes(s) && <TextButton disabled={pending} onClick={() => run(() => republishStory(s.id, 48), "Story remise en ligne pour 48 h")}>Remettre en ligne 48 h</TextButton>}
             {highlights.length > 0 && (

@@ -96,6 +96,8 @@ redirige vers `/login`.
 | `0011_purge_deleted_posts_media.sql` | la purge quotidienne libère les médias des publications supprimées (soft delete) |
 | `0012_agenda.sql` | table `events` (agenda du service : titre, dates, lieu, description, publication liée), RLS agents/éditeurs |
 | `0013_post_location.sql` | `posts.location` (lieu affiché sous l'auteur) et `post_to_json` mis à jour |
+| `0014_flash_notifications_replies_stats.sql` | flash prioritaire (`flashes`, push forcé), notifications dans l'app (`notifications`, triggers publication / réponse / flash, rappel agenda), réponses aux stories (`story_replies`), statistiques détaillées (`studio_post_stats`) |
+| `0015_stats_definer.sql` | `studio_post_stats` en SECURITY DEFINER (lecture de la file de notifications) |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -314,7 +316,7 @@ docs/ARCHITECTURE.md       plan d'architecture
 ## 7b. Notifications push, PWA et digest
 
 - **PWA** : `app/manifest.ts`, icônes dans `public/icons/`, service worker `public/sw.js`
-  (cache de l'interface, jamais des médias ; page `/offline`). Sur iPhone, l'agent doit
+  (cache de l'interface et des vignettes des 20 dernières publications, bornées ; page `/offline` qui rejoue le fil enregistré). Sur iPhone, l'agent doit
   d'abord ajouter ATLAS à l'écran d'accueil depuis Safari pour recevoir des push.
 - **Push** : clés VAPID générées par `npm run vapid` (→ `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
   `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`). Un trigger SQL enfile une notification à chaque

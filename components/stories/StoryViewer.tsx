@@ -12,6 +12,7 @@ import { imageSrc, posterSrc } from "@/lib/media/url";
 import { SPRING } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 import { StoryMedia } from "./StoryMedia";
+import { StoryReplyBar } from "./StoryReplyBar";
 import { videoSrc } from "@/lib/media/url";
 
 /**
@@ -61,9 +62,11 @@ export function StoryViewer({
 
   // Verrouillage du défilement de la page
   useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
     lockScroll();
     return () => {
       unlockScroll();
+      opener?.focus?.({ preventScroll: true });
     };
   }, []);
 
@@ -268,8 +271,15 @@ export function StoryViewer({
             </button>
           </div>
 
-          {/* Pied : lien, vues (éditeurs), son */}
-          <div className="pointer-events-none absolute inset-x-4 bottom-[max(env(safe-area-inset-bottom),16px)] flex items-end justify-between gap-3">
+          {/* Réponses : réactions rapides + message au service communication */}
+          {story && (
+            <div className="pointer-events-none absolute inset-x-3 bottom-[max(env(safe-area-inset-bottom),12px)]">
+              <StoryReplyBar storyId={story.id} onFocusChange={setPaused} />
+            </div>
+          )}
+
+          {/* Lien, vues (éditeurs), son */}
+          <div className="pointer-events-none absolute inset-x-4 bottom-[calc(max(env(safe-area-inset-bottom),12px)+112px)] flex items-end justify-between gap-3">
             <div className="flex flex-col items-start gap-2">
               {canEdit && story && (
                 <span className="text-[13px] text-white/70 [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">

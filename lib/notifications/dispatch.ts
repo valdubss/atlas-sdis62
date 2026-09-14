@@ -18,7 +18,7 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
     .from("notification_queue")
     .select("id")
     .eq("status", "pending")
-    .in("kind", ["push_pinned", "push_category", "email_feedback"])
+    .in("kind", ["push_pinned", "push_category", "push_flash", "email_feedback"])
     .order("created_at")
     .limit(limit);
   if (!candidates || candidates.length === 0) return { processed: 0, sent: 0, removed: 0 };
@@ -50,7 +50,8 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
     // Destinataires : tous les abonnements, filtrés par la préférence de leur
     // propriétaire (user_settings est lu séparément : pas de relation directe
     // entre les deux tables pour PostgREST).
-    const prefColumn = item.kind === "push_pinned" ? "push_pinned" : "push_new_posts";
+    // Flash : tous les abonnés, quelles que soient leurs préférences
+    const prefColumn = item.kind === "push_pinned" ? "push_pinned" : item.kind === "push_flash" ? null : "push_new_posts";
     const [{ data: subs, error: subsError }, { data: settings }] = await Promise.all([
       admin.from("push_subscriptions").select("id, endpoint, p256dh, auth, user_id").limit(5000),
       admin.from("user_settings").select("user_id, push_pinned, push_new_posts"),
@@ -63,10 +64,10 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
         .eq("id", item.id);
       continue;
     }
-    const optOut = new Set((settings ?? []).filter((s) => s[prefColumn] === false).map((s) => s.user_id));
+    const optOut = new Set(prefColumn ? (settings ?? []).filter((s) => s[prefColumn] === false).map((s) => s.user_id) : []);
     const targets = (subs ?? []).filter((s) => !optOut.has(s.user_id));
 
-    const payload: PushPayload = { title: item.payload.title, body: item.payload.body, url: item.payload.url, tag: item.payload.post_id };
+    const payload: PushPayload = { title: item.payload.title, body: item.payload.body, url: item.payload.url, tag: item.payload.post_id ?? (item.payload as { flash_id?: string }).flash_id, urgent: item.kind === "push_flash" };
     const gone: string[] = [];
     let ok = 0;
     let failed = 0;
@@ -144,6 +145,9 @@ export async function runMaintenance(): Promise<{ requeued: number; orphanMedia:
     .select("id");
   await admin.rpc("purge_rate_limit_events");
   await admin.rpc("purge_notification_queue");
+  await admin.rpc("purge_notifications");
+  // Rappels d'événements de demain (notification dans l'app, pas de push)
+  await admin.rpc("notify_events_tomorrow").then(({ error }) => error && console.error("rappels agenda", error.message));
   const { data: orphans } = await admin.rpc("purge_orphan_media");
   const keys = ((orphans ?? []) as { id: string; keys: string[] }[]).flatMap((o) => o.keys ?? []);
   if (keys.length > 0) {

@@ -317,3 +317,12 @@ Chaque lot = code + migration SQL + README mis à jour + commandes de vérificat
 ## 11. Questions ouvertes avant de coder
 
 Voir le message d'accompagnement (Q1 à Q8).
+
+## Compléments (septembre 2026)
+
+- **Flash** (`flashes`) : message prioritaire en bandeau (rouge urgent / bleu info) en tête du fil, poussé à tous les abonnés quelles que soient leurs préférences (`push_flash`, urgence haute), notification dans l'app ; fin programmée ou retrait manuel (Studio → Flash).
+- **Notifications dans l'app** (`notifications`) : une ligne par agent, créées par triggers (publication, flash, réponse à un commentaire) et par l'entretien quotidien (rappel des événements du lendemain). Cloche dans la barre du fil, page `/notifications`, tout marqué lu à l'ouverture, purge à 30 / 90 jours.
+- **Réponses aux stories** (`story_replies`) : réactions rapides et messages depuis le viewer, visibles du service communication dans Studio → Stories → « n réponses » ; limite 30 par heure et par agent.
+- **Statistiques** (`studio_post_stats`) : agents ayant lu, vues, réactions, commentaires, favoris, push, répartition par heure et par jour, tableau par publication, export CSV.
+- **Hors ligne** : le fil garde ses 20 dernières publications et leurs vignettes (`atlas-media`, borné) ; `/offline` les rejoue en lecture seule.
+- **Avatars** : recadrés sur l'appareil, 256 px WebP côté serveur, clé versionnée.

@@ -14,7 +14,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== "atlas-media" && k !== "atlas-shell").map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -23,8 +23,15 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   const url = new URL(request.url);
-  // Médias, Supabase, autres origines : jamais mis en cache
-  if (url.origin !== self.location.origin) return;
+
+  // Vignettes des dernières publications (cache « atlas-media », rempli par
+  // l'application et borné) : cache d'abord, réseau ensuite.
+  if (url.origin !== self.location.origin) {
+    if (request.destination === "image" && url.pathname.includes("/variants/")) {
+      event.respondWith(caches.open("atlas-media").then((c) => c.match(request).then((hit) => hit || fetch(request))));
+    }
+    return;
+  }
 
   // Fichiers statiques versionnés : cache d'abord
   if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
@@ -42,9 +49,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigations : réseau d'abord, page hors ligne en secours
+  // Navigations : réseau d'abord, page hors ligne (préparée par l'application) en secours
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request).catch(() => caches.match("/offline")));
+    event.respondWith(
+      fetch(request).catch(async () => (await caches.open("atlas-shell").then((c) => c.match("/offline"))) || caches.match("/offline")),
+    );
+    return;
   }
 });
 

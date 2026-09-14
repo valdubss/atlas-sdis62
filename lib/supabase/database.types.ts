@@ -129,6 +129,40 @@ type MediaRow = {
   updated_at: Timestamp;
 };
 
+type FlashRow = {
+  id: string;
+  title: string;
+  body: string | null;
+  level: "info" | "urgent";
+  url: string | null;
+  starts_at: Timestamp;
+  ends_at: Timestamp;
+  created_by: string | null;
+  created_at: Timestamp;
+  deleted_at: Timestamp | null;
+};
+
+type NotificationRow = {
+  id: number;
+  user_id: string;
+  kind: "post" | "flash" | "reply" | "event" | "story_reply";
+  title: string;
+  body: string | null;
+  url: string | null;
+  created_at: Timestamp;
+  read_at: Timestamp | null;
+};
+
+type StoryReplyRow = {
+  id: string;
+  story_id: string;
+  user_id: string | null;
+  emoji: string | null;
+  message: string | null;
+  created_at: Timestamp;
+  read_at: Timestamp | null;
+};
+
 type EventRow = {
   id: string;
   title: string;
@@ -312,6 +346,24 @@ export type Database = {
         Update: { title?: string; cover_media_id?: string | null };
         Relationships: [];
       };
+      flashes: {
+        Row: FlashRow;
+        Insert: Optional<FlashRow, "id" | "body" | "level" | "url" | "starts_at" | "created_by" | "created_at" | "deleted_at">;
+        Update: Partial<FlashRow>;
+        Relationships: [];
+      };
+      notifications: {
+        Row: NotificationRow;
+        Insert: Optional<NotificationRow, "id" | "body" | "url" | "created_at" | "read_at">;
+        Update: Partial<NotificationRow>;
+        Relationships: [];
+      };
+      story_replies: {
+        Row: StoryReplyRow;
+        Insert: Optional<StoryReplyRow, "id" | "user_id" | "emoji" | "message" | "created_at" | "read_at">;
+        Update: Partial<StoryReplyRow>;
+        Relationships: [];
+      };
       events: {
         Row: EventRow;
         Insert: Optional<EventRow, "id" | "description" | "location" | "ends_at" | "all_day" | "post_id" | "status" | "author_id" | "created_at" | "updated_at" | "deleted_at">;
@@ -395,6 +447,10 @@ export type Database = {
       record_post_view: { Args: { p_post_id: string }; Returns: undefined };
       get_comments: { Args: { p_post_id: string }; Returns: Json[] };
       studio_stats: { Args: Record<string, never>; Returns: Json };
+      studio_post_stats: { Args: { p_days?: number }; Returns: Json };
+      mark_notifications_read: { Args: Record<string, never>; Returns: number };
+      purge_notifications: { Args: Record<string, never>; Returns: undefined };
+      notify_events_tomorrow: { Args: Record<string, never>; Returns: number };
       get_story_bar: { Args: Record<string, never>; Returns: Json };
       get_story_items: { Args: { p_series_id?: string | null; p_highlight_id?: string | null }; Returns: Json[] };
       get_highlight_items: { Args: { p_highlight_id: string }; Returns: Json[] };

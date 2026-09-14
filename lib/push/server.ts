@@ -14,7 +14,7 @@ function ensureConfigured() {
   return true;
 }
 
-export type PushPayload = { title: string; body: string; url: string; tag?: string };
+export type PushPayload = { title: string; body: string; url: string; tag?: string; urgent?: boolean };
 
 /**
  * Envoie une notification à un abonnement. Renvoie "gone" si l'abonnement
@@ -26,9 +26,10 @@ export async function sendPush(
 ): Promise<{ status: "sent" } | { status: "gone" } | { status: "error"; message: string }> {
   if (!ensureConfigured()) return { status: "error", message: "clés VAPID absentes" };
   try {
-    await webPush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify(payload), {
-      TTL: 60 * 60 * 24,
-      urgency: "normal",
+    const { urgent, ...body } = payload;
+    await webPush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify(body), {
+      TTL: urgent ? 60 * 60 * 6 : 60 * 60 * 24,
+      urgency: urgent ? "high" : "normal",
     });
     return { status: "sent" };
   } catch (e) {

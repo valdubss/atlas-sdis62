@@ -5,6 +5,10 @@ import { FEATURES } from "@/lib/config";
 import { FeedHeader } from "@/components/feed/FeedHeader";
 import { InfiniteFeed } from "@/components/feed/InfiniteFeed";
 import { PullToRefresh } from "@/components/feed/PullToRefresh";
+import { FeedCache } from "@/components/feed/FeedCache";
+import { FlashBanner } from "@/components/feed/FlashBanner";
+import { fetchActiveFlashes } from "@/lib/flash/queries";
+import { fetchUnreadCount } from "@/lib/notifications/queries";
 import { PostCard } from "@/components/feed/PostCard";
 import { StoryBar } from "@/components/stories/StoryBar";
 
@@ -24,13 +28,15 @@ export default async function FeedPage({
   };
   const filtered = Boolean(params.category || params.center || params.q || params.tag);
 
-  const [current, categories, centers, pinned, posts, storyBar] = await Promise.all([
+  const [current, categories, centers, pinned, posts, storyBar, flashes, unread] = await Promise.all([
     getCurrentUser(),
     FEATURES.categories ? fetchCategories() : Promise.resolve([]),
     FEATURES.centers ? fetchCenters() : Promise.resolve([]),
     filtered ? Promise.resolve([]) : fetchPinned(),
     fetchFeed(params),
     filtered ? Promise.resolve({ series: [], highlights: [] }) : fetchStoryBar(),
+    filtered ? Promise.resolve([]) : fetchActiveFlashes(),
+    fetchUnreadCount(),
   ]);
   const canModerate = isEditorRole(current?.profile.role);
   const pinnedIds = new Set(pinned.map((p) => p.id));
@@ -38,7 +44,7 @@ export default async function FeedPage({
   return (
     <div className="space-y-3">
       <Suspense>
-        <FeedHeader categories={categories} centers={centers} showCategories={FEATURES.categories} showCenters={FEATURES.centers} />
+        <FeedHeader categories={categories} centers={centers} showCategories={FEATURES.categories} showCenters={FEATURES.centers} unread={unread} />
       </Suspense>
 
       {sp.erreur === "acces-studio" && (
@@ -47,8 +53,10 @@ export default async function FeedPage({
         </p>
       )}
 
+      {!filtered && <FeedCache posts={[...pinned, ...posts.filter((p) => !pinnedIds.has(p.id))]} />}
       <PullToRefresh>
         <div className="space-y-3">
+          <FlashBanner flashes={flashes} />
           <StoryBar bar={storyBar} canEdit={canModerate} />
 
           {pinned.map((p) => (

@@ -45,7 +45,7 @@ export function TopBar({ title, right, leading }: { title?: string; right?: Reac
             {title}
           </span>
         )}
-        <div className="flex items-center gap-3">{right}</div>
+        <div className="flex items-center gap-1">{right}</div>
       </div>
     </header>
   );

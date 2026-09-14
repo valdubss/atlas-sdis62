@@ -103,6 +103,7 @@ export type StoryItem = {
   link_post: { id: string; slug: string; title: string | null } | null;
   seen: boolean;
   views: number;
+  replies?: number;
 };
 
 /** Bulle du bandeau : une série active ou un à-la-une. */

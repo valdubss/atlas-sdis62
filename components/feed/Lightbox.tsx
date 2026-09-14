@@ -42,12 +42,14 @@ export function Lightbox({
 
   useEffect(() => {
     if (!open) return;
+    const opener = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
     lockScroll();
     return () => {
       document.removeEventListener("keydown", onKey);
       unlockScroll();
+      opener?.focus?.({ preventScroll: true });
     };
   }, [open, onClose]);
 

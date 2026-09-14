@@ -20,7 +20,7 @@ export default async function StudioStoriesPage({ searchParams }: { searchParams
     supabase
       .from("stories")
       .select(
-        "id, status, overlay, display_seconds, scheduled_at, published_at, expires_at, created_at, series:story_series!stories_series_id_fkey(id, title), media:media!stories_media_id_fkey(id, kind, variants, poster_key, original_key, alt, width, height, mime, duration_s), views:story_views(count), highlight_items:story_highlight_items(highlight_id)",
+        "id, status, overlay, display_seconds, scheduled_at, published_at, expires_at, created_at, series:story_series!stories_series_id_fkey(id, title), media:media!stories_media_id_fkey(id, kind, variants, poster_key, original_key, alt, width, height, mime, duration_s), views:story_views(count), replies:story_replies(count), highlight_items:story_highlight_items(highlight_id)",
       )
       .order("created_at", { ascending: false })
       .limit(300),
