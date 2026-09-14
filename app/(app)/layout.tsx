@@ -5,7 +5,8 @@ import { getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const current = await getCurrentUser();
-  if (!current) redirect("/login");
+  // Session sans profil valide : on ferme la session (sinon /login renvoie vers /).
+  if (!current) redirect("/auth/deconnexion?raison=profil");
 
   return (
     <div className="min-h-dvh bg-bg">

@@ -18,7 +18,7 @@ const NAV = [
  */
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
   const current = await getCurrentUser();
-  if (!current) redirect("/login?next=/studio");
+  if (!current) redirect("/auth/deconnexion?raison=profil");
   if (!isEditorRole(current.profile.role)) redirect("/?erreur=acces-studio");
 
   const { profile } = current;

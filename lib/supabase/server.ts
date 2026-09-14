@@ -44,11 +44,18 @@ export const getCurrentUser = cache(async () => {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
+
+  if (!profile) {
+    // Compte sans profil (créé avant la migration, ou via le dashboard) :
+    // auto-réparation si l'adresse est autorisée (migration 0002).
+    const { data: repaired } = await supabase.rpc("ensure_profile");
+    profile = (repaired as Profile | null) ?? null;
+  }
 
   if (!profile || !profile.is_active) return null;
 

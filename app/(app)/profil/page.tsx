@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Profil" };
 
 export default async function ProfilPage() {
   const current = await getCurrentUser();
-  if (!current) redirect("/login");
+  if (!current) redirect("/auth/deconnexion?raison=profil");
   const { profile } = current;
 
   const supabase = await createClient();

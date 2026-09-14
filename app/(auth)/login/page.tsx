@@ -11,6 +11,7 @@ export const metadata: Metadata = { title: "Connexion" };
 const ERRORS: Record<string, string> = {
   desactive: "Votre compte a été désactivé. Contactez le service communication.",
   lien: "Ce lien de connexion est invalide ou a expiré. Demandez-en un nouveau.",
+  profil: "Votre compte n'a pas de profil valide. Reconnectez-vous ; si le problème persiste, contactez l'administrateur.",
 };
 
 export default async function LoginPage({

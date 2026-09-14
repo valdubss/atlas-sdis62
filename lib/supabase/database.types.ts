@@ -196,6 +196,10 @@ export type Database = {
       is_admin: { Args: Record<string, never>; Returns: boolean };
       is_editor: { Args: Record<string, never>; Returns: boolean };
       is_allowed_email: { Args: { p_email: string }; Returns: boolean };
+      ensure_profile: {
+        Args: Record<string, never>;
+        Returns: Database["public"]["Tables"]["profiles"]["Row"];
+      };
       export_user_data: { Args: { p_user_id: string }; Returns: Json };
       anonymize_user_data: { Args: { p_user_id: string }; Returns: undefined };
     };
