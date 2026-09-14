@@ -36,12 +36,12 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         </>
       )}
 
-      <div className="relative flex flex-1 flex-col justify-between px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-[max(env(safe-area-inset-top),20px)] sm:mx-auto sm:w-full sm:max-w-[420px] sm:justify-center sm:gap-16">
-        <header className="pt-2">
-          <Logo size={22} />
-          <h1 className="sr-only">{APP_NAME}</h1>
-        </header>
+      <header className="absolute left-5 top-[max(env(safe-area-inset-top),24px)] sm:left-8 sm:top-8">
+        <Logo size={22} />
+        <h1 className="sr-only">{APP_NAME}</h1>
+      </header>
 
+      <div className="relative flex flex-1 flex-col justify-end px-5 pb-[max(env(safe-area-inset-bottom),20px)] sm:mx-auto sm:w-full sm:max-w-[420px] sm:justify-center">
         <section className="glass rounded-[22px] p-5 sm:p-6">
           {erreur && ERRORS[erreur] && (
             <p role="alert" className="mb-4 text-[15px] text-red-text">
