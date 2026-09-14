@@ -35,6 +35,8 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
   const [scheduledAt, setScheduledAt] = useState(toDatetimeLocal(story?.scheduled_at));
 
   const ready = media.find((m) => m.status === "ready") ?? null;
+  // Aperçu dès l'envoi (vignette locale), même pendant le traitement
+  const previewMedia = media.find((m) => m.status !== "error") ?? null;
   const busy = media.some((m) => m.status !== "ready" && m.status !== "error");
   const status = story?.status ?? "draft";
   const badge: Record<string, { label: string; tone: "neutral" | "navy" | "success" }> = {
@@ -116,7 +118,7 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
         </section>
 
         <section className="hairline rounded-[16px] bg-bg-1 [&>*]:px-5">
-          {ready?.kind !== "video" && (
+          {previewMedia?.kind !== "video" && (
             <div className="py-3">
               <SelectField label="Durée d'affichage" name="display_seconds" value={String(seconds)} onChange={(e) => setSeconds(Number(e.target.value))}>
                 {[3, 5, 7, 10, 15].map((n) => (
@@ -127,7 +129,7 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
               </SelectField>
             </div>
           )}
-          {ready?.kind === "video" && <input type="hidden" name="display_seconds" value={seconds} />}
+          {previewMedia?.kind === "video" && <input type="hidden" name="display_seconds" value={seconds} />}
           <div className="py-3">
             <SelectField label="Durée de vie dans le bandeau" name="expires_hours" value={String(hours)} onChange={(e) => setHours(Number(e.target.value))} hint="Après ce délai, la story rejoint l'archive et peut être mise à la une.">
               {EXPIRY_OPTIONS.map((o) => (
@@ -187,7 +189,7 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
         <p className="mb-3 text-[13px] font-medium text-text-2">Aperçu</p>
         <div className="mx-auto aspect-[9/16] w-full max-w-[300px] overflow-hidden rounded-[28px] bg-black ring-[6px] ring-bg-2">
           <div className="relative h-full">
-            <StoryMedia media={ready} overlay={text ? { text, position } : null} playing={false} />
+            <StoryMedia media={previewMedia} overlay={text ? { text, position } : null} playing={false} />
             <div className="pointer-events-none absolute inset-x-3 top-3 flex gap-1" aria-hidden="true">
               <span className="h-[2px] flex-1 rounded-full bg-white/30">
                 <span className="block h-full w-1/3 rounded-full bg-white" />
