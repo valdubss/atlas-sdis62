@@ -115,11 +115,9 @@ surfaces flottantes. Séparateurs `--line` 1 px en retrait de 20 px à gauche.
 
 ```
 ┌──────────────────────────────────────┐
-│ ▒▒▒▒▒▒▒▒▒▒▒ verre (au scroll) ▒▒▒▒▒▒ │  barre : titre réduit centré 17/600,
-│           Actualités        [⌕]      │  apparaît quand le grand titre sort
+│ ▒▒▒▒▒▒▒▒▒▒▒ verre ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ │  barre : logo à gauche, loupe à droite,
+│  ATLAS                        [⌕]    │  pas de grand titre sur le fil
 ├──────────────────────────────────────┤
-│                                      │
-│  Actualités                    ⌕     │  grand titre 34/600, tracking -0.02em
 │                                      │
 │  ◯   ◯   ◯   ◯   ◯                   │  anneaux story 64 px, 2 px red si non vue
 │  Feux Arras JSP  …                   │  libellé 11/500 text-2

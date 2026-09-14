@@ -10,7 +10,7 @@ import { Logo } from "@/components/brand/Logo";
  * sort de l'écran, la barre se teinte et le titre réduit apparaît, centré
  * (largeTitleDisplayMode). Sans grand titre sur la page, elle est toujours teintée.
  */
-export function TopBar({ title, showStudio, right }: { title: string; showStudio: boolean; right?: React.ReactNode }) {
+export function TopBar({ title, right }: { title?: string; right?: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -33,22 +33,17 @@ export function TopBar({ title, showStudio, right }: { title: string; showStudio
         <Link href="/" aria-label="Accueil" className="pressable flex items-center">
           <Logo height={22} />
         </Link>
-        <span
-          className={cn(
-            "pointer-events-none absolute inset-x-16 truncate text-center text-[17px] font-semibold tracking-[-0.02em] text-text-1 transition-opacity duration-200",
-            collapsed ? "opacity-100" : "opacity-0",
-          )}
-        >
-          {title}
-        </span>
-        <div className="flex items-center gap-3">
-          {right}
-          {showStudio && (
-            <Link href="/studio" className="pressable text-[15px] font-medium text-text-2 hover:text-text-1">
-              Studio
-            </Link>
-          )}
-        </div>
+        {title && (
+          <span
+            className={cn(
+              "pointer-events-none absolute inset-x-16 truncate text-center text-[17px] font-semibold tracking-[-0.02em] text-text-1 transition-opacity duration-200",
+              collapsed ? "opacity-100" : "opacity-0",
+            )}
+          >
+            {title}
+          </span>
+        )}
+        <div className="flex items-center gap-3">{right}</div>
       </div>
     </header>
   );

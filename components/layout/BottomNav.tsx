@@ -4,15 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Bookmark, LayoutGrid, Newspaper, User } from "lucide-react";
+import { Bookmark, LayoutGrid, Newspaper, SquarePen, User } from "lucide-react";
+import { useRole } from "./RoleContext";
 import { NAV_ITEMS } from "@/lib/config";
 import { SPRING } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 
-const ICONS = { feed: Newspaper, gallery: LayoutGrid, bookmark: Bookmark, user: User } as const;
+const ICONS = { feed: Newspaper, gallery: LayoutGrid, bookmark: Bookmark, user: User, studio: SquarePen } as const;
 
 /**
- * Barre basse en verre : 4 entrées, icône 20 px + libellé 11 px, entrée active en
+ * Barre basse en verre : 4 entrées (+ « Studio » pour les éditeurs), icône 20 px + libellé 11 px, entrée active en
  * --text-1 sans fond ni pastille. Se masque au scroll vers le bas, revient au scroll
  * vers le haut.
  */
@@ -20,6 +21,8 @@ export function BottomNav() {
   const pathname = usePathname();
   const [hidden, setHidden] = useState(false);
   const reduced = useReducedMotion();
+  const { canEdit } = useRole();
+  const items: { href: string; label: string; icon: keyof typeof ICONS }[] = canEdit ? [...NAV_ITEMS, { href: "/studio", label: "Studio", icon: "studio" }] : [...NAV_ITEMS];
 
   useEffect(() => {
     let last = window.scrollY;
@@ -48,8 +51,8 @@ export function BottomNav() {
       transition={SPRING}
       className="glass fixed inset-x-0 bottom-0 z-30 pb-[env(safe-area-inset-bottom)]"
     >
-      <ul className="mx-auto grid max-w-[680px] grid-cols-4">
-        {NAV_ITEMS.map((item) => {
+      <ul className={cn("mx-auto grid max-w-[680px]", canEdit ? "grid-cols-5" : "grid-cols-4")}>
+        {items.map((item) => {
           const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
           const Icon = ICONS[item.icon];
           return (

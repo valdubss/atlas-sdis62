@@ -269,7 +269,7 @@ tests/unit/ (Vitest), tests/e2e/ (Playwright)
 - **Tokens** fixés après exécution de `scripts/extract-colors.mjs` sur `logo-sdis62.png` (quantification + regroupement, sortie des 6 couleurs dominantes). Valeurs provisoires : rouge `#C8102E`, marine `#1B2D5C`, fond `#F6F7F9`, gris texte secondaire `#5B6472`.
 - **Typo** : Barlow Condensed 700/800 en capitales pour les titres, Inter pour le corps, via `next/font` (téléchargées à la construction, servies depuis le domaine).
 - **Signature ECG** : un composant SVG unique `Ecg` paramétrable (longueur, amplitude) réutilisé en séparateur, loader (animation `stroke-dashoffset`) et état vide.
-- **Mobile-first** : BottomNav (Fil, Galerie, Favoris, Profil), TopBar compacte logo sur blanc. Studio : sidebar desktop, utilisable sur tablette.
+- **Mobile-first** : BottomNav (Fil, Galerie, Favoris, Profil, + Studio pour éditeurs et administrateurs), TopBar en verre avec le logo. Les autres écrans gardent un grand titre (34 px) qui se replie dans la barre au scroll ; le fil n'en a pas (stories puis publications directement). Studio : sidebar desktop, utilisable sur tablette.
 - **Mode sombre** : `prefers-color-scheme` + bascule manuelle dans le profil (classe sur `<html>`), rouge et marine conservés, fonds `#0F1523` / `#161D2E`.
 - **Accessibilité** : contrastes AA vérifiés sur chaque token, focus visibles, `alt` obligatoire dans l'éditeur (champ bloquant), vidéos muettes par défaut avec bouton son.
 
