@@ -10,6 +10,17 @@ export const ORG_NAME = "SDIS 62";
 export const ORG_LONG_NAME =
   "Service Départemental d'Incendie et de Secours du Pas-de-Calais";
 
+/**
+ * Fonctionnalités activables. Le modèle de données reste complet : passer un
+ * drapeau à true réaffiche la fonctionnalité sans migration.
+ */
+export const FEATURES = {
+  categories: false, // puces et champ « catégorie »
+  centers: false, // filtre et champ « centre »
+  tags: false, // champ « tags »
+  authorChoice: true, // choix « Service Communication » / nom de l'éditeur
+} as const;
+
 export const LIMITS = {
   imagesPerPost: 20,
   videoMaxBytes: 200 * 1024 * 1024,
@@ -20,6 +31,10 @@ export const LIMITS = {
   tagsMax: 10,
   passwordMinLength: 10,
 } as const;
+
+export const ACCEPTED_IMAGE_MIMES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"] as const;
+export const ACCEPTED_VIDEO_MIMES = ["video/mp4", "video/quicktime"] as const;
+export const ACCEPTED_EXTENSIONS = ".jpg,.jpeg,.png,.webp,.heic,.heif,.mp4,.mov";
 
 export const REACTIONS = [
   { kind: "clap", emoji: "👏", label: "Bravo" },

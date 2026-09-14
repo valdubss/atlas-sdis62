@@ -13,6 +13,9 @@ export type MediaItem = {
   original_key: string;
   duration_s?: number | null;
   position?: number;
+  /** Aperçu studio : URL locale (blob:) avant/pendant l'upload. */
+  preview_url?: string;
+  poster_preview_url?: string;
 };
 
 export type PollOption = { id: string; label: string; position: number; votes: number };

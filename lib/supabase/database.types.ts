@@ -211,6 +211,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      post_media: {
+        Row: { post_id: string; media_id: string; position: number; alt: string | null; crop: Json | null };
+        Insert: { post_id: string; media_id: string; position?: number; alt?: string | null; crop?: Json | null };
+        Update: { position?: number; alt?: string | null; crop?: Json | null };
+        Relationships: [];
+      };
       media: {
         Row: MediaRow;
         Insert: Optional<MediaRow, "id" | "status" | "variants" | "poster_key" | "width" | "height" | "duration_s" | "alt" | "error" | "created_at" | "updated_at">;
