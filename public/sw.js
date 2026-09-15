@@ -14,7 +14,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== "atlas-media" && k !== "atlas-shell").map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== "atlas-media" && k !== "atlas-shell" && k !== "atlas-directory").map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -45,6 +45,23 @@ self.addEventListener("fetch", (event) => {
             return res;
           }),
       ),
+    );
+    return;
+  }
+
+  // Annuaire hors ligne : données et page, réseau d'abord puis copie en cache
+  // (« atlas-directory », conservé d'une version à l'autre)
+  if (url.pathname === "/api/annuaire/data" || (request.mode === "navigate" && (url.pathname === "/annuaire" || url.pathname === "/annuaire/carte"))) {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open("atlas-directory").then((c) => c.put(url.pathname, copy));
+          }
+          return res;
+        })
+        .catch(async () => (await caches.open("atlas-directory").then((c) => c.match(url.pathname))) || (await caches.open("atlas-shell").then((c) => c.match("/offline"))) || caches.match("/offline")),
     );
     return;
   }

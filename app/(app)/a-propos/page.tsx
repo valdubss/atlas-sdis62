@@ -30,9 +30,11 @@ export default function AProposPage() {
       <section className="rounded-[16px] bg-bg-1 px-5 py-4">
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Données personnelles</h2>
         <p className="mt-2 text-[15px] text-text-2">
-          Seuls votre nom, votre centre ou service et une photo de profil facultative sont enregistrés. Aucun outil de mesure
-          d&apos;audience tiers n&apos;est utilisé. Vous pouvez demander l&apos;export ou la suppression de votre compte auprès du
-          service communication.
+          Seuls votre nom, votre centre ou service et une photo de profil facultative sont enregistrés. Votre fonction, votre
+          téléphone professionnel et votre présence dans l&apos;annuaire ne sont affichés que si vous l&apos;avez choisi dans
+          Profil → Mon centre, et se retirent d&apos;un geste. La carte des centres ne demande votre position qu&apos;au toucher
+          de « Autour de moi » et ne l&apos;enregistre jamais. Aucun outil de mesure d&apos;audience tiers n&apos;est utilisé.
+          Vous pouvez demander l&apos;export ou la suppression de votre compte auprès du service communication.
         </p>
       </section>
 

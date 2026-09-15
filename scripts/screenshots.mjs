@@ -47,6 +47,11 @@ const SCREENS = [
   { name: "feed", path: "/", auth: true },
   { name: "profil", path: "/profil", auth: true },
   { name: "studio", path: "/studio", auth: true },
+  { name: "centre", path: "/centre", auth: true },
+  { name: "annuaire", path: "/annuaire", auth: true },
+  { name: "carte", path: "/annuaire/carte", auth: true },
+  { name: "profil-centre", path: "/profil/centre", auth: true },
+  { name: "statistiques", path: "/studio/statistiques", auth: true, full: true },
   { name: "studio-new", path: "/studio/posts/new", auth: true },
   { name: "dev-ui", path: "/studio/dev-ui", auth: true, full: true },
 ];

@@ -101,6 +101,7 @@ redirige vers `/login`.
 | `0016_centres_enums.sql` | valeurs d'énumération du réseau de référents (rôle `referent`, statuts `pending` / `declined`, `push_center`, `center_type`, `post_scope`) — **à exécuter seule, avant 0017** |
 | `0017_centres.sql` | réseau de référents communication (lot A) : `groupings`, `services`, `center_referents`, `center_follows`, `page_views`, fiche `centers` enrichie, publications et événements de centre (`scope`, validation, `promote_center_post`), RLS référents, `studio_center_stats` |
 | `0018_centre_page.sql` | onglet « Mon centre » (lot B) : `get_center_feed`, lecture des couvertures de centre, `record_page_view`, notification des éditeurs à chaque proposition |
+| `0019_annuaire.sql` | annuaire (lot C) : extensions `pg_trgm` + `unaccent`, `search_directory` (recherche tolérante aux fautes : centres, services, agents ayant choisi d'être visibles), `purge_page_views` (13 mois) |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -329,6 +330,30 @@ npm run import:centres -- docs/import/centres.csv --services docs/import/service
 - Les actus de centre validées n'apparaissent que sur la page du centre. Push
   « Nouveautés de mon centre » réglable dans Profil → Notifications.
 
+**Annuaire (agents)**
+
+- Onglet Annuaire : recherche instantanée (nom, ville, service, agent ; tolérante
+  aux fautes), segments Centres · Services, appel direct (`tel:`), fiche compacte
+  en feuille (adresse, Appeler, Itinéraire, chef, référents, agents visibles).
+- Les agents n'apparaissent que s'ils ont coché « Visible dans l'annuaire » dans
+  Profil → Mon centre (désactivé par défaut) ; ils y renseignent fonction et téléphone
+  professionnel. Aucun numéro personnel. Voir `PRIVACY.md`.
+- **Carte** (`/annuaire/carte`) : MapLibre GL avec les tuiles vectorielles
+  [OpenFreeMap](https://openfreemap.org) (`tiles.openfreemap.org`, gratuites, sans
+  clé, sans traçage, aucun service Google). Marqueurs blancs, rattachement en rouge,
+  tap → fiche. « Autour de moi » demande la position à l'agent au toucher seulement
+  (en-tête `Permissions-Policy: geolocation=(self)`), l'affiche et ne l'enregistre
+  jamais. Pour héberger les tuiles au SDIS : changer `MAP_STYLE` dans
+  `components/annuaire/DirectoryMap.tsx`. Les centres sans `lat` / `lng` n'apparaissent
+  pas : renseignez les adresses (fiche centre) ou lancez l'import CSV, qui géocode.
+- **Hors ligne** : la page Annuaire et `/api/annuaire/data` (centres et services avec
+  numéros et adresses, sans personnes ni photos) sont conservées par le service worker
+  (cache `atlas-directory`, réseau d'abord). Hors connexion, un bandeau indique la
+  date des données ; la carte et les agents nécessitent le réseau.
+- Studio → Statistiques : section « Centres » (référents actifs, propositions par
+  mois, centres silencieux depuis 60 jours, consultations des pages de centre et de
+  l'annuaire).
+
 **Vérifier les règles de sécurité**
 
 ```bash
@@ -486,4 +511,6 @@ variables de `.env.local` dans **Settings → Environment Variables**, définir
 | `npm run screenshots` | captures de référence Playwright (dev server lancé) |
 | `npm run import:centres -- <centres.csv> [--services services.csv] [--dry-run]` | import CSV des groupements, centres et services (géocodage BAN) |
 | `npm run test:rls` | test des règles RLS du réseau de référents (comptes temporaires, nettoyés) |
+| `npm run test:unit` | tests unitaires Vitest (`tests/unit` : génération `.ics`, recherche de l'annuaire contre la base liée) |
+| `npm run test:e2e` | tests de bout en bout Playwright (`tests/e2e` : parcours référent → validation → page du centre ; annuaire). Serveur lancé et `.env.local` requis ; `E2E_ADMIN_EMAIL` pour le compte éditeur (sinon première adresse de `ALLOWED_EMAILS`) |
 | `npm run vapid` | génère une paire de clés VAPID pour les push |

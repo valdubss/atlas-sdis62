@@ -561,6 +561,8 @@ export type Database = {
       is_referent_of: { Args: { p_center_id: string }; Returns: boolean };
       get_center_feed: { Args: { p_center_id: string; p_limit?: number; p_cursor_at?: string | null; p_cursor_id?: string | null }; Returns: Json[] };
       record_page_view: { Args: { p_kind: string; p_target?: string | null }; Returns: undefined };
+      search_directory: { Args: { p_q: string; p_limit?: number }; Returns: Json };
+      purge_page_views: { Args: Record<string, never>; Returns: undefined };
       is_referent: { Args: Record<string, never>; Returns: boolean };
       promote_center_post: { Args: { p_post_id: string }; Returns: string };
       mark_notifications_read: { Args: Record<string, never>; Returns: number };

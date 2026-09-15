@@ -17,6 +17,8 @@ import { FollowButton } from "@/components/centre/FollowButton";
 import { ProposeFab } from "@/components/centre/ProposeSheet";
 import { InfiniteFeed } from "@/components/feed/InfiniteFeed";
 import { PullToRefresh } from "@/components/feed/PullToRefresh";
+import { CenterTeam } from "@/components/centre/CenterTeam";
+import { fetchTeam } from "@/lib/centres/directory";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +41,7 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
   const { profile } = current;
   const supabase = await createClient();
 
-  const [week, newcomers, photos, posts, follows, referent, unread, home] = await Promise.all([
+  const [week, newcomers, photos, posts, follows, referent, unread, home, team] = await Promise.all([
     fetchCenterWeek(center.id),
     fetchNewcomers(center.id),
     fetchCenterPhotos(center.id),
@@ -48,6 +50,7 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
     isReferentOf(profile.id, center.id),
     fetchUnreadCount(),
     profile.center_id ? supabase.from("centers").select("id, slug, name, type, city, grouping_id").eq("id", profile.center_id).maybeSingle().then((r) => r.data) : Promise.resolve(null),
+    fetchTeam("center", center.id),
   ]);
   void supabase.rpc("record_page_view", { p_kind: "center", p_target: center.id }).then(() => undefined, () => undefined);
 
@@ -71,6 +74,7 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
           <CenterIdentity center={center} />
           <CenterWeek events={week} />
           <CenterNewcomers people={newcomers} />
+          <CenterTeam people={team} />
           <section className="space-y-2">
             <h2 className="px-1 text-[17px] font-semibold tracking-[-0.02em] text-text-1">Actus du centre</h2>
             <InfiniteFeed

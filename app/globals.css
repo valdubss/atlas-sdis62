@@ -301,3 +301,41 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
 .prose-atlas hr { border: 0; border-top: 1px solid var(--line); }
 .prose-atlas table { width: 100%; border-collapse: collapse; font-size: 15px; }
 .prose-atlas th, .prose-atlas td { border-bottom: 1px solid var(--line); padding: 0.4em 0.6em; text-align: left; }
+
+/* Carte de l'annuaire (MapLibre) : marqueurs blancs, rattachement en rouge, position de l'agent */
+.atlas-marker {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 2px solid rgba(0, 0, 0, 0.55);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+.atlas-marker-home {
+  width: 18px;
+  height: 18px;
+  background: var(--red);
+  border-color: #fff;
+}
+.atlas-marker-me {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #3b82f6;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.25);
+}
+.maplibregl-ctrl-attrib {
+  font-size: 10px;
+}
+.maplibregl-ctrl-group {
+  background: var(--glass-fallback) !important;
+}
+.maplibregl-ctrl-group button + button {
+  border-top-color: var(--glass-edge) !important;
+}
+.maplibregl-ctrl button .maplibregl-ctrl-icon {
+  filter: invert(1);
+}

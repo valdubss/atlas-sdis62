@@ -14,6 +14,8 @@
     "screenshots": "node scripts/screenshots.mjs",
     "import:centres": "node --experimental-websocket scripts/import-centres.mjs",
     "test:rls": "node --experimental-websocket scripts/test-rls.mjs",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
     "vapid": "web-push generate-vapid-keys"
   },
   "dependencies": {
@@ -24,6 +26,7 @@
     "framer-motion": "^13.2.0",
     "heic2any": "^0.0.4",
     "lucide-react": "^1.46.0",
+    "maplibre-gl": "^5.24.0",
     "mp4-muxer": "^5.2.2",
     "next": "15.5.25",
     "nodemailer": "^10.0.10",
@@ -48,7 +51,8 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.25",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=20"

@@ -157,6 +157,7 @@ export async function runMaintenance(): Promise<{ requeued: number; orphanMedia:
   await admin.rpc("purge_rate_limit_events");
   await admin.rpc("purge_notification_queue");
   await admin.rpc("purge_notifications");
+  await admin.rpc("purge_page_views").then(({ error }) => error && console.error("purge consultations", error.message));
   // Rappels d'événements de demain (notification dans l'app, pas de push)
   await admin.rpc("notify_events_tomorrow").then(({ error }) => error && console.error("rappels agenda", error.message));
   const { data: orphans } = await admin.rpc("purge_orphan_media");

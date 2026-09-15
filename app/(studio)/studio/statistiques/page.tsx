@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { CenterStats, type CenterStatsData } from "@/components/studio/CenterStats";
 
 export const metadata: Metadata = { title: "Statistiques" };
 export const dynamic = "force-dynamic";
@@ -26,8 +27,9 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   const { jours } = await searchParams;
   const days = PERIODS.includes(Number(jours)) ? Number(jours) : 30;
   const supabase = await createClient();
-  const { data } = await supabase.rpc("studio_post_stats", { p_days: days });
+  const [{ data }, { data: centerData }] = await Promise.all([supabase.rpc("studio_post_stats", { p_days: days }), supabase.rpc("studio_center_stats", { p_days: days })]);
   const s = (data ?? null) as unknown as Stats | null;
+  const cs = (centerData ?? null) as unknown as CenterStatsData | null;
   if (!s) return <p className="text-[15px] text-text-2">Statistiques indisponibles.</p>;
 
   const hours = Array.from({ length: 24 }, (_, h) => s.by_hour.find((x) => x.hour === h)?.views ?? 0);
@@ -95,6 +97,8 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
       </section>
+
+      {cs && <CenterStats s={cs} days={days} />}
 
       <section className="space-y-3">
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">

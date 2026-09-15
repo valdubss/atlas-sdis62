@@ -23,7 +23,8 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
+    // geolocation=(self) : « Autour de moi » sur la carte de l'annuaire, à la demande seulement
+    value: "camera=(), microphone=(), geolocation=(self), interest-cohort=()",
   },
 ];
 

@@ -8,6 +8,8 @@ import { TopBar } from "@/components/layout/TopBar";
 import { Avatar } from "@/components/ui/Avatar";
 import { Markdown } from "@/components/feed/Markdown";
 import { telHref } from "@/lib/geo/maps";
+import { CenterTeam } from "@/components/centre/CenterTeam";
+import { fetchTeam } from "@/lib/centres/directory";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +26,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
   const service = await fetchServiceBySlug(slug);
   if (!service) notFound();
   const isHome = current.profile.service_id === service.id;
+  const team = await fetchTeam("service", service.id);
 
   return (
     <div className="space-y-3">
@@ -94,6 +97,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
         )}
         {!service.manager && !service.phone && !service.email && !service.address && <p className="text-[15px] text-text-2">Coordonnées à compléter par le service communication.</p>}
       </section>
+      <CenterTeam people={team} title="Équipe" />
     </div>
   );
 }
