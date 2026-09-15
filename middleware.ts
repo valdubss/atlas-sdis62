@@ -11,8 +11,8 @@ export const config = {
      * Tout sauf :
      *  - _next/static, _next/image
      *  - favicon, manifest, icônes, images publiques
-     *  - routes API cron (protégées par CRON_SECRET)
+     *  - routes API cron (protégées par CRON_SECRET) et vidéo (session lue par la route, ou CRON_SECRET)
      */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icons/|api/cron/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|icons/|api/cron/|api/video/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

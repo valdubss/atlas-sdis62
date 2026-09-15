@@ -28,6 +28,7 @@ export const LIMITS = {
   videoMaxBytes: UPLOAD_MAX_MB * 1024 * 1024,
   imageMaxBytes: Math.min(30, UPLOAD_MAX_MB) * 1024 * 1024,
   storyVideoMaxSeconds: 30,
+  postVideoMaxSeconds: 300,
   commentMaxLength: 1000,
   pinnedMax: 3,
   tagsMax: 10,

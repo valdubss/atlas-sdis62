@@ -8,7 +8,7 @@ import { FEATURES, type ReactionKind } from "@/lib/config";
 import { formatRelative } from "@/lib/format";
 import { haptic } from "@/lib/motion";
 import { cn } from "@/lib/cn";
-import { reactToPost, toggleBookmark } from "@/app/(app)/feed-actions";
+import { reactToPost, recordVideoProgress, toggleBookmark } from "@/app/(app)/feed-actions";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Sheet } from "@/components/ui/Sheet";
@@ -138,6 +138,7 @@ export function PostCard({
             controls={variant === "full"}
             autoplay={!preview}
             onDoubleTap={onDoubleTap}
+            onProgress={preview ? undefined : (pct) => void recordVideoProgress(shown.id, pct)}
             rounded={false}
           />
         )}

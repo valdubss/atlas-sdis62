@@ -35,6 +35,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: (JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as { version: string }).version,
   },
   reactStrictMode: true,
+  // ffmpeg embarqué (transcodage HLS) : binaire hors bundle, inclus dans le déploiement
+  serverExternalPackages: ["ffmpeg-static"],
+  outputFileTracingIncludes: { "/api/video/**": ["./node_modules/ffmpeg-static/ffmpeg*"] },
   // Les pages visitées restent 30 s dans le cache du routeur : changer d'onglet
   // et revenir est instantané ; tirer-pour-actualiser force le rechargement.
   experimental: { staleTimes: { dynamic: 30, static: 180 } },

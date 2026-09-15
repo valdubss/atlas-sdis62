@@ -158,6 +158,20 @@ export async function runMaintenance(): Promise<{ requeued: number; orphanMedia:
   await admin.rpc("purge_notification_queue");
   await admin.rpc("purge_notifications");
   await admin.rpc("purge_page_views").then(({ error }) => error && console.error("purge consultations", error.message));
+  // Vidéos : jobs en attente ou bloqués (> 10 min), 3 tentatives, un média par passage
+  const { data: pendingVideo } = await admin
+    .from("media")
+    .select("id")
+    .eq("kind", "video")
+    .in("video_status", ["uploaded", "processing"])
+    .lt("transcode_attempts", 3)
+    .lt("updated_at", new Date(Date.now() - 10 * 60_000).toISOString())
+    .order("updated_at", { ascending: true })
+    .limit(1);
+  if (pendingVideo?.[0]) {
+    const { getVideoProvider } = await import("@/lib/video/provider");
+    await (await getVideoProvider()).run(pendingVideo[0].id, 40_000).catch((e) => console.error("transcodage", e));
+  }
   // Rappels d'événements de demain (notification dans l'app, pas de push)
   await admin.rpc("notify_events_tomorrow").then(({ error }) => error && console.error("rappels agenda", error.message));
   const { data: orphans } = await admin.rpc("purge_orphan_media");

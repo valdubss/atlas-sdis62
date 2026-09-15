@@ -86,7 +86,7 @@ export function MediaUploader({
 
         try {
           const prepared = await prepareFile(file, {
-            maxDurationS: accept === "story" ? LIMITS.storyVideoMaxSeconds : undefined,
+            maxDurationS: accept === "story" ? LIMITS.storyVideoMaxSeconds : LIMITS.postVideoMaxSeconds,
             onProgress: (progress, label) => patch(tempId, { progress, label }),
           });
           if (accept === "story" && prepared.kind === "video" && (prepared.duration ?? 0) > LIMITS.storyVideoMaxSeconds + 0.5) {

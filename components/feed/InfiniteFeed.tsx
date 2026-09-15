@@ -75,13 +75,15 @@ export function InfiniteFeed({
   return (
     <div className="space-y-3">
       {posts.map((p, i) => {
-        const cascade = !reduced && firstIds.current.has(p.id);
+        // Même rendu serveur et client (pas d'écart d'hydratation quand « réduire les animations » est actif) :
+        // l'entrée est toujours déclarée, seule la transition devient instantanée.
+        const cascade = firstIds.current.has(p.id);
         return (
           <motion.div
             key={p.id}
             initial={cascade ? { opacity: 0, y: 8 } : false}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ ...SPRING, delay: cascade ? Math.min(i, 8) * 0.04 : 0 }}
+            transition={reduced ? { duration: 0 } : { ...SPRING, delay: cascade ? Math.min(i, 8) * 0.04 : 0 }}
           >
             <PostCard post={p} canModerate={canModerate} />
           </motion.div>

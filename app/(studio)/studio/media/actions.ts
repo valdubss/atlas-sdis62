@@ -151,9 +151,10 @@ export async function finalizeMedia(mediaId: string): Promise<{ ok: true; media:
     } catch (e) {
       console.error("faststart", e);
     }
+    const orientation = row.width && row.height ? (row.width > row.height ? "landscape" : row.width < row.height ? "portrait" : "square") : null;
     const { data, error: updateError } = await supabase
       .from("media")
-      .update({ status: "ready", error: null })
+      .update({ status: "ready", error: null, video_status: "uploaded", orientation })
       .eq("id", mediaId)
       .select("*")
       .single();
@@ -217,5 +218,8 @@ function toItem(row: Tables<"media">): MediaItem {
     mime: row.mime,
     original_key: row.original_key,
     duration_s: row.duration_s,
+    orientation: row.orientation,
+    hls_key: row.hls_key,
+    video_status: row.video_status,
   };
 }

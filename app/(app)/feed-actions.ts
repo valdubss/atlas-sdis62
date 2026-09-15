@@ -43,6 +43,11 @@ export async function votePoll(postId: string, optionId: string): Promise<{ ok: 
   return { ok: true, poll: data as unknown as Poll };
 }
 
+export async function recordVideoProgress(postId: string, pct: number) {
+  const supabase = await createClient();
+  await supabase.rpc("record_video_progress", { p_post_id: postId, p_pct: Math.round(pct) });
+}
+
 export async function recordView(postId: string) {
   const supabase = await createClient();
   await supabase.rpc("record_post_view", { p_post_id: postId });

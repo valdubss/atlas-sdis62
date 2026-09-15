@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { CenterStats, type CenterStatsData } from "@/components/studio/CenterStats";
+import { VideoStats, type VideoStatRow } from "@/components/studio/VideoStats";
 
 export const metadata: Metadata = { title: "Statistiques" };
 export const dynamic = "force-dynamic";
@@ -27,9 +28,10 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   const { jours } = await searchParams;
   const days = PERIODS.includes(Number(jours)) ? Number(jours) : 30;
   const supabase = await createClient();
-  const [{ data }, { data: centerData }] = await Promise.all([supabase.rpc("studio_post_stats", { p_days: days }), supabase.rpc("studio_center_stats", { p_days: days })]);
+  const [{ data }, { data: centerData }, { data: videoData }] = await Promise.all([supabase.rpc("studio_post_stats", { p_days: days }), supabase.rpc("studio_center_stats", { p_days: days }), supabase.rpc("studio_video_stats", { p_days: days })]);
   const s = (data ?? null) as unknown as Stats | null;
   const cs = (centerData ?? null) as unknown as CenterStatsData | null;
+  const vs = ((videoData ?? []) as unknown as VideoStatRow[]) ?? [];
   if (!s) return <p className="text-[15px] text-text-2">Statistiques indisponibles.</p>;
 
   const hours = Array.from({ length: 24 }, (_, h) => s.by_hour.find((x) => x.hour === h)?.views ?? 0);
@@ -98,6 +100,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
         </div>
       </section>
 
+      <VideoStats rows={vs} />
       {cs && <CenterStats s={cs} days={days} />}
 
       <section className="space-y-3">

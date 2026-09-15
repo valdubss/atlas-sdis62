@@ -1,0 +1,52 @@
+name: Qualité
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    name: Types, lint, tests unitaires
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:unit
+
+  lighthouse:
+    name: Lighthouse mobile (≥ 90)
+    runs-on: ubuntu-latest
+    needs: verify
+    env:
+      # Variables factices : la page de connexion se rend sans appel réseau
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      SUPABASE_SERVICE_ROLE_KEY: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx next start -p 3000 &
+      - run: npx wait-on http://localhost:3000/login --timeout 60000
+      - name: Lighthouse CI
+        run: |
+          npx --yes @lhci/cli@0.14.0 autorun \
+            --collect.url=http://localhost:3000/login \
+            --collect.numberOfRuns=2 \
+            --collect.settings.preset=perf \
+            --collect.settings.emulatedFormFactor=mobile \
+            --assert.assertions.categories:performance=error:0.9 \
+            --assert.assertions.categories:accessibility=error:0.9 \
+            --upload.target=temporary-public-storage

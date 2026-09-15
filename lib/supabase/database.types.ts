@@ -137,7 +137,29 @@ type MediaRow = {
   duration_s: number | null;
   alt: string;
   error: string | null;
+  video_status: "uploaded" | "processing" | "ready" | "failed" | null;
+  video_error: string | null;
+  orientation: "portrait" | "landscape" | "square" | null;
+  hls_key: string | null;
+  renditions: Json;
+  hls_files: string[];
+  poster_source: "auto" | "upload" | "timecode";
+  poster_time_s: number | null;
+  transcode_started_at: Timestamp | null;
+  transcode_attempts: number;
   created_at: Timestamp;
+  updated_at: Timestamp;
+};
+
+export type MediaSubtitleRow = {
+  id: string;
+  media_id: string;
+  lang: string;
+  source: "upload" | "auto" | "manual";
+  cues: Json;
+  vtt_key: string | null;
+  status: "draft" | "published";
+  updated_by: string | null;
   updated_at: Timestamp;
 };
 
@@ -505,8 +527,14 @@ export type Database = {
       };
       media: {
         Row: MediaRow;
-        Insert: Optional<MediaRow, "id" | "status" | "variants" | "poster_key" | "width" | "height" | "duration_s" | "alt" | "error" | "created_at" | "updated_at">;
+        Insert: Optional<MediaRow, "id" | "status" | "variants" | "poster_key" | "width" | "height" | "duration_s" | "alt" | "error" | "created_at" | "updated_at" | "video_status" | "video_error" | "orientation" | "hls_key" | "renditions" | "hls_files" | "poster_source" | "poster_time_s" | "transcode_started_at" | "transcode_attempts">;
         Update: Partial<MediaRow>;
+        Relationships: [];
+      };
+      media_subtitles: {
+        Row: MediaSubtitleRow;
+        Insert: Optional<MediaSubtitleRow, "id" | "lang" | "source" | "cues" | "vtt_key" | "status" | "updated_by" | "updated_at">;
+        Update: Partial<MediaSubtitleRow>;
         Relationships: [];
       };
       audit_log: {
@@ -562,6 +590,8 @@ export type Database = {
       get_center_feed: { Args: { p_center_id: string; p_limit?: number; p_cursor_at?: string | null; p_cursor_id?: string | null }; Returns: Json[] };
       record_page_view: { Args: { p_kind: string; p_target?: string | null }; Returns: undefined };
       search_directory: { Args: { p_q: string; p_limit?: number }; Returns: Json };
+      record_video_progress: { Args: { p_post_id: string; p_pct: number }; Returns: undefined };
+      studio_video_stats: { Args: { p_days?: number }; Returns: Json };
       purge_page_views: { Args: Record<string, never>; Returns: undefined };
       is_referent: { Args: Record<string, never>; Returns: boolean };
       promote_center_post: { Args: { p_post_id: string }; Returns: string };

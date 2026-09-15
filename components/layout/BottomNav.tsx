@@ -3,16 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BookUser, Flame, Newspaper, SquarePen, User } from "lucide-react";
-import { useRole } from "./RoleContext";
+import { BookUser, Flame, Newspaper, User } from "lucide-react";
 import { NAV_ITEMS } from "@/lib/config";
 import { cn } from "@/lib/cn";
 
-const ICONS = { feed: Newspaper, center: Flame, directory: BookUser, user: User, studio: SquarePen } as const;
+const ICONS = { feed: Newspaper, center: Flame, directory: BookUser, user: User } as const;
 
 /**
- * Barre basse flottante en verre : 4 entrées (+ « Studio » pour les éditeurs),
- * icône 22 px + libellé 11 px, entrée active en --text-1 sans fond ni pastille.
+ * Barre basse flottante en verre : 4 entrées pour tous (le Studio se crée depuis
+ * le « + » de la barre haute), icône 22 px + libellé 11 px, entrée active en
+ * --text-1 sans fond ni pastille.
  * Toujours visible, décollée des bords et de la zone de sécurité (façon Instagram).
  */
 export function BottomNav() {
@@ -22,15 +22,14 @@ export function BottomNav() {
   useEffect(() => {
     setPendingHref(null);
   }, [pathname]);
-  const { canEdit } = useRole();
-  const items: { href: string; label: string; icon: keyof typeof ICONS }[] = canEdit ? [...NAV_ITEMS, { href: "/studio", label: "Studio", icon: "studio" }] : [...NAV_ITEMS];
+  const items: { href: string; label: string; icon: keyof typeof ICONS }[] = [...NAV_ITEMS];
 
   return (
     <nav
       aria-label="Navigation principale"
       className="glass-float fixed inset-x-4 bottom-[max(env(safe-area-inset-bottom),12px)] z-30 mx-auto max-w-[560px] rounded-[28px]"
     >
-      <ul className={cn("grid", canEdit ? "grid-cols-5" : "grid-cols-4")}>
+      <ul className="grid grid-cols-4">
         {items.map((item) => {
           const current = pendingHref ?? pathname;
           const active = item.href === "/" ? current === "/" : item.href === "/centre" ? current.startsWith("/centre") || current.startsWith("/service") : current.startsWith(item.href);

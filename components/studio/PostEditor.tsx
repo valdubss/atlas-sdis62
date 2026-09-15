@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { CheckboxField, Field, SelectField, TextareaField } from "@/components/ui/Field";
 import { Badge } from "@/components/ui/Badge";
 import { PostCard } from "@/components/feed/PostCard";
+import { VideoPanel } from "@/components/studio/VideoPanel";
 import { MediaUploader, type EditorMedia } from "./MediaUploader";
 import { cn } from "@/lib/cn";
 
@@ -39,8 +40,11 @@ export function PostEditor({
   centers,
   authorName,
   notice,
+  defaultType,
 }: {
   post: FeedPost | null;
+  /** Type présélectionné pour une nouvelle publication (menu « + ») */
+  defaultType?: EditorPostType;
   categories: Ref[];
   centers: Ref[];
   authorName: string;
@@ -51,7 +55,7 @@ export function PostEditor({
   const fields = state.status === "error" ? state.fields ?? {} : {};
 
   const initialType: EditorPostType =
-    post && (["text", "photo", "video", "article", "poll"] as string[]).includes(post.type) ? (post.type as EditorPostType) : "photo";
+    post && (["text", "photo", "video", "article", "poll"] as string[]).includes(post.type) ? (post.type as EditorPostType) : (defaultType ?? "photo");
 
   const [type, setType] = useState<EditorPostType>(initialType);
   const [title, setTitle] = useState(post?.title ?? "");
@@ -195,6 +199,11 @@ export function PostEditor({
         {type !== "text" && type !== "poll" && (
           <section className="rounded-[16px] bg-bg-1 p-5">
             <MediaUploader items={media} onChange={setMedia} accept={uploaderAccept} />
+            {type === "video" && media[0] && media[0].kind === "video" && media[0].status === "ready" && !media[0].id.startsWith("tmp-") && (
+              <div className="mt-4">
+                <VideoPanel mediaId={media[0].id} />
+              </div>
+            )}
             {fields.media && (
               <p className="mt-2 text-[13px] text-red-text" role="alert">
                 {fields.media}

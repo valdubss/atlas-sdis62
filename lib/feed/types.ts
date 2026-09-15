@@ -13,6 +13,11 @@ export type MediaItem = {
   original_key: string;
   duration_s?: number | null;
   position?: number;
+  /** Vidéo : orientation détectée, playlist HLS, état du transcodage, sous-titres publiés */
+  orientation?: "portrait" | "landscape" | "square" | null;
+  hls_key?: string | null;
+  video_status?: "uploaded" | "processing" | "ready" | "failed" | null;
+  subtitles_key?: string | null;
   /** Aperçu studio : URL locale (blob:) avant/pendant l'upload. */
   preview_url?: string;
   poster_preview_url?: string;

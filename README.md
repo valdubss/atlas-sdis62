@@ -102,6 +102,7 @@ redirige vers `/login`.
 | `0017_centres.sql` | réseau de référents communication (lot A) : `groupings`, `services`, `center_referents`, `center_follows`, `page_views`, fiche `centers` enrichie, publications et événements de centre (`scope`, validation, `promote_center_post`), RLS référents, `studio_center_stats` |
 | `0018_centre_page.sql` | onglet « Mon centre » (lot B) : `get_center_feed`, lecture des couvertures de centre, `record_page_view`, notification des éditeurs à chaque proposition |
 | `0019_annuaire.sql` | annuaire (lot C) : extensions `pg_trgm` + `unaccent`, `search_directory` (recherche tolérante aux fautes : centres, services, agents ayant choisi d'être visibles), `purge_page_views` (13 mois) |
+| `0020_video.sql` | vidéo (lot 1 v3) : états `video_status`, orientation, HLS (`hls_key`, `renditions`, `hls_files`), poster (auto / image / timecode), `media_subtitles`, paliers de lecture (`post_views.progress`, `record_video_progress`, `studio_video_stats`), purge des fichiers HLS |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -408,6 +409,33 @@ scripts/extract-colors.mjs extraction des couleurs du logo
 docs/ARCHITECTURE.md       plan d'architecture
 ```
 
+## 7a. Vidéo : transcodage HLS, poster, sous-titres
+
+- **Chaîne** : compression sur l'appareil (H.264 1080p, déjà en place) → envoi →
+  `POST /api/video/transcode` (ffmpeg embarqué via `ffmpeg-static`, `maxDuration 300`)
+  qui produit un HLS fMP4 multi-qualité (`hls/<id>/master.m3u8`, rendus 1080p / 720p /
+  360p, jamais au-dessus de la source) **par étapes** dans un budget de temps : le rendu
+  source est disponible en quelques secondes (`video_status = ready`), les qualités
+  inférieures suivent, relancées par le studio ou par le cron quotidien (jobs bloqués
+  > 10 min, 3 tentatives). États visibles dans le studio : `uploaded`, `processing`,
+  `ready`, `failed` (avec la raison, bouton « Relancer »). Vidéos de post ≤ 5 min,
+  stories ≤ 30 s. Le MP4 compressé reste servi en repli.
+- **Bascule Bunny Stream** : `VIDEO_PROVIDER=bunny` + `BUNNY_*` (contrat identique,
+  `lib/video/bunny.ts`), si l'hébergement Vercel ne permettait plus le transcodage.
+- **Poster** : image extraite à 1 s automatiquement ; remplaçable dans le studio par
+  une image ou par un instant (timecode).
+- **Sous-titres** : import `.vtt` / `.srt` dans le studio, édition ligne par ligne,
+  publication explicite ; affichés par défaut quand le son est coupé. Génération
+  automatique **optionnelle** : `TRANSCRIPTION_API_URL` (défaut OpenAI), `TRANSCRIPTION_API_KEY`,
+  `TRANSCRIPTION_MODEL` (défaut `whisper-1`) — tout fournisseur compatible
+  `audio/transcriptions` (Groq propose un quota gratuit : `https://api.groq.com/openai/v1/audio/transcriptions`,
+  modèle `whisper-large-v3-turbo`). Sans clé, le bouton « Générer » n'apparaît pas.
+- **Lecteur** : `hls.js` (natif sur Safari), lecture au tap, muet par défaut avec bouton
+  son, plein écran natif, reprise à la position (locale), vitesse 1× / 1,25× / 1,5×,
+  cadre selon l'orientation détectée à l'upload.
+- **Mesure** : paliers 25 / 50 / 75 / 100 % par agent et par vidéo, sans horodatage
+  fin (`post_views.progress`), visibles dans Studio → Statistiques.
+
 ## 7b. Notifications push, PWA et digest
 
 - **PWA** : `app/manifest.ts`, icônes dans `public/icons/`, service worker `public/sw.js`
@@ -512,5 +540,5 @@ variables de `.env.local` dans **Settings → Environment Variables**, définir
 | `npm run import:centres -- <centres.csv> [--services services.csv] [--dry-run]` | import CSV des groupements, centres et services (géocodage BAN) |
 | `npm run test:rls` | test des règles RLS du réseau de référents (comptes temporaires, nettoyés) |
 | `npm run test:unit` | tests unitaires Vitest (`tests/unit` : génération `.ics`, recherche de l'annuaire contre la base liée) |
-| `npm run test:e2e` | tests de bout en bout Playwright (`tests/e2e` : parcours référent → validation → page du centre ; annuaire). Serveur lancé et `.env.local` requis ; `E2E_ADMIN_EMAIL` pour le compte éditeur (sinon première adresse de `ALLOWED_EMAILS`) |
+| `npm run test:e2e` | tests de bout en bout Playwright (`tests/e2e` : parcours référent → validation → page du centre ; annuaire ; publication d'une vidéo avec sous-titres). Serveur lancé et `.env.local` requis ; `E2E_ADMIN_EMAIL` pour le compte éditeur (sinon première adresse de `ALLOWED_EMAILS`) |
 | `npm run vapid` | génère une paire de clés VAPID pour les push |

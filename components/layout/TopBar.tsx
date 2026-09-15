@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
 import { Logo } from "@/components/brand/Logo";
+import { CreateMenu } from "./CreateMenu";
 
 /**
  * Barre haute en verre. Transparente au repos ; quand le grand titre de la page
@@ -45,7 +46,10 @@ export function TopBar({ title, right, leading }: { title?: string; right?: Reac
             {title}
           </span>
         )}
-        <div className="flex items-center gap-1">{right}</div>
+        <div className="flex items-center gap-1">
+          {right}
+          <CreateMenu />
+        </div>
       </div>
     </header>
   );

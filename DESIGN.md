@@ -245,3 +245,18 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
 - Notifications (`NotificationSettings`, `SettingsPanel`) : rangées à interrupteur façon Réglages, aucune icône, chiffres du studio en cartes `--bg-1`.
 - Accueil de première connexion (`Onboarding`) : trois écrans plein cadre, icône Lucide 40 px en `--text-2`, titre 34, progression 2 px en haut, un seul bouton rouge par écran.
 - Signalement (`FeedbackForm`) : catégorie en liste à radio (rangées `--bg-1`, disque `--text-1`), description, capture facultative.
+
+## Lecteur vidéo (lot 1 v3)
+
+- Cadre : ratio natif de la vidéo (portrait → 4:5 dans le fil, plein en page), jamais
+  de bandes ajoutées ; coins 28 px dans le fil, bord à bord dans l'overlay.
+- Repos : poster + disque 56 px `rgba(0,0,0,.45)` avec triangle blanc centré.
+- Commandes en bas à droite, disques 36 px `rgba(0,0,0,.45)` : vitesse (page seulement),
+  sous-titres, son, plein écran. Aucune barre de progression propre : contrôles natifs
+  en page de lecture, rien d'autre dans le fil.
+- Muet par défaut ; couper / remettre le son bascule les sous-titres (affichés quand muet).
+- Étiquette « Qualité en cours d'optimisation » 11 px en haut à gauche tant que les
+  rendus inférieurs ne sont pas prêts.
+- Bouton « + » de la barre haute (éditeurs) : carré 28 px liseré 1 px, icône plus 18 px,
+  ouvre une feuille « Créer » (publication, vidéo, story, sondage, événement, flash,
+  Studio). La barre basse reste à 4 entrées pour tous.
