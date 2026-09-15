@@ -426,10 +426,15 @@ docs/ARCHITECTURE.md       plan d'architecture
   fournis (même fichier, même format). Le centre de rattachement de l'agent est en rouge.
 - **Trois modes** (segments au-dessus de la carte, mémorisés sur l'appareil) et « Autour de moi » à côté :
   - **Carte** : centres et groupements seulement.
-  - **Météo** : vue départementale, sans détail par centre : bandeau de vigilance Météo-France (API
-    officielle si `METEOFRANCE_API_KEY`, sinon relais open data), fourchette de température, vent et
-    rafales, pluie en cours, indice feu de végétation (Angström, estimation), qualité de l'air, cours
-    d'eau en hausse (Hub'Eau), littoral (houle, prochaines marées via Open-Meteo Marine).
+  - **Météo** : couche sur tout le département, détail selon le zoom. Un maillage Open-Meteo
+    (pas de 0,15°, 77 points, un appel groupé, cache 15 min) colore la carte par température
+    (cellules de Voronoï) ; dézoomé, une synthèse par groupement (moyenne des points du polygone) ;
+    aux zooms moyens, une étiquette par point de maillage (température, vent, flèche, pluie) ;
+    zoomé, une étiquette par commune (chef-lieu de geo.api.gouv.fr rattaché au point le plus
+    proche, communes les plus peuplées d'abord, MapLibre masque les chevauchements). Bandeau de
+    vigilance Météo-France (API officielle si `METEOFRANCE_API_KEY`, sinon relais open data) et,
+    sous la carte, la synthèse départementale (température, vent, pluie, indice feu, air, cours
+    d'eau Hub'Eau, littoral Open-Meteo Marine).
   - **Drone** (équipe de télépilotes) : zones de restriction UAS de l'IGN (WMS Géoplateforme, sans clé)
     superposées et, sous chaque centre, une étiquette de verdict « favorable / prudence / déconseillé »
     calculé sur le vent à 10 / 80 / 120 m, les rafales, la visibilité, la pluie et le jour / la nuit

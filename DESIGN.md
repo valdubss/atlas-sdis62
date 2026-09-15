@@ -371,3 +371,7 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
   couche est active.
 - Menu « Couches » : bouton de verre sous « Autour de moi », feuille haute avec groupes en
   capitales 13 px et interrupteurs.
+- Couche météo : cellules de température à 28 % (bleu `#5b7bd6` −5 °C → vert `#5dbe7a`
+  12 °C → jaune `#e5c93c` 20 °C → orange `#f08a24` 27 °C → rouge `#e4213a` 34 °C), étiquettes
+  Noto Sans Bold blanches avec halo sombre : 14 px par groupement (zoom < 8,6), 12 px par point
+  de maillage (8,6–10,6), 12 px sur deux lignes par commune (≥ 10,6).

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { angstrom, trend } from "@/lib/carte/drone";
-import { SEA_POINTS, VIGILANCE_ORDER, type CenterWeather, type LiveLayers, type RiverStation, type SeaPoint, type TrafficEvent, type TrafficLayer, type VigilanceColor, type VigilanceLayer } from "@/lib/carte/live";
+import { SEA_POINTS, VIGILANCE_ORDER, type CenterWeather, type CommunePoint, type GridPoint, type LiveLayers, type RiverStation, type SeaPoint, type TrafficEvent, type TrafficLayer, type VigilanceColor, type VigilanceLayer } from "@/lib/carte/live";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -40,45 +40,71 @@ async function vigilance(): Promise<VigilanceLayer> {
   return { source: "opendatasoft", updated_at: data.results[0]?.product_datetime ?? null, max, items };
 }
 
-// ---- Météo et qualité de l'air par centre (Open-Meteo, un appel groupé) ----
-async function weather(centers: { id: string; lat: number; lng: number }[]): Promise<CenterWeather[]> {
+// ---- Météo : maillage du département (Open-Meteo, un appel groupé), air par centre ----
+const GRID_STEP = 0.15;
+const GRID_BOUNDS = { minLat: 50.0, maxLat: 51.05, minLng: 1.55, maxLng: 3.2 };
+function gridCoords(): { lat: number; lng: number }[] {
+  const out: { lat: number; lng: number }[] = [];
+  for (let lat = GRID_BOUNDS.minLat; lat <= GRID_BOUNDS.maxLat + 1e-9; lat += GRID_STEP) for (let lng = GRID_BOUNDS.minLng; lng <= GRID_BOUNDS.maxLng + 1e-9; lng += GRID_STEP) out.push({ lat: Math.round(lat * 1000) / 1000, lng: Math.round(lng * 1000) / 1000 });
+  return out;
+}
+function nearestIndex(pts: { lat: number; lng: number }[], lat: number, lng: number): number {
+  let best = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < pts.length; i++) {
+    const d = (pts[i].lat - lat) ** 2 + ((pts[i].lng - lng) * 0.64) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
+  }
+  return best;
+}
+
+type OM = { current: { time: string; temperature_2m: number; relative_humidity_2m: number; wind_speed_10m: number; wind_gusts_10m: number; wind_direction_10m: number; precipitation: number; visibility?: number; cloud_cover: number; is_day: number; weather_code?: number }; hourly: { time: string[]; wind_speed_80m: number[]; wind_speed_120m: number[] }; daily: { sunrise: string[]; sunset: string[] } };
+
+async function grid(): Promise<{ grid: GridPoint[]; raw: OM[] }> {
+  const pts = gridCoords();
+  const lat = pts.map((c) => c.lat).join(",");
+  const lng = pts.map((c) => c.lng).join(",");
+  const wx = await getJson<OM | OM[]>(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation,visibility,cloud_cover,is_day,weather_code&hourly=wind_speed_80m,wind_speed_120m&daily=sunrise,sunset&forecast_days=1&timezone=Europe%2FParis`, { next: { revalidate: 900 } });
+  const raw = Array.isArray(wx) ? wx : [wx];
+  return {
+    raw,
+    grid: pts.map((p, i) => {
+      const w = raw[i];
+      return { i, lat: p.lat, lng: p.lng, temperature: w.current.temperature_2m, humidity: w.current.relative_humidity_2m, wind10: w.current.wind_speed_10m, gust10: w.current.wind_gusts_10m, wind_dir: w.current.wind_direction_10m, precipitation: w.current.precipitation, visibility: w.current.visibility ?? null, cloud_cover: w.current.cloud_cover ?? null, is_day: w.current.is_day === 1, weather_code: w.current.weather_code ?? null };
+    }),
+  };
+}
+
+/** Communes du département (geo.api.gouv.fr, cache 24 h) rattachées au point de maillage le plus proche. */
+async function communes(pts: GridPoint[]): Promise<CommunePoint[]> {
+  type C = { nom: string; centre: { coordinates: [number, number] }; population?: number };
+  const list = await getJson<C[]>("https://geo.api.gouv.fr/communes?codeDepartement=62&fields=nom,centre,population&format=json", { next: { revalidate: 86_400 } });
+  return list.map((c) => ({ name: c.nom, lat: c.centre.coordinates[1], lng: c.centre.coordinates[0], population: c.population ?? 0, g: nearestIndex(pts, c.centre.coordinates[1], c.centre.coordinates[0]) }));
+}
+
+/** Météo par centre dérivée du maillage (vent en altitude, soleil), qualité de l'air par centre. */
+async function weather(centers: { id: string; lat: number; lng: number }[], pts: GridPoint[], raw: OM[]): Promise<CenterWeather[]> {
   if (centers.length === 0) return [];
-  const lat = centers.map((c) => c.lat.toFixed(3)).join(",");
-  const lng = centers.map((c) => c.lng.toFixed(3)).join(",");
-  type OM = { current: { time: string; temperature_2m: number; relative_humidity_2m: number; wind_speed_10m: number; wind_gusts_10m: number; wind_direction_10m: number; precipitation: number; visibility?: number; cloud_cover: number; is_day: number }; hourly: { time: string[]; wind_speed_80m: number[]; wind_speed_120m: number[] }; daily: { sunrise: string[]; sunset: string[] } };
   type AQ = { current: { european_aqi: number | null; pm10: number | null; ozone: number | null } };
-  const [wx, aq] = await Promise.all([
-    getJson<OM | OM[]>(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,wind_direction_10m,precipitation,visibility,cloud_cover,is_day&hourly=wind_speed_80m,wind_speed_120m&daily=sunrise,sunset&forecast_days=1&timezone=Europe%2FParis`),
-    getJson<AQ | AQ[]>(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&current=european_aqi,pm10,ozone&timezone=Europe%2FParis`).catch(() => null),
-  ]);
-  const wxList = Array.isArray(wx) ? wx : [wx];
+  const aq = await getJson<AQ | AQ[]>(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${centers.map((c) => c.lat.toFixed(3)).join(",")}&longitude=${centers.map((c) => c.lng.toFixed(3)).join(",")}&current=european_aqi,pm10,ozone&timezone=Europe%2FParis`, { next: { revalidate: 1800 } }).catch(() => null);
   const aqList = aq ? (Array.isArray(aq) ? aq : [aq]) : [];
   return centers.map((c, i) => {
-    const w = wxList[i];
-    const a = aqList[i];
+    const gi = nearestIndex(pts, c.lat, c.lng);
+    const g = pts[gi];
+    const w = raw[gi];
     const hourIdx = Math.max(0, w.hourly.time.findIndex((t) => t >= w.current.time.slice(0, 13)));
-    const fire = angstrom(w.current.temperature_2m, w.current.relative_humidity_2m);
+    const a = aqList[i];
+    const fire = angstrom(g.temperature, g.humidity);
     return {
-      center_id: c.id,
-      at: w.current.time,
-      temperature: w.current.temperature_2m,
-      humidity: w.current.relative_humidity_2m,
-      wind10: w.current.wind_speed_10m,
-      gust10: w.current.wind_gusts_10m,
-      wind_dir: w.current.wind_direction_10m,
-      wind80: w.hourly.wind_speed_80m?.[hourIdx] ?? null,
-      wind120: w.hourly.wind_speed_120m?.[hourIdx] ?? null,
-      precipitation: w.current.precipitation,
-      visibility: w.current.visibility ?? null,
-      cloud_cover: w.current.cloud_cover ?? null,
-      is_day: w.current.is_day === 1,
-      sunrise: w.daily.sunrise?.[0] ?? null,
-      sunset: w.daily.sunset?.[0] ?? null,
-      aqi: a?.current.european_aqi ?? null,
-      pm10: a?.current.pm10 ?? null,
-      ozone: a?.current.ozone ?? null,
-      fire_index: fire.index,
-      fire_level: fire.level,
+      center_id: c.id, at: w.current.time, temperature: g.temperature, humidity: g.humidity, wind10: g.wind10, gust10: g.gust10, wind_dir: g.wind_dir,
+      wind80: w.hourly.wind_speed_80m?.[hourIdx] ?? null, wind120: w.hourly.wind_speed_120m?.[hourIdx] ?? null,
+      precipitation: g.precipitation, visibility: g.visibility, cloud_cover: g.cloud_cover, is_day: g.is_day,
+      sunrise: w.daily.sunrise?.[0] ?? null, sunset: w.daily.sunset?.[0] ?? null,
+      aqi: a?.current.european_aqi ?? null, pm10: a?.current.pm10 ?? null, ozone: a?.current.ozone ?? null,
+      fire_index: fire.index, fire_level: fire.level,
     };
   });
 }
@@ -177,13 +203,15 @@ export async function GET() {
       return fallback;
     }
   };
-  const [vig, wx, riv, mer, tra] = await Promise.all([
+  const g = await guard("météo", grid, { grid: [] as GridPoint[], raw: [] as OM[] });
+  const [vig, wx, com, riv, mer, tra] = await Promise.all([
     guard("vigilance", vigilance, null),
-    guard("météo", () => weather((centers ?? []) as { id: string; lat: number; lng: number }[]), []),
+    g.grid.length ? guard("météo par centre", () => weather((centers ?? []) as { id: string; lat: number; lng: number }[], g.grid, g.raw), []) : Promise.resolve([] as CenterWeather[]),
+    g.grid.length ? guard("communes", () => communes(g.grid), []) : Promise.resolve([] as CommunePoint[]),
     guard("cours d'eau", rivers, []),
     guard("mer", sea, []),
     guard("trafic", traffic, { configured: Boolean(process.env.TRAFIC_FEED_URL), source: null, updated_at: null, events: [] }),
   ]);
-  const body: LiveLayers = { generated_at: new Date().toISOString(), vigilance: vig, weather: wx, rivers: riv, sea: mer, traffic: tra, errors };
+  const body: LiveLayers = { generated_at: new Date().toISOString(), vigilance: vig, grid: g.grid, communes: com, weather: wx, rivers: riv, sea: mer, traffic: tra, errors };
   return NextResponse.json(body, { headers: { "Cache-Control": "private, max-age=300" } });
 }

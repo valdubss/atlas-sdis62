@@ -11,6 +11,7 @@ import { telHref } from "@/lib/geo/maps";
 import { droneVerdict, windCardinal } from "@/lib/carte/drone";
 import { VIGILANCE_HEX, type CenterWeather, type LiveLayers } from "@/lib/carte/live";
 import { aqiLabel, DRONE_WMS, fireColor, groupingColor, modeMemory, type MapMode } from "@/lib/carte/layers";
+import { communeLabels, gridLabels, groupingLabels, METEO_LAYER_IDS, tempColor } from "@/lib/carte/meteo-layers";
 import { CenterSheetCompact } from "./CompactSheets";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
@@ -57,6 +58,7 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
   const [live, setLive] = useState<LiveLayers | null>(null);
   const [loading, setLoading] = useState(false);
   const [groupNames, setGroupNames] = useState<string[]>([]);
+  const geoRef = useRef<GeoJSON.FeatureCollection | null>(null);
   const toast = useToast();
   const located = useMemo(() => centers.filter((c): c is Located => c.lat != null && c.lng != null), [centers]);
   const weatherOf = useMemo(() => new Map((live?.weather ?? []).map((w) => [w.center_id, w])), [live]);
@@ -109,9 +111,22 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
           .then((r) => r.json())
           .then((geo: { features: { properties: { id: string; name: string } }[] }) => {
             setGroupNames(geo.features.map((f) => f.properties.name));
-            (map!.getSource("groupements") as maplibregl.GeoJSONSource | undefined)?.setData({ ...geo, features: geo.features.map((f, i) => ({ ...f, properties: { ...f.properties, color: groupingColor(i) } })) } as unknown as GeoJSON.FeatureCollection);
+            const coloured = { ...geo, features: geo.features.map((f, i) => ({ ...f, properties: { ...f.properties, color: groupingColor(i) } })) } as unknown as GeoJSON.FeatureCollection;
+            geoRef.current = coloured;
+            (map!.getSource("groupements") as maplibregl.GeoJSONSource | undefined)?.setData(coloured);
           })
           .catch(() => {});
+        // Météo : surface de température (cellules de Voronoï) + étiquettes par niveau de zoom
+        const empty = { type: "FeatureCollection", features: [] } as GeoJSON.FeatureCollection;
+        map!.addSource("meteo-cells", { type: "geojson", data: empty });
+        map!.addSource("meteo-grouping", { type: "geojson", data: empty });
+        map!.addSource("meteo-grid", { type: "geojson", data: empty });
+        map!.addSource("meteo-communes", { type: "geojson", data: empty });
+        map!.addLayer({ id: "meteo-fill", type: "fill", source: "meteo-cells", layout: { visibility: "none" }, paint: { "fill-color": ["to-color", ["get", "color"]], "fill-opacity": 0.28 } }, before);
+        const labelPaint = { "text-color": "#f5f5f7", "text-halo-color": "rgba(10,10,12,0.85)", "text-halo-width": 1.4 } as const;
+        map!.addLayer({ id: "meteo-grouping-label", type: "symbol", source: "meteo-grouping", maxzoom: 8.6, layout: { visibility: "none", "text-field": ["get", "label"], "text-font": ["Noto Sans Bold"], "text-size": 14, "text-line-height": 1.25, "text-allow-overlap": false }, paint: labelPaint });
+        map!.addLayer({ id: "meteo-grid-label", type: "symbol", source: "meteo-grid", minzoom: 8.6, maxzoom: 10.6, layout: { visibility: "none", "text-field": ["get", "label"], "text-font": ["Noto Sans Bold"], "text-size": 12, "text-allow-overlap": false, "text-padding": 6 }, paint: labelPaint });
+        map!.addLayer({ id: "meteo-commune-label", type: "symbol", source: "meteo-communes", minzoom: 10.6, layout: { visibility: "none", "text-field": ["get", "label"], "text-font": ["Noto Sans Bold"], "text-size": 12, "text-line-height": 1.25, "text-allow-overlap": false, "text-padding": 4, "symbol-sort-key": ["get", "sort"] }, paint: labelPaint });
         // Restrictions drones (IGN) : ajoutée masquée, affichée par le mode drone
         map!.addSource("drone-wms", { type: "raster", tiles: [DRONE_WMS], tileSize: 256, attribution: "Restrictions UAS © IGN" });
         map!.addLayer({ id: "drone-wms", type: "raster", source: "drone-wms", layout: { visibility: "none" }, paint: { "raster-opacity": 0.55 } }, before);
@@ -126,12 +141,39 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
     // eslint-disable-next-line react-hooks/exhaustive-deps -- carte montée une fois
   }, []);
 
-  // ---- Mode drone : couche IGN visible ---------------------------------------------
+  // ---- Visibilité selon le mode : couche IGN (drone), surface et étiquettes météo ---------
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready || !map.getLayer("drone-wms")) return;
-    map.setLayoutProperty("drone-wms", "visibility", mode === "drone" ? "visible" : "none");
+    if (!map || !ready) return;
+    const vis = (id: string, on: boolean) => map.getLayer(id) && map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
+    vis("drone-wms", mode === "drone");
+    for (const id of METEO_LAYER_IDS) vis(id, mode === "meteo");
+    // En mode météo, l'étiquette du groupement porte déjà son nom
+    vis("groupements-label", mode !== "meteo");
   }, [mode, ready]);
+
+  // ---- Données météo → surface de Voronoï et étiquettes (groupements, maillage, communes) ----
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || !live || live.grid.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const [{ default: voronoi }, { default: pip }, { default: centroid }, { featureCollection, point }] = await Promise.all([import("@turf/voronoi"), import("@turf/boolean-point-in-polygon"), import("@turf/centroid"), import("@turf/helpers")]);
+      if (cancelled) return;
+      const pts = featureCollection(live.grid.map((g) => point([g.lng, g.lat], { color: tempColor(g.temperature) })));
+      const cells = voronoi(pts, { bbox: [1.4, 49.9, 3.35, 51.15] });
+      const cellFeatures = cells.features.map((f, i) => (f ? { ...f, properties: { color: tempColor(live.grid[i].temperature) } } : null)).filter((f): f is NonNullable<typeof f> => f !== null);
+      const set = (id: string, data: GeoJSON.FeatureCollection) => (map.getSource(id) as maplibregl.GeoJSONSource | undefined)?.setData(data);
+      set("meteo-cells", { type: "FeatureCollection", features: cellFeatures } as GeoJSON.FeatureCollection);
+      set("meteo-grid", gridLabels(live.grid) as GeoJSON.FeatureCollection);
+      set("meteo-communes", communeLabels(live.communes, live.grid) as GeoJSON.FeatureCollection);
+      const groupings = (geoRef.current?.features ?? []) as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon, { name: string }>[];
+      set("meteo-grouping", groupingLabels(live.grid, groupings, (pt, poly) => pip(pt, poly), (poly) => centroid(poly).geometry.coordinates as [number, number]) as GeoJSON.FeatureCollection);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [live, ready, groupNames]);
 
   // ---- Données live (météo et drone) ------------------------------------------------
   const refresh = useCallback(async () => {

@@ -30,3 +30,22 @@ describe("carte : vue télépilote et indices", () => {
     expect(trend(null, 1)).toBe("inconnue");
   });
 });
+
+import { tempColor, weatherWord, windArrow } from "@/lib/carte/meteo-layers";
+
+describe("carte : couche météo", () => {
+  it("oriente la flèche du vent vers sa destination", () => {
+    expect(windArrow(0)).toBe("↓");
+    expect(windArrow(270)).toBe("→");
+    expect(windArrow(225)).toBe("↗");
+  });
+  it("nomme les conditions et colore la température", () => {
+    expect(weatherWord(0, 0)).toBe("clair");
+    expect(weatherWord(3, 0)).toBe("couvert");
+    expect(weatherWord(61, 1)).toBe("pluie");
+    expect(weatherWord(95, 2)).toBe("orage");
+    expect(tempColor(-10)).toBe("#5b7bd6");
+    expect(tempColor(40)).toBe("#e4213a");
+    expect(tempColor(16)).toMatch(/^rgb\(/);
+  });
+});

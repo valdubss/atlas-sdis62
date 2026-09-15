@@ -35,9 +35,18 @@ export type SeaPoint = { name: string; lat: number; lng: number; wave_height: nu
 export type TrafficEvent = { id: string; lat: number; lng: number; road: string | null; kind: string; comment: string | null; severity: "info" | "modéré" | "fort"; updated_at: string | null };
 export type TrafficLayer = { configured: boolean; source: string | null; updated_at: string | null; events: TrafficEvent[] };
 
+/** Point du maillage météo (≈ 0,15°) couvrant le département. */
+export type GridPoint = { i: number; lat: number; lng: number; temperature: number; humidity: number; wind10: number; gust10: number; wind_dir: number; precipitation: number; visibility: number | null; cloud_cover: number | null; is_day: boolean; weather_code: number | null };
+/** Commune du département avec le point de maillage le plus proche. */
+export type CommunePoint = { name: string; lat: number; lng: number; population: number; g: number };
+
 export type LiveLayers = {
   generated_at: string;
   vigilance: VigilanceLayer | null;
+  /** Maillage météo du département (base des vues zoomées) */
+  grid: GridPoint[];
+  /** Communes (chef-lieu) rattachées au point de maillage le plus proche */
+  communes: CommunePoint[];
   weather: CenterWeather[];
   rivers: RiverStation[];
   sea: SeaPoint[];
