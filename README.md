@@ -417,25 +417,28 @@ scripts/extract-colors.mjs extraction des couleurs du logo
 docs/ARCHITECTURE.md       plan d'architecture
 ```
 
-## 7h. Carte dynamique : couches live, groupements, vue télépilote
+## 7h. Carte dynamique : groupements, météo du département, mode drone
 
 - **Accès rapide** : icône carte dans la barre haute de tous les écrans (à côté de la cloche).
-- **Groupements territoriaux** : polygones Est / Centre / Ouest tracés par rattachement de chaque
-  commune au CIS le plus proche (`npm run geo:groupements` → `public/geo/groupements.json`,
-  versionné, 62 Ko). Approximation à remplacer par les secteurs officiels du SDIS dès qu'ils
-  sont fournis (même fichier, même format). Le centre de rattachement de l'agent est en rouge.
-- **Couches activables** (menu « Couches », mémoire sur l'appareil) :
-  - Vigilance Météo-France du département (bandeau) : API officielle si `METEOFRANCE_API_KEY`
-    est renseignée, sinon relais open data (Opendatasoft, même source, quelques minutes de retard).
-  - Météo par centre, qualité de l'air et indice feu de végétation (Angström, estimation) :
-    Open-Meteo, un appel groupé pour les 52 points, sans clé.
-  - Cours d'eau : stations Hub'Eau du département, hauteur et tendance sur 6 h.
-  - Mer et marées : houle, mer du vent, niveau et prochaines pleine / basse mer sur quatre points du littoral (Open-Meteo Marine).
-  - Trafic : événements DATEX II d'un abonnement Bison Futé (gratuit, à demander) via `TRAFIC_FEED_URL` ; sans variable, la couche l'indique.
-  - **Vue drone** (équipe de télépilotes) : zones de restriction UAS de l'IGN (WMS Géoplateforme, sans clé) superposées, et pour chaque centre le vent à 10 / 80 / 120 m, les rafales, la visibilité, la pluie, le jour / la nuit → verdict « favorable / prudence / déconseillé » avec les raisons (seuils dans `lib/carte/drone.ts`). Les interdictions temporaires (NOTAM) ne sont pas couvertes.
-- **Technique** : une route `/api/carte/live` agrège les flux (chaque appel amont mis en cache
-  10 min par Next, réponse privée 5 min), tolérante panne par panne ; rafraîchissement toutes les
-  10 min tant qu'une couche live est active. Aucune position d'engin, aucune donnée personnelle.
+- **Groupements territoriaux** toujours tracés : polygones Est / Centre / Ouest obtenus en rattachant
+  chaque commune au CIS le plus proche (`npm run geo:groupements` → `public/geo/groupements.json`,
+  versionné, 62 Ko). Approximation à remplacer par les secteurs officiels du SDIS dès qu'ils sont
+  fournis (même fichier, même format). Le centre de rattachement de l'agent est en rouge.
+- **Trois modes** (segments au-dessus de la carte, mémorisés sur l'appareil) et « Autour de moi » à côté :
+  - **Carte** : centres et groupements seulement.
+  - **Météo** : vue départementale, sans détail par centre : bandeau de vigilance Météo-France (API
+    officielle si `METEOFRANCE_API_KEY`, sinon relais open data), fourchette de température, vent et
+    rafales, pluie en cours, indice feu de végétation (Angström, estimation), qualité de l'air, cours
+    d'eau en hausse (Hub'Eau), littoral (houle, prochaines marées via Open-Meteo Marine).
+  - **Drone** (équipe de télépilotes) : zones de restriction UAS de l'IGN (WMS Géoplateforme, sans clé)
+    superposées et, sous chaque centre, une étiquette de verdict « favorable / prudence / déconseillé »
+    calculé sur le vent à 10 / 80 / 120 m, les rafales, la visibilité, la pluie et le jour / la nuit
+    (seuils dans `lib/carte/drone.ts`) ; liste triée sous la carte. Les interdictions temporaires (NOTAM)
+    ne sont pas couvertes.
+- **Technique** : `/api/carte/live` agrège les flux (chaque appel amont mis en cache 10 min par Next,
+  réponse privée 5 min), tolérant panne par panne ; rafraîchissement toutes les 10 min hors mode Carte.
+  Le flux trafic (`TRAFIC_FEED_URL`, abonnement Bison Futé) est collecté mais n'est plus affiché.
+  Aucune position d'engin, aucune donnée personnelle.
 
 ## 7g. Fiabilité et confiance (lot 8 v3)
 

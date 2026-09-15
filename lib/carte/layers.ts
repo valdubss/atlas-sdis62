@@ -1,47 +1,20 @@
-/** Couches de la carte : définitions, groupes du menu, mémoire sur l'appareil. */
+/** Modes de la carte : centres seuls, météo du département, vue télépilote. */
+export type MapMode = "carte" | "meteo" | "drone";
 
-export type LayerKey = "groupements" | "vigilance" | "meteo" | "air" | "feu" | "crues" | "mer" | "trafic" | "drone";
+const KEY = "atlas:carte:mode:v2";
 
-export type LayerDef = { key: LayerKey; label: string; hint: string; live: boolean };
-
-export const LAYER_GROUPS: { title: string; layers: LayerDef[] }[] = [
-  { title: "Référentiel", layers: [{ key: "groupements", label: "Groupements territoriaux", hint: "Est, Centre, Ouest (approximation par proximité des CIS)", live: false }] },
-  {
-    title: "Météo",
-    layers: [
-      { key: "vigilance", label: "Vigilance Météo-France", hint: "Niveau du département par phénomène (bandeau)", live: true },
-      { key: "meteo", label: "Météo par centre", hint: "Température, vent et rafales sur chaque CIS", live: true },
-      { key: "air", label: "Qualité de l'air", hint: "Indice européen, PM10, ozone par centre", live: true },
-      { key: "feu", label: "Indice feu de végétation", hint: "Indice d'Angström estimé (température, humidité)", live: true },
-    ],
-  },
-  {
-    title: "Eau",
-    layers: [
-      { key: "crues", label: "Cours d'eau", hint: "Hauteurs Hub'Eau et tendance sur 6 h", live: true },
-      { key: "mer", label: "Mer et marées", hint: "Houle et prochaines marées sur le littoral", live: true },
-    ],
-  },
-  { title: "Routes", layers: [{ key: "trafic", label: "Trafic", hint: "Événements Bison Futé (abonnement à configurer)", live: true }] },
-  { title: "Télépilotes", layers: [{ key: "drone", label: "Vue drone", hint: "Zones de restriction (IGN) et conditions de vol par centre", live: true }] },
-];
-
-export const DEFAULT_LAYERS: Record<LayerKey, boolean> = { groupements: true, vigilance: true, meteo: false, air: false, feu: false, crues: false, mer: false, trafic: false, drone: false };
-
-const KEY = "atlas:carte:couches:v1";
-
-export const layerMemory = {
-  read(): Record<LayerKey, boolean> {
+export const modeMemory = {
+  read(): MapMode {
     try {
-      const v = JSON.parse(localStorage.getItem(KEY) ?? "null");
-      return v && typeof v === "object" ? { ...DEFAULT_LAYERS, ...v } : DEFAULT_LAYERS;
+      const v = localStorage.getItem(KEY);
+      return v === "meteo" || v === "drone" ? v : "carte";
     } catch {
-      return DEFAULT_LAYERS;
+      return "carte";
     }
   },
-  write(v: Record<LayerKey, boolean>) {
+  write(v: MapMode) {
     try {
-      localStorage.setItem(KEY, JSON.stringify(v));
+      localStorage.setItem(KEY, v);
     } catch {}
   },
 };
