@@ -5,20 +5,32 @@ import { Camera } from "lucide-react";
 import { removeAvatar, updateAvatar } from "@/app/(app)/profil/avatar-actions";
 import { Avatar } from "@/components/ui/Avatar";
 import { useToast } from "@/components/ui/Toast";
+import { AvatarCropper } from "./AvatarCropper";
 
 /** Photo de profil : tap sur l'avatar, recadrage carré et réduction sur l'appareil, envoi. */
 export function AvatarUploader({ name, avatarKey }: { name: string; avatarKey: string | null }) {
   const [key, setKey] = useState(avatarKey);
+  const [cropping, setCropping] = useState<File | null>(null);
   const [pending, start] = useTransition();
   const input = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
   async function onFile(file: File) {
-    let blob: Blob = file;
-    try {
-      blob = await squareCrop(file, 512);
-    } catch {
-      /* navigateur sans canvas : le serveur recadrera */
+    // Recadrage au doigt si l'appareil sait afficher l'image, sinon recadrage centré
+    if (typeof createImageBitmap === "function") {
+      setCropping(file);
+      return;
+    }
+    await upload(file);
+  }
+  async function upload(source: Blob) {
+    let blob: Blob = source;
+    if (source instanceof File) {
+      try {
+        blob = await squareCrop(source, 512);
+      } catch {
+        /* navigateur sans canvas : le serveur recadrera */
+      }
     }
     const fd = new FormData();
     fd.append("avatar", blob, "avatar.jpg");
@@ -64,6 +76,14 @@ export function AvatarUploader({ name, avatarKey }: { name: string; avatarKey: s
           Retirer
         </button>
       )}
+      <AvatarCropper
+        file={cropping}
+        onCancel={() => setCropping(null)}
+        onDone={(blob) => {
+          setCropping(null);
+          void upload(blob);
+        }}
+      />
       <input
         ref={input}
         type="file"

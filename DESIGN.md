@@ -335,3 +335,17 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
   `--red-text`).
 - Fiche : avatar 88 px centré, trois tuiles d'action 68 px, membres 40 px avec
   pastille « Admin », bandeau charte 13 px `--text-3`.
+
+## Thème clair et profil (lot 7 v3)
+
+- Thème clair : `--bg-0 #f4f4f6`, `--bg-1 #ffffff`, `--bg-2 #ebebef`, textes `#141417` à
+  100 / 64 / 52 / 40 %, verre blanc à 72 %, lien `--navy` plein, rouge texte `#c9182d` ;
+  activé par `data-theme="light"` ou par le réglage système. Le noir pur reste réservé
+  aux stories et lightbox dans les deux thèmes.
+- Sélecteur d'apparence : trois segments 36 px avec icône 16 px dans une pilule `--bg-2`,
+  actif sur `--bg-0`.
+- Recadrage de la photo : cercle 280 px, anneau `--bg-2` 4 px, curseur de zoom 1–3×.
+- Fiche d'annuaire : actions secondaires en pilules 40 px `--bg-2` (copier, enregistrer,
+  partager) sous les actions principales ; « Consultés récemment » en pilules 36 px
+  défilantes avec icône horloge.
+- Changement de centre : feuille de confirmation avec récapitulatif en quatre puces 13 px.

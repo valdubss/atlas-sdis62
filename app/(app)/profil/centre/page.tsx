@@ -4,6 +4,7 @@ import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { fetchDirectory, fetchFollows } from "@/lib/centres/public";
 import { BackBar } from "@/components/layout/BackBar";
 import { CenterSettingsForm } from "@/components/centre/CenterSettingsForm";
+import type { ProfileHistoryEntry } from "@/components/centre/ChangeCenterFlow";
 
 export const metadata: Metadata = { title: "Mon centre" };
 export const dynamic = "force-dynamic";
@@ -13,9 +14,10 @@ export default async function ProfileCenterPage() {
   if (!current) redirect("/auth/deconnexion?raison=profil");
   const { profile } = current;
   const supabase = await createClient();
-  const [directory, follows, center, service] = await Promise.all([
+  const [directory, follows, { data: historyData }, center, service] = await Promise.all([
     fetchDirectory(),
     fetchFollows(profile.id),
+    supabase.rpc("my_profile_history", { p_limit: 10 }).then((r) => ({ data: r.data }), () => ({ data: null })),
     profile.center_id ? supabase.from("centers").select("name, slug").eq("id", profile.center_id).maybeSingle().then((r) => r.data) : Promise.resolve(null),
     profile.service_id ? supabase.from("services").select("name, slug").eq("id", profile.service_id).maybeSingle().then((r) => r.data) : Promise.resolve(null),
   ]);
@@ -23,7 +25,7 @@ export default async function ProfileCenterPage() {
   return (
     <div className="space-y-3">
       <BackBar title="Mon centre" href="/profil" />
-      <CenterSettingsForm profile={profile} home={home} follows={follows} directory={directory} />
+      <CenterSettingsForm profile={profile} home={home} follows={follows} directory={directory} history={((historyData ?? []) as unknown as ProfileHistoryEntry[]) ?? []} />
     </div>
   );
 }

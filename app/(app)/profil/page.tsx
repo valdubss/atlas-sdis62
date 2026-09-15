@@ -10,6 +10,8 @@ import { ROLE_LABELS } from "@/lib/config";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
 import { NotificationCenter } from "@/components/profile/NotificationCenter";
+import { ThemeToggle } from "@/components/profile/ThemeToggle";
+import { Activity } from "lucide-react";
 import { signOut } from "./actions";
 
 export const metadata: Metadata = { title: "Profil" };
@@ -21,7 +23,7 @@ export default async function ProfilPage() {
 
   const supabase = await createClient();
   const [{ data: settings }, { count: subCount }, home] = await Promise.all([
-    supabase.from("user_settings").select("push_new_posts, push_pinned, push_center, push_agenda, push_messages, quiet_start, quiet_end, hide_preview, digest_email").eq("user_id", profile.id).maybeSingle(),
+    supabase.from("user_settings").select("push_new_posts, push_pinned, push_center, push_agenda, push_messages, quiet_start, quiet_end, hide_preview, digest_email, theme").eq("user_id", profile.id).maybeSingle(),
     supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id),
     profile.center_id
       ? supabase.from("centers").select("name").eq("id", profile.center_id).maybeSingle().then((r) => r.data?.name ?? null)
@@ -88,6 +90,13 @@ export default async function ProfilPage() {
             <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
           </Link>
         )}
+        <Link href="/profil/activite" className="pressable flex h-12 items-center justify-between px-5 text-[15px] text-text-1">
+          <span className="flex items-center gap-3">
+            <Activity size={20} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
+            Mon activité
+          </span>
+          <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
+        </Link>
         <Link href="/annuaire" className="pressable flex h-12 items-center justify-between px-5 text-[15px] text-text-1">
           Annuaire
           <ChevronRight size={18} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
@@ -117,6 +126,12 @@ export default async function ProfilPage() {
           <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
         </Link>
       )}
+
+      <section className="rounded-[16px] bg-bg-1 px-5 py-4">
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Apparence</h2>
+        <p className="mb-3 mt-1 text-[13px] text-text-3">Sombre par défaut ; « Système » suit le réglage du téléphone.</p>
+        <ThemeToggle initial={settings?.theme ?? "system"} />
+      </section>
 
       <section className="rounded-[16px] bg-bg-1 py-3">
         <h2 className="px-5 pb-1 text-[17px] font-semibold tracking-[-0.02em] text-text-1">Notifications</h2>

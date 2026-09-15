@@ -153,7 +153,18 @@ export async function saveCenter(_prev: FormState, formData: FormData): Promise<
   return { status: "saved" };
 }
 
-/** Le service communication accepte ou écarte une mise à jour proposée par un référent. */
+/** Le service communication accepte (applique) ou écarte une modification de fiche proposée. */
+export async function reviewCenterChange(changeId: string, accept: boolean, note?: string): Promise<Result> {
+  if (!z.uuid().safeParse(changeId).success) return { ok: false, error: "Identifiant invalide." };
+  const { supabase, user, error } = await requireEditor();
+  if (!user) return { ok: false, error: error! };
+  const { error: dbError } = await supabase.rpc("decide_center_change", { p_id: changeId, p_accept: accept, p_note: note?.trim() || null });
+  if (dbError) return { ok: false, error: friendlyDbError(dbError.message) };
+  revalidateAll();
+  return { ok: true };
+}
+
+/** Compatibilité : accepte ou écarte d'un coup toutes les propositions en attente d'un centre. */
 export async function reviewCenterUpdate(centerId: string, accept: boolean): Promise<Result> {
   if (!z.uuid().safeParse(centerId).success) return { ok: false, error: "Identifiant invalide." };
   const { supabase, user, error } = await requireEditor();

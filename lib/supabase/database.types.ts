@@ -553,6 +553,18 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      center_changes: {
+        Row: { id: string; center_id: string; field: string; old_value: string | null; new_value: string | null; proposed_by: string | null; proposed_at: Timestamp; decided_by: string | null; decided_at: Timestamp | null; decision: "pending" | "accepted" | "declined"; note: string | null };
+        Insert: { id?: string; center_id: string; field: string; old_value?: string | null; new_value?: string | null; proposed_by?: string | null; proposed_at?: Timestamp; decided_by?: string | null; decided_at?: Timestamp | null; decision?: "pending" | "accepted" | "declined"; note?: string | null };
+        Update: { decided_by?: string | null; decided_at?: Timestamp | null; decision?: "pending" | "accepted" | "declined"; note?: string | null };
+        Relationships: [];
+      };
+      profile_history: {
+        Row: { id: number; profile_id: string; field: string; old_value: string | null; new_value: string | null; changed_at: Timestamp; changed_by: string | null };
+        Insert: { profile_id: string; field: string; old_value?: string | null; new_value?: string | null; changed_at?: Timestamp; changed_by?: string | null };
+        Update: never;
+        Relationships: [];
+      };
       channels: {
         Row: { id: string; type: "general" | "grouping" | "center" | "group"; name: string; subject: string | null; photo_key: string | null; grouping_id: string | null; center_id: string | null; created_by: string | null; ends_at: Timestamp | null; read_only: boolean; archived_at: Timestamp | null; reminded_at: Timestamp | null; members_can_post_media: boolean; last_message_at: Timestamp | null; created_at: Timestamp };
         Insert: { id?: string; type: "general" | "grouping" | "center" | "group"; name: string; subject?: string | null; photo_key?: string | null; grouping_id?: string | null; center_id?: string | null; created_by?: string | null; ends_at?: Timestamp | null; read_only?: boolean; archived_at?: Timestamp | null; reminded_at?: Timestamp | null; members_can_post_media?: boolean; last_message_at?: Timestamp | null; created_at?: Timestamp };
@@ -721,6 +733,10 @@ export type Database = {
       get_story_items: { Args: { p_series_id?: string | null; p_highlight_id?: string | null }; Returns: Json[] };
       get_highlight_items: { Args: { p_highlight_id: string }; Returns: Json[] };
       record_story_view: { Args: { p_story_id: string }; Returns: undefined };
+      propose_center_changes: { Args: { p_center: string; p_changes: Json }; Returns: number };
+      decide_center_change: { Args: { p_id: string; p_accept: boolean; p_note?: string | null }; Returns: undefined };
+      my_profile_history: { Args: { p_limit?: number }; Returns: Json };
+      my_activity: { Args: Record<string, never>; Returns: Json };
       is_channel_member: { Args: { p_channel: string }; Returns: boolean };
       can_use_messaging: { Args: Record<string, never>; Returns: boolean };
       channel_recipients: { Args: { p_channel: string }; Returns: string[] };

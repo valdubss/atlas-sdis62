@@ -5,6 +5,7 @@ import { MapPin, Navigation, Phone, Users } from "lucide-react";
 import type { CenterPublic } from "@/lib/centres/public";
 import { directionsUrl, telHref } from "@/lib/geo/maps";
 import { Avatar } from "@/components/ui/Avatar";
+import { ContactExtras } from "@/components/annuaire/ContactExtras";
 
 /** Identité du centre : chef, référents, présentation, coordonnées et actions (Appeler, Itinéraire). */
 export function CenterIdentity({ center }: { center: CenterPublic }) {
@@ -15,7 +16,7 @@ export function CenterIdentity({ center }: { center: CenterPublic }) {
 
   const address = [center.address, [center.postal_code, center.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
   const people = [...(center.chief ? [{ ...center.chief, role: "Chef de centre" }] : []), ...center.referents.filter((r) => r.id !== center.chief?.id).map((r) => ({ ...r, role: "Référent communication" }))];
-  if (!center.presentation && people.length === 0 && !address && center.displayed_headcount == null && !center.phone && !directions) return null;
+  if (!center.presentation && people.length === 0 && !address && center.displayed_headcount == null && !center.phone && !directions && !center.slug) return null;
 
   return (
     <section className="space-y-4 rounded-[16px] bg-bg-1 px-5 py-4">
@@ -54,6 +55,7 @@ export function CenterIdentity({ center }: { center: CenterPublic }) {
         </div>
       )}
 
+      <ContactExtras kind="centre" slug={center.slug} name={center.name} phone={center.phone} />
       {(center.phone || directions) && (
         <div className="flex flex-wrap gap-2">
           {center.phone && (

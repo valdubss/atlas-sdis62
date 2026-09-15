@@ -58,6 +58,10 @@ export function ProposeSheet({ centerId, open, onClose }: { centerId: string; op
   // Fiche
   const [presentation, setPresentation] = useState("");
   const [cover, setCover] = useState<EditorMedia[]>([]);
+  const [sheetPhone, setSheetPhone] = useState("");
+  const [sheetEmail, setSheetEmail] = useState("");
+  const [sheetAddress, setSheetAddress] = useState("");
+  const [sheetHeadcount, setSheetHeadcount] = useState("");
   const [pending, start] = useTransition();
   const router = useRouter();
   const toast = useToast();
@@ -75,6 +79,10 @@ export function ProposeSheet({ centerId, open, onClose }: { centerId: string; op
     setAllDay(false);
     setPresentation("");
     setCover([]);
+    setSheetPhone("");
+    setSheetEmail("");
+    setSheetAddress("");
+    setSheetHeadcount("");
   }
 
   function switchMode(next: Mode) {
@@ -92,7 +100,7 @@ export function ProposeSheet({ centerId, open, onClose }: { centerId: string; op
       if (mode === "event") {
         r = await proposeEvent(centerId, { title, description: body, location, all_day: allDay, starts_at: startsAt, ends_at: endsAt });
       } else if (mode === "sheet") {
-        r = await proposeCenterUpdate(centerId, { presentation, cover_media_id: cover.find((m) => m.status === "ready")?.id ?? "" });
+        r = await proposeCenterUpdate(centerId, { presentation, cover_media_id: cover.find((m) => m.status === "ready")?.id ?? "", phone: sheetPhone, email: sheetEmail, address: sheetAddress, displayed_headcount: sheetHeadcount });
       } else {
         r = await proposePost(centerId, { kind: mode, title, body, media: media.filter((m) => m.status === "ready").map((m) => m.id) });
       }
@@ -153,6 +161,13 @@ export function ProposeSheet({ centerId, open, onClose }: { centerId: string; op
             <p className="text-[13px] text-text-3">Proposez une nouvelle présentation ou une nouvelle photo de couverture. Le service communication l&apos;applique après relecture.</p>
             <TextareaField label="Présentation du centre (600 caractères)" name="presentation" value={presentation} onChange={(e) => setPresentation(e.target.value)} rows={5} maxLength={600} error={fields.presentation} />
             <MediaUploader accept="center_cover" items={cover} onChange={setCover} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Téléphone du centre" name="sheet_phone" value={sheetPhone} onChange={(e) => setSheetPhone(e.target.value)} maxLength={30} inputMode="tel" placeholder="Laisser vide : inchangé" />
+              <Field label="E-mail du centre" name="sheet_email" value={sheetEmail} onChange={(e) => setSheetEmail(e.target.value)} maxLength={120} inputMode="email" placeholder="Laisser vide : inchangé" error={fields.email} />
+              <Field label="Adresse" name="sheet_address" value={sheetAddress} onChange={(e) => setSheetAddress(e.target.value)} maxLength={160} placeholder="Laisser vide : inchangé" />
+              <Field label="Effectif affiché" name="sheet_headcount" value={sheetHeadcount} onChange={(e) => setSheetHeadcount(e.target.value)} inputMode="numeric" placeholder="Laisser vide : inchangé" />
+            </div>
+            <p className="text-[12px] text-text-4">Chaque champ modifié devient une proposition datée ; le service communication accepte ou écarte champ par champ. L&apos;historique reste consultable sur la fiche du studio.</p>
           </>
         )}
 

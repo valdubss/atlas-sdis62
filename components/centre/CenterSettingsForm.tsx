@@ -3,19 +3,17 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import { followCenter, updateCenterSettings } from "@/app/(app)/centre/actions";
 import type { CenterSummary, Directory } from "@/lib/centres/public";
 import type { Profile } from "@/lib/supabase/database.types";
-import { CenterPicker } from "./CenterPicker";
-import { Sheet } from "@/components/ui/Sheet";
+import { ChangeCenterFlow, type ProfileHistoryEntry } from "./ChangeCenterFlow";
 import { Button } from "@/components/ui/Button";
 import { CheckboxField, Field } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
 
 /** Profil → Mon centre : rattachement, centres suivis, présentation et annuaire. */
-export function CenterSettingsForm({ profile, home, follows, directory }: { profile: Profile; home: { name: string; href: string } | null; follows: CenterSummary[]; directory: Directory }) {
-  const [picker, setPicker] = useState(false);
+export function CenterSettingsForm({ profile, home, follows, directory, history }: { profile: Profile; home: { name: string; href: string } | null; follows: CenterSummary[]; directory: Directory; history: ProfileHistoryEntry[] }) {
   const [presentMe, setPresentMe] = useState(profile.present_me);
   const [visible, setVisible] = useState(profile.directory_visible);
   const [jobTitle, setJobTitle] = useState(profile.job_title ?? "");
@@ -34,25 +32,7 @@ export function CenterSettingsForm({ profile, home, follows, directory }: { prof
 
   return (
     <div className="space-y-3">
-      <section className="rounded-[16px] bg-bg-1 px-5 py-4">
-        <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Rattachement</h2>
-        <div className="mt-2 flex items-center gap-3">
-          <span className="min-w-0 flex-1">
-            {home ? (
-              <Link href={home.href} className="block truncate text-[15px] text-text-1">
-                {home.name}
-              </Link>
-            ) : (
-              <span className="block text-[15px] text-text-2">Non renseigné</span>
-            )}
-            <span className="block text-[13px] text-text-3">Votre centre ou service apparaît dans l&apos;onglet « Mon centre »</span>
-          </span>
-          <button type="button" onClick={() => setPicker(true)} className="pressable flex h-10 items-center gap-1 rounded-[10px] bg-bg-2 px-3 text-[13px] font-medium text-text-1">
-            {home ? "Changer" : "Choisir"}
-            <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />
-          </button>
-        </div>
-      </section>
+      <ChangeCenterFlow home={home} directory={directory} history={history} currentCenterId={profile.center_id} currentServiceId={profile.service_id} />
 
       <section className="rounded-[16px] bg-bg-1 px-5 py-4">
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">
@@ -119,12 +99,6 @@ export function CenterSettingsForm({ profile, home, follows, directory }: { prof
           Enregistrer
         </Button>
       </section>
-
-      <Sheet open={picker} onClose={() => setPicker(false)} title="Mon rattachement" tall>
-        <div className="px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
-          <CenterPicker directory={directory} mode="attach" currentCenterId={profile.center_id} currentServiceId={profile.service_id} />
-        </div>
-      </Sheet>
     </div>
   );
 }

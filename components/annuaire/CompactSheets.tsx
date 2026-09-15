@@ -10,6 +10,8 @@ import { directionsUrl, telHref } from "@/lib/geo/maps";
 import { Sheet } from "@/components/ui/Sheet";
 import { Avatar } from "@/components/ui/Avatar";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { ContactExtras } from "./ContactExtras";
+import { recentSheets } from "@/lib/annuaire/recent";
 
 function PersonRow({ p, role }: { p: PersonCard; role?: string | null }) {
   return (
@@ -66,6 +68,7 @@ export function CenterSheetCompact({ center, onClose }: { center: DirectoryCente
   useEffect(() => {
     setDetails(null);
     if (!center) return;
+    recentSheets.push({ kind: "centre", slug: center.slug, name: center.name });
     let alive = true;
     getCenterDetails(center.slug).then((d) => alive && setDetails(d));
     return () => {
@@ -85,6 +88,7 @@ export function CenterSheetCompact({ center, onClose }: { center: DirectoryCente
             </p>
           )}
           <ContactActions phone={center.phone} email={center.email} lat={center.lat} lng={center.lng} label={center.name} />
+          <ContactExtras kind="centre" slug={center.slug} name={center.name} phone={center.phone} />
           {details === null ? (
             <div className="space-y-2">
               <Skeleton className="h-10 w-2/3" />
@@ -129,6 +133,7 @@ export function ServiceSheetCompact({ service, onClose }: { service: DirectorySe
   useEffect(() => {
     setDetails(null);
     if (!service) return;
+    recentSheets.push({ kind: "service", slug: service.slug, name: service.name });
     let alive = true;
     getServiceDetails(service.slug).then((d) => alive && setDetails(d));
     return () => {
@@ -157,6 +162,7 @@ export function ServiceSheetCompact({ service, onClose }: { service: DirectorySe
             </p>
           )}
           <ContactActions phone={service.phone} email={service.email} lat={null} lng={null} label={service.name} />
+          <ContactExtras kind="service" slug={service.slug} name={service.name} phone={service.phone} />
           {details === null ? (
             <Skeleton className="h-10 w-2/3" />
           ) : (

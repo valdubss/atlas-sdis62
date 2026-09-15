@@ -10,6 +10,7 @@ import { UploadQueue } from "@/components/studio/UploadQueue";
 import { countPendingProposals } from "@/lib/centres/queries";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { RoleProvider } from "@/components/layout/RoleContext";
+import { ThemeApplier } from "@/components/layout/ThemeApplier";
 
 /**
  * Studio (desktop) : panneau latéral 280 px --bg-1, zone de travail --bg-0,
@@ -26,6 +27,7 @@ export default async function StudioLayout({ children }: { children: React.React
 
   return (
     <RoleProvider canEdit>
+    <ThemeApplier theme="system" />
     <div className="flex min-h-dvh bg-bg-0">
       <aside className="hidden w-[280px] shrink-0 flex-col bg-bg-1 md:flex">
         <div className="flex h-14 items-center gap-2 px-6">

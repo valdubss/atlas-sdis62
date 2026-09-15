@@ -161,11 +161,11 @@ export async function proposeCenterUpdate(centerId: string, input: unknown): Pro
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Vérifiez les champs." };
   const { supabase, user } = await me();
   if (!user) return { ok: false, error: "Session expirée." };
-  const { error } = await supabase
-    .from("centers")
-    .update({ pending_presentation: parsed.data.presentation, pending_cover_media_id: parsed.data.cover_media_id })
-    .eq("id", centerId);
-  if (error) return { ok: false, error: humanError(error.message) };
+  const changes = Object.entries(parsed.data)
+    .filter(([, value]) => value !== null)
+    .map(([field, value]) => ({ field, value: String(value) }));
+  const { error } = await supabase.rpc("propose_center_changes", { p_center: centerId, p_changes: changes });
+  if (error) return { ok: false, error: error.message.includes("PROPOSITION_VIDE") ? "Aucune modification par rapport à la fiche actuelle." : humanError(error.message) };
   revalidatePath("/studio/centres/referentiel");
   return { ok: true };
 }

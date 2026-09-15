@@ -23,7 +23,7 @@ function normalize(s: string) {
  *  - mode "attach" : choisir son rattachement (profil), puis ouvrir la page
  *  - mode "browse" : simples liens vers les pages (annuaire)
  */
-export function CenterPicker({ directory, mode, currentCenterId, currentServiceId }: { directory: Directory; mode: "attach" | "browse"; currentCenterId?: string | null; currentServiceId?: string | null }) {
+export function CenterPicker({ directory, mode, currentCenterId, currentServiceId, onPick }: { directory: Directory; mode: "attach" | "browse"; currentCenterId?: string | null; currentServiceId?: string | null; onPick?: (sel: { center_id: string | null; service_id: string | null; name: string }) => void }) {
   const [q, setQ] = useState("");
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -41,6 +41,11 @@ export function CenterPicker({ directory, mode, currentCenterId, currentServiceI
   }, [directory, q]);
 
   function pick(kind: "center" | "service", id: string) {
+    if (onPick) {
+      const name = kind === "center" ? (directory.centers.find((c) => c.id === id)?.name ?? "") : (directory.services.find((s) => s.id === id)?.name ?? "");
+      onPick({ center_id: kind === "center" ? id : null, service_id: kind === "service" ? id : null, name });
+      return;
+    }
     start(async () => {
       const r = await attachTo(kind === "center" ? { center_id: id, service_id: "" } : { center_id: "", service_id: id });
       if (!r.ok) {

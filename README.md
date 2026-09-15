@@ -108,6 +108,7 @@ redirige vers `/login`.
 | `0023_reading.sql` | fil et articles (lot 4 v3) : légende par photo (`post_media.caption`), aperçu flou (`media.lqip`), lecture qualifiée (`post_views.read` / `interacted`, `record_post_read`, triggers d'interaction, `studio_reading_stats`), recherche globale `search_all` |
 | `0024_stories_v2.sql` | stories (lot 5 v3) : réactions (`story_reactions`, `set_story_reaction`), sondage (`story_polls` / `story_poll_votes`, `vote_story_poll`, `story_poll_counts`), question ouverte (`story_questions` / `story_question_answers`, lecture éditeurs), à-la-une (titre ≤ 16, `reorder_highlights`), vues qualifiées (`story_views.advanced`, `record_story_progress`), `studio_story_stats` |
 | `0025_messaging.sql` | messagerie de travail (lot 6 v3) : `channels` (général, un par groupement, un par centre, groupes), `channel_members`, `channel_messages`, `message_reactions`, `channel_reads` ; appartenance calculée `is_channel_member`, RPC `list_conversations` / `channel_messages_page` / `mark_channel_read` / `channel_info` / `message_seen_by` / `search_channel` / `forward_message` / `export_channel` / `set_channel_prefs` / `messaging_directory` ; messages système, notifications (`push_message`, mentions), entretien `messaging_maintenance` (rappel 48 h, archivage, purge 24 mois) ; Realtime |
+| `0026_centres_v2.sql` | Mon centre / annuaire / profil (lot 7 v3) : `center_changes` (propositions de fiche multi-champs, `propose_center_changes`, `decide_center_change`), `profile_history` (centre, service, rôle, statut, trigger), `my_profile_history`, `my_activity` |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -413,6 +414,24 @@ supabase/
 scripts/extract-colors.mjs extraction des couleurs du logo
 docs/ARCHITECTURE.md       plan d'architecture
 ```
+
+## 7f. Mon centre, annuaire, profil (v3)
+
+- **Référentiel réel** : les 47 CIS du SDIS 62 (adresses, téléphones, trois groupements
+  Est / Centre / Ouest) sont importés depuis `docs/import/centres-sdis62.csv`
+  (`npm run import:centres -- docs/import/centres-sdis62.csv`), géocodés par la BAN et
+  visibles dans l'annuaire, sur la carte et dans la messagerie (un canal par centre).
+- **Fiche modifiable avec historique** : le référent propose plusieurs champs à la fois
+  (présentation, couverture, téléphone, e-mail, adresse, effectif) ; chaque champ devient
+  une ligne `center_changes` datée, acceptée ou écartée par le service communication
+  (Studio → Centres → fiche), l'auteur est prévenu. Historique consultable dans le studio.
+- **Annuaire** : copier le numéro, enregistrer le contact (`.vcf` via
+  `/api/annuaire/vcard/centre|service/[slug]`), partager le lien interne (partage natif),
+  « Consultés récemment » (5 fiches, sur l'appareil).
+- **Profil** : photo recadrée au doigt (glisser, zoom), thème système / sombre / clair
+  (`user_settings.theme`, palette claire dans `globals.css`), « Mon activité » (réactions,
+  commentaires, favoris, propositions, messages, derniers gestes), changement de centre en
+  un écran avec récapitulatif et confirmation, historique daté (`profile_history`).
 
 ## 7e. Messagerie de travail (Messages)
 

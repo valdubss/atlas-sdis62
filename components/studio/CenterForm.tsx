@@ -3,20 +3,21 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { addReferent, removeReferent, reviewCenterUpdate, saveCenter, searchAgents, type FormState } from "@/app/(studio)/studio/centres/actions";
-import type { CenterWithRefs } from "@/lib/centres/queries";
+import { addReferent, removeReferent, reviewCenterChange, saveCenter, searchAgents, type FormState } from "@/app/(studio)/studio/centres/actions";
+import type { CenterChange, CenterWithRefs } from "@/lib/centres/queries";
 import type { Grouping } from "@/lib/supabase/database.types";
 import type { EditorMedia } from "@/components/studio/MediaUploader";
 import { MediaUploader } from "@/components/studio/MediaUploader";
 import { CENTER_TYPE_LABELS } from "@/lib/config";
 import { CENTER_TYPES } from "@/lib/validation/center";
-import { formatDateLong } from "@/lib/format";
+import { formatDateLong, formatDateTime } from "@/lib/format";
 import { imageSrc } from "@/lib/media/url";
 import { Field, SelectField, TextareaField, CheckboxField } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { useToast } from "@/components/ui/Toast";
+import { cn } from "@/lib/cn";
 
 const initial: FormState = { status: "idle" };
 type Agent = { id: string; first_name: string; last_name: string; email: string; avatar_key: string | null; role: string };
@@ -55,7 +56,7 @@ export function CenterForm({ center, groupings, notice }: { center: CenterWithRe
         </p>
       )}
 
-      {center?.pending_at && <PendingUpdate center={center} />}
+      {center && center.changes.length > 0 && <PendingUpdate center={center} />}
 
       <form action={action} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]" noValidate>
         {center && <input type="hidden" name="id" value={center.id} />}
@@ -261,25 +262,62 @@ function ReferentsEditor({ center, onChanged }: { center: CenterWithRefs; onChan
   );
 }
 
-/** Mise à jour proposée par un référent (couverture, présentation) : accepter ou écarter. */
+const FIELD_LABELS: Record<string, string> = { presentation: "Présentation", cover_media_id: "Photo de couverture", phone: "Téléphone", email: "E-mail", address: "Adresse", displayed_headcount: "Effectif affiché" };
+
+/** Modifications proposées par les référents : décision champ par champ, puis historique. */
 function PendingUpdate({ center }: { center: CenterWithRefs }) {
   const [pending, start] = useTransition();
+  const [note, setNote] = useState("");
   const router = useRouter();
   const toast = useToast();
-  const pendingCover = center.pending_cover_media_id;
+  const open = center.changes.filter((c) => c.decision === "pending");
+  const past = center.changes.filter((c) => c.decision !== "pending").slice(0, 10);
+  const value = (c: CenterChange, v: string | null) => (v === null ? "—" : c.field === "cover_media_id" ? "photo" : v);
+  const decide = (id: string, accept: boolean) =>
+    start(async () => {
+      const r = await reviewCenterChange(id, accept, note);
+      toast(r.ok ? (accept ? "Modification appliquée" : "Proposition écartée") : r.error);
+      setNote("");
+      router.refresh();
+    });
   return (
-    <section className="space-y-3 rounded-[16px] bg-bg-1 p-5 ring-1 ring-red/40">
-      <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Mise à jour proposée par un référent</h2>
-      {center.pending_presentation && <p className="whitespace-pre-line rounded-[10px] bg-bg-2 px-3 py-2 text-[15px] text-text-1">{center.pending_presentation}</p>}
-      {pendingCover && <p className="text-[13px] text-text-3">Nouvelle photo de couverture proposée.</p>}
-      <div className="flex gap-2">
-        <Button size="md" disabled={pending} onClick={() => start(async () => { const r = await reviewCenterUpdate(center.id, true); toast(r.ok ? "Mise à jour appliquée" : r.error); router.refresh(); })}>
-          Accepter
-        </Button>
-        <Button variant="danger" size="md" disabled={pending} onClick={() => start(async () => { const r = await reviewCenterUpdate(center.id, false); toast(r.ok ? "Proposition écartée" : r.error); router.refresh(); })}>
-          Écarter
-        </Button>
-      </div>
+    <section className={cn("space-y-3 rounded-[16px] bg-bg-1 p-5", open.length > 0 && "ring-1 ring-red/40")}>
+      <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">
+        Modifications proposées {open.length > 0 && <span className="text-text-3">{open.length}</span>}
+      </h2>
+      {open.length === 0 && <p className="text-[13px] text-text-3">Aucune proposition en attente.</p>}
+      {open.map((c) => (
+        <div key={c.id} className="space-y-2 rounded-[12px] bg-bg-2 px-3 py-2.5">
+          <p className="text-[13px] text-text-3">
+            {FIELD_LABELS[c.field] ?? c.field} · {c.proposer ? `${c.proposer.first_name} ${c.proposer.last_name}` : "Référent"} · {formatDateTime(c.proposed_at)}
+          </p>
+          <p className="whitespace-pre-line text-[15px] text-text-1">
+            <span className="text-text-3 line-through">{value(c, c.old_value)}</span> → {value(c, c.new_value)}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" disabled={pending} onClick={() => decide(c.id, true)}>
+              Accepter
+            </Button>
+            <Button variant="danger" size="sm" disabled={pending} onClick={() => decide(c.id, false)}>
+              Écarter
+            </Button>
+          </div>
+        </div>
+      ))}
+      {open.length > 0 && <Field label="Message au référent (facultatif, joint à la prochaine décision)" name="change_note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={300} />}
+      {past.length > 0 && (
+        <details className="text-[13px] text-text-3">
+          <summary className="cursor-pointer">Historique ({past.length})</summary>
+          <ul className="mt-2 space-y-1">
+            {past.map((c) => (
+              <li key={c.id}>
+                {formatDateTime(c.decided_at ?? c.proposed_at)} · {FIELD_LABELS[c.field] ?? c.field} · {c.decision === "accepted" ? "acceptée" : "écartée"}
+                {c.note && ` — ${c.note}`}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
     </section>
   );
 }

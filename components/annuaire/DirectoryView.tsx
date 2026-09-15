@@ -10,6 +10,8 @@ import { telHref } from "@/lib/geo/maps";
 import { Avatar } from "@/components/ui/Avatar";
 import { CenterSheetCompact, ServiceSheetCompact } from "./CompactSheets";
 import { OfflineBadge } from "./OfflineBadge";
+import { recentSheets, type RecentEntry } from "@/lib/annuaire/recent";
+import { Clock } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 type Segment = "centers" | "services";
@@ -34,6 +36,8 @@ export function DirectoryView({ data, homeCenterId }: { data: DirectoryData; hom
   const [openCenter, setOpenCenter] = useState<DirectoryCenter | null>(null);
   const [openService, setOpenService] = useState<DirectoryService | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [recents, setRecents] = useState<RecentEntry[]>([]);
+  useEffect(() => setRecents(recentSheets.read()), [openCenter, openService]);
 
   // Focus automatique sur grand écran seulement (pas de clavier qui surgit sur mobile)
   useEffect(() => {
@@ -120,6 +124,39 @@ export function DirectoryView({ data, homeCenterId }: { data: DirectoryData; hom
       </div>
 
       <OfflineBadge />
+
+      {!searching && recents.length > 0 && (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-text-3">Consultés récemment</h2>
+            <button type="button" onClick={() => { recentSheets.clear(); setRecents([]); }} className="text-[12px] text-text-3 hover:text-text-1">
+              Effacer
+            </button>
+          </div>
+          <ul className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3">
+            {recents.map((r) => (
+              <li key={`${r.kind}-${r.slug}`} className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (r.kind === "centre") {
+                      const c = data.centers.find((x) => x.slug === r.slug);
+                      if (c) setOpenCenter(c);
+                    } else {
+                      const s = data.services.find((x) => x.slug === r.slug);
+                      if (s) setOpenService(s);
+                    }
+                  }}
+                  className="pressable flex h-9 items-center gap-1.5 rounded-full bg-bg-1 px-3 text-[13px] font-medium text-text-1"
+                >
+                  <Clock size={14} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
+                  {r.name}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {searching && people.length > 0 && (
         <section className="space-y-2">

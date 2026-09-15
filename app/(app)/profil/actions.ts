@@ -88,3 +88,16 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+/** Profil → Apparence : thème système / sombre / clair (user_settings.theme). */
+export async function updateTheme(theme: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (theme !== "system" && theme !== "light" && theme !== "dark") return { ok: false, error: "Thème inconnu." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Session expirée." };
+  const { error } = await supabase.from("user_settings").upsert({ user_id: user.id, theme }, { onConflict: "user_id" });
+  if (error) return { ok: false, error: "Enregistrement impossible." };
+  return { ok: true };
+}

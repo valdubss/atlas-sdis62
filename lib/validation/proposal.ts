@@ -42,7 +42,7 @@ export const proposalEventSchema = z
     }
   });
 
-/** Mise à jour de fiche proposée par un référent. */
+/** Mise à jour de fiche proposée par un référent : plusieurs champs à la fois. */
 export const centerUpdateSchema = z
   .object({
     presentation: optionalText(600),
@@ -51,5 +51,18 @@ export const centerUpdateSchema = z
       .trim()
       .transform((s) => (s ? s : null))
       .pipe(z.uuid().nullable()),
+    phone: optionalText(30),
+    email: z
+      .string()
+      .trim()
+      .max(120)
+      .transform((s) => (s ? s : null))
+      .pipe(z.string().email("Adresse e-mail invalide.").nullable()),
+    address: optionalText(160),
+    displayed_headcount: z
+      .string()
+      .trim()
+      .transform((s) => (s ? Number(s) : null))
+      .pipe(z.number({ message: "Effectif : nombre entier attendu." }).int().min(0).max(999).nullable()),
   })
-  .refine((v) => v.presentation !== null || v.cover_media_id !== null, { message: "Proposez une présentation ou une photo.", path: ["presentation"] });
+  .refine((v) => Object.values(v).some((x) => x !== null), { message: "Proposez au moins une modification.", path: ["presentation"] });

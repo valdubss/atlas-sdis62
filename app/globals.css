@@ -34,6 +34,44 @@
   --shadow-float: 0 12px 40px rgba(0, 0, 0, 0.55);
 }
 
+/* Thème clair (Profil → Apparence, ou réglage système) : mêmes rôles, valeurs inversées */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg-0: #f4f4f6;
+  --bg-1: #ffffff;
+  --bg-2: #ebebef;
+  --glass: rgba(255, 255, 255, 0.72);
+  --glass-fallback: rgba(255, 255, 255, 0.96);
+  --glass-edge: rgba(0, 0, 0, 0.08);
+  --line: rgba(0, 0, 0, 0.06);
+  --text-1: #141417;
+  --text-2: rgba(20, 20, 23, 0.64);
+  --text-3: rgba(20, 20, 23, 0.52);
+  --text-4: rgba(20, 20, 23, 0.4);
+  --red-text: #c9182d;
+  --navy-link: #2e4a8c;
+  --shadow-float: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --bg-0: #f4f4f6;
+    --bg-1: #ffffff;
+    --bg-2: #ebebef;
+    --glass: rgba(255, 255, 255, 0.72);
+    --glass-fallback: rgba(255, 255, 255, 0.96);
+    --glass-edge: rgba(0, 0, 0, 0.08);
+    --line: rgba(0, 0, 0, 0.06);
+    --text-1: #141417;
+    --text-2: rgba(20, 20, 23, 0.64);
+    --text-3: rgba(20, 20, 23, 0.52);
+    --text-4: rgba(20, 20, 23, 0.4);
+    --red-text: #c9182d;
+    --navy-link: #2e4a8c;
+    --shadow-float: 0 12px 40px rgba(0, 0, 0, 0.18);
+  }
+}
+
 @theme inline {
   /* Noms du système (DESIGN.md) */
   --color-bg-0: var(--bg-0);

@@ -8,7 +8,8 @@ import type { EventItem } from "@/lib/agenda/queries";
 
 export type PersonRef = { id: string; first_name: string; last_name: string; avatar_key: string | null; job_title: string | null; email?: string };
 export type ReferentRow = { id: string; since: string; ended_at: string | null; is_active: boolean; profile: PersonRef | null };
-export type CenterWithRefs = Center & { grouping: Grouping | null; chief: PersonRef | null; referents: ReferentRow[]; cover: { id: string; variants: Record<string, string> } | null };
+export type CenterChange = { id: string; field: string; old_value: string | null; new_value: string | null; proposed_at: string; decided_at: string | null; decision: "pending" | "accepted" | "declined"; note: string | null; proposer: PersonRef | null };
+export type CenterWithRefs = Center & { grouping: Grouping | null; chief: PersonRef | null; referents: ReferentRow[]; cover: { id: string; variants: Record<string, string> } | null; changes: CenterChange[] };
 
 const PERSON = "id, first_name, last_name, avatar_key, job_title";
 
@@ -36,13 +37,14 @@ export const fetchCenterById = cache(async (id: string): Promise<CenterWithRefs 
   const { data } = await supabase
     .from("centers")
     .select(
-      `*, grouping:groupings!centers_grouping_id_fkey(*), chief:profiles!centers_chief_id_fkey(${PERSON}), cover:media!centers_cover_media_id_fkey(id, variants), referents:center_referents(id, since, ended_at, is_active, profile:profiles!center_referents_profile_id_fkey(${PERSON}, email))`,
+      `*, grouping:groupings!centers_grouping_id_fkey(*), chief:profiles!centers_chief_id_fkey(${PERSON}), cover:media!centers_cover_media_id_fkey(id, variants), referents:center_referents(id, since, ended_at, is_active, profile:profiles!center_referents_profile_id_fkey(${PERSON}, email)), changes:center_changes(id, field, old_value, new_value, proposed_at, decided_at, decision, note, proposer:profiles!center_changes_proposed_by_fkey(${PERSON}))`,
     )
     .eq("id", id)
     .maybeSingle();
   if (!data) return null;
   const row = data as unknown as CenterWithRefs;
   row.referents = [...(row.referents ?? [])].sort((a, b) => Number(b.is_active) - Number(a.is_active) || b.since.localeCompare(a.since));
+  row.changes = [...(row.changes ?? [])].sort((a, b) => b.proposed_at.localeCompare(a.proposed_at)).slice(0, 50);
   return row;
 });
 
