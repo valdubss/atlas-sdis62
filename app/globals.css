@@ -185,6 +185,16 @@ html[data-sheet-open] .glass {
 input, textarea, select {
   color: var(--text-1);
 }
+/* Écran tactile : jamais de champ sous 16 px, sinon Safari iOS zoome la page au
+   focus et conserve ce zoom après (page déplaçable latéralement). */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* iOS dessine un bord et un ombrage natifs sur les champs : jamais dans ATLAS */
 textarea,
 input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
