@@ -7,6 +7,7 @@ import type { FeedPost } from "@/lib/feed/types";
 import { FEATURES, type ReactionKind } from "@/lib/config";
 import { formatRelative } from "@/lib/format";
 import { haptic } from "@/lib/motion";
+import { isOnline, offlineQueue } from "@/lib/offline/queue";
 import { cn } from "@/lib/cn";
 import { reactToPost, recordVideoProgress, toggleBookmark } from "@/app/(app)/feed-actions";
 import { Avatar } from "@/components/ui/Avatar";
@@ -72,6 +73,13 @@ export function PostCard({
         if (next) counts[next] = (counts[next] ?? 0) + 1;
         return { ...p, reaction_counts: counts, my_reaction: next };
       });
+      // Hors ligne : la réaction est gardée sur l'appareil et posée au retour du réseau
+      if (!isOnline()) {
+        const next = post.my_reaction === kind ? null : kind;
+        offlineQueue.enqueue({ kind: "reaction", post_id: post.id, reaction: next });
+        toast("Hors ligne : réaction envoyée dès le retour du réseau");
+        return;
+      }
       startTransition(async () => {
         const res = await reactToPost(post.id, kind);
         if (res.ok)

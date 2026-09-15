@@ -109,6 +109,7 @@ redirige vers `/login`.
 | `0024_stories_v2.sql` | stories (lot 5 v3) : réactions (`story_reactions`, `set_story_reaction`), sondage (`story_polls` / `story_poll_votes`, `vote_story_poll`, `story_poll_counts`), question ouverte (`story_questions` / `story_question_answers`, lecture éditeurs), à-la-une (titre ≤ 16, `reorder_highlights`), vues qualifiées (`story_views.advanced`, `record_story_progress`), `studio_story_stats` |
 | `0025_messaging.sql` | messagerie de travail (lot 6 v3) : `channels` (général, un par groupement, un par centre, groupes), `channel_members`, `channel_messages`, `message_reactions`, `channel_reads` ; appartenance calculée `is_channel_member`, RPC `list_conversations` / `channel_messages_page` / `mark_channel_read` / `channel_info` / `message_seen_by` / `search_channel` / `forward_message` / `export_channel` / `set_channel_prefs` / `messaging_directory` ; messages système, notifications (`push_message`, mentions), entretien `messaging_maintenance` (rappel 48 h, archivage, purge 24 mois) ; Realtime |
 | `0026_centres_v2.sql` | Mon centre / annuaire / profil (lot 7 v3) : `center_changes` (propositions de fiche multi-champs, `propose_center_changes`, `decide_center_change`), `profile_history` (centre, service, rôle, statut, trigger), `my_profile_history`, `my_activity` |
+| `0027_reliability.sql` | fiabilité (lot 8 v3) : `incidents` (page /etat), journal d'audit indexé + `studio_audit` / `studio_audit_facets`, `set_reaction` idempotente et `channel_messages.client_id` (envois différés), `health_snapshot` |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -414,6 +415,35 @@ supabase/
 scripts/extract-colors.mjs extraction des couleurs du logo
 docs/ARCHITECTURE.md       plan d'architecture
 ```
+
+## 7g. Fiabilité et confiance (lot 8 v3)
+
+- **Hors ligne étendu** : les 20 dernières publications (texte + vignettes) restent
+  lisibles ; bandeau « Hors ligne : lecture seule » sous la barre haute ; réactions et
+  messages texte saisis sans réseau sont gardés sur l'appareil (`lib/offline/queue.ts`)
+  et rejoués dans l'ordre au retour du réseau, de façon idempotente (`set_reaction`,
+  `client_id` unique sur les messages). Statut « En attente du réseau » sur la bulle.
+- **État des services** : `/api/health` (base, stockage, vidéo, notifications,
+  messagerie ; 503 si un service est injoignable ; cache CDN 30 s) et page `/etat`
+  (statuts + incidents des 90 derniers jours, lien depuis le profil). Les
+  administrateurs déclarent et résolvent les incidents depuis Studio → Journal.
+- **Journal d'audit** : Studio → Journal, filtres (acteur, action, type, période),
+  pagination, export CSV (`/studio/journal/export`). Les administrateurs voient tout,
+  les éditeurs leurs propres actions.
+- **Charge** : `tests/load/flash.js` (k6) simule 300 agents ouvrant le fil dans la
+  minute qui suit un flash (montée 30 s, plateau 60 s) avec seuils p95 < 1,5 s sur le
+  fil, < 2 s sur une publication, < 1 % d'erreurs :
+
+  ```bash
+  k6 run -e BASE_URL=https://atlas-sdis62.vercel.app -e COOKIE="sb-…" -e POST_SLUG=… tests/load/flash.js
+  ```
+
+  Le cookie est celui d'un compte de test. Optimisations déjà en place : fil rendu côté
+  serveur avec `staleTimes` 30 s, images en variantes WebP servies par le CDN du
+  stockage, HLS pour la vidéo, RPC `get_feed` paginée. À surveiller lors d'un vrai
+  pic : le nombre de connexions Postgres (pooler Supabase) et la durée des fonctions Vercel.
+- **CI** : types, lint, tests unitaires et Lighthouse mobile (performance et
+  accessibilité ≥ 90 sur la page de connexion) à chaque push (`.github/workflows/quality.yml`).
 
 ## 7f. Mon centre, annuaire, profil (v3)
 

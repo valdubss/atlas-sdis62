@@ -16,6 +16,7 @@ const NAV = [
   { href: "/studio/statistiques", label: "Statistiques" },
   { href: "/studio/moderation", label: "Modération" },
   { href: "/studio/retours", label: "Retours" },
+  { href: "/studio/journal", label: "Journal" },
   { href: "/studio/utilisateurs", label: "Utilisateurs" },
   { href: "/studio/parametres", label: "Paramètres" },
   ...(process.env.NODE_ENV === "production" ? [] : [{ href: "/studio/dev-ui", label: "Composants" }]),

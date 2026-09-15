@@ -349,3 +349,12 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
   partager) sous les actions principales ; « Consultés récemment » en pilules 36 px
   défilantes avec icône horloge.
 - Changement de centre : feuille de confirmation avec récapitulatif en quatre puces 13 px.
+
+## État des services et hors ligne (lot 8 v3)
+
+- Bandeau hors ligne : pilule `--bg-2` flottante sous la barre haute, icône Wi-Fi barré
+  16 px `--text-2`, texte 13 px, ombre `--shadow-float`.
+- `/etat` : lignes 48 px avec point d'état 10 px (`--success`, ambre `#e0a72e`, `--red`),
+  libellé 15 px, détail 13 px `--text-3`, verdict 13 px `--text-2` à droite.
+- Journal : filtres en grille sur `--bg-1`, tableau 13 px, export en pilule `--bg-2`.
+- Bulle en attente : mention « En attente du réseau » 11 px `--text-3`, bulle à 60 %.

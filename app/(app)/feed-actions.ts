@@ -149,3 +149,12 @@ export async function moderateComment(
   if (error) return { ok: false, error: friendlyDbError(error.message) };
   return { ok: true };
 }
+
+/** Réaction « posée » (idempotente) : utilisée par la file d'envoi différé hors ligne. */
+export async function setReaction(postId: string, kind: ReactionKind | null): Promise<{ ok: true; reaction_counts: ReactionCounts; my_reaction: ReactionKind | null } | { ok: false; error: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_reaction", { p_post_id: postId, p_kind: kind });
+  if (error) return { ok: false, error: friendlyDbError(error.message) };
+  const r = data as { reaction_counts: ReactionCounts; my_reaction: ReactionKind | null };
+  return { ok: true, ...r };
+}

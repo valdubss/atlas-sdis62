@@ -15,6 +15,7 @@ import { Composer } from "./Composer";
 import { MessageActions } from "./MessageActions";
 import { Lightbox } from "@/components/feed/Lightbox";
 import { useToast } from "@/components/ui/Toast";
+import { isOnline, offlineQueue } from "@/lib/offline/queue";
 import { cn } from "@/lib/cn";
 
 /**
@@ -158,6 +159,14 @@ export function Conversation({ info, initial, me, isEditor }: { info: ChannelInf
     };
     setMessages((prev) => [...prev, optimistic]);
     setTimeout(() => scrollToBottom(true), 30);
+    // Hors ligne : texte gardé sur l'appareil (identifiant client), envoyé au retour du réseau
+    if (!isOnline() && !payload.media && !payload.voice) {
+      const clientId = crypto.randomUUID();
+      offlineQueue.enqueue({ kind: "message", client_id: clientId, channel_id: info.id, body: payload.body ?? null, reply_to_id: replyTo?.id ?? null, mentions: payload.mentions, mention_all: payload.mention_all });
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, pending: true, queued: true } : m)));
+      toast("Hors ligne : message envoyé dès le retour du réseau");
+      return true;
+    }
     const r = await sendMessage({ channel_id: info.id, ...payload, reply_to_id: replyTo?.id ?? null });
     if (!r.ok) {
       setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, pending: false, failed: true } : m)));

@@ -44,6 +44,8 @@ export type Message = {
   /** Local : envoi en cours / échec (jamais renvoyé par le serveur) */
   pending?: boolean;
   failed?: boolean;
+  /** Local : gardé sur l'appareil, envoyé au retour du réseau */
+  queued?: boolean;
 };
 
 export type Conversation = {

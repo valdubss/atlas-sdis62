@@ -100,13 +100,25 @@ const sendSchema = z.object({
   reply_to_id: uuid.nullable().optional(),
   mentions: z.array(uuid).max(50).optional(),
   mention_all: z.boolean().optional(),
+  /** Identifiant client (envoi différé) : un même message n'est jamais inséré deux fois */
+  client_id: uuid.optional(),
 });
 
 /** Envoie un message (texte, médias ou vocal) ; la push est distribuée juste après. */
-export async function sendMessage(input: { channel_id: string; body?: string; media?: MessageMedia[]; voice?: MessageVoice; reply_to_id?: string | null; mentions?: string[]; mention_all?: boolean }): Promise<Result<{ message: Message }>> {
+export async function sendMessage(input: { channel_id: string; body?: string; media?: MessageMedia[]; voice?: MessageVoice; reply_to_id?: string | null; mentions?: string[]; mention_all?: boolean; client_id?: string }): Promise<Result<{ message: Message }>> {
   const parsed = sendSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Message invalide." };
   const v = parsed.data;
+  if (v.client_id) {
+    // Rejeu d'un envoi différé déjà passé : on renvoie l'existant sans réinsérer
+    const supabase0 = await createClient();
+    const { data: existing } = await supabase0.from("channel_messages").select("id, channel_id").eq("client_id", v.client_id).maybeSingle();
+    if (existing) {
+      const { data: page } = await supabase0.rpc("channel_messages_page", { p_channel: existing.channel_id, p_before: null, p_limit: 50 });
+      const found = ((page ?? []) as unknown as Message[]).find((m) => m.id === existing.id);
+      if (found) return { ok: true, message: found };
+    }
+  }
   const body = v.body || null;
   const media = v.media && v.media.length ? v.media : null;
   const voice = v.voice ?? null;
@@ -122,7 +134,7 @@ export async function sendMessage(input: { channel_id: string; body?: string; me
   const type = voice ? "voice" : media ? "media" : "text";
   const { data, error } = await supabase
     .from("channel_messages")
-    .insert({ channel_id: v.channel_id, author_id: user.id, type, body, media: media as unknown as import("@/lib/supabase/database.types").Json, voice: voice as unknown as import("@/lib/supabase/database.types").Json, reply_to_id: v.reply_to_id ?? null, mentions: v.mentions ?? [], mention_all: v.mention_all ?? false })
+    .insert({ channel_id: v.channel_id, author_id: user.id, type, body, media: media as unknown as import("@/lib/supabase/database.types").Json, voice: voice as unknown as import("@/lib/supabase/database.types").Json, reply_to_id: v.reply_to_id ?? null, mentions: v.mentions ?? [], mention_all: v.mention_all ?? false, ...(v.client_id ? { client_id: v.client_id } : {}) })
     .select("id")
     .single();
   if (error || !data) {

@@ -553,6 +553,12 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      incidents: {
+        Row: { id: string; title: string; service: string; started_at: Timestamp; resolved_at: Timestamp | null; note: string | null; created_by: string | null; created_at: Timestamp };
+        Insert: { id?: string; title: string; service: string; started_at?: Timestamp; resolved_at?: Timestamp | null; note?: string | null; created_by?: string | null; created_at?: Timestamp };
+        Update: { title?: string; service?: string; started_at?: Timestamp; resolved_at?: Timestamp | null; note?: string | null };
+        Relationships: [];
+      };
       center_changes: {
         Row: { id: string; center_id: string; field: string; old_value: string | null; new_value: string | null; proposed_by: string | null; proposed_at: Timestamp; decided_by: string | null; decided_at: Timestamp | null; decision: "pending" | "accepted" | "declined"; note: string | null };
         Insert: { id?: string; center_id: string; field: string; old_value?: string | null; new_value?: string | null; proposed_by?: string | null; proposed_at?: Timestamp; decided_by?: string | null; decided_at?: Timestamp | null; decision?: "pending" | "accepted" | "declined"; note?: string | null };
@@ -578,8 +584,8 @@ export type Database = {
         Relationships: [];
       };
       channel_messages: {
-        Row: { id: string; channel_id: string; author_id: string | null; type: "text" | "media" | "system" | "voice"; body: string | null; media: Json | null; reply_to_id: string | null; mentions: string[]; mention_all: boolean; voice: Json | null; pinned_at: Timestamp | null; deleted_at: Timestamp | null; created_at: Timestamp };
-        Insert: { id?: string; channel_id: string; author_id?: string | null; type?: "text" | "media" | "system" | "voice"; body?: string | null; media?: Json | null; reply_to_id?: string | null; mentions?: string[]; mention_all?: boolean; voice?: Json | null; pinned_at?: Timestamp | null; deleted_at?: Timestamp | null; created_at?: Timestamp };
+        Row: { id: string; channel_id: string; author_id: string | null; type: "text" | "media" | "system" | "voice"; body: string | null; media: Json | null; reply_to_id: string | null; mentions: string[]; mention_all: boolean; voice: Json | null; pinned_at: Timestamp | null; deleted_at: Timestamp | null; created_at: Timestamp; client_id: string | null };
+        Insert: { id?: string; client_id?: string | null; channel_id: string; author_id?: string | null; type?: "text" | "media" | "system" | "voice"; body?: string | null; media?: Json | null; reply_to_id?: string | null; mentions?: string[]; mention_all?: boolean; voice?: Json | null; pinned_at?: Timestamp | null; deleted_at?: Timestamp | null; created_at?: Timestamp };
         Update: { body?: string | null; media?: Json | null; pinned_at?: Timestamp | null; deleted_at?: Timestamp | null };
         Relationships: [];
       };
@@ -733,6 +739,10 @@ export type Database = {
       get_story_items: { Args: { p_series_id?: string | null; p_highlight_id?: string | null }; Returns: Json[] };
       get_highlight_items: { Args: { p_highlight_id: string }; Returns: Json[] };
       record_story_view: { Args: { p_story_id: string }; Returns: undefined };
+      studio_audit: { Args: { p_actor?: string | null; p_action?: string | null; p_entity?: string | null; p_from?: string | null; p_to?: string | null; p_cursor?: number | null; p_limit?: number }; Returns: Json };
+      studio_audit_facets: { Args: Record<string, never>; Returns: Json };
+      set_reaction: { Args: { p_post_id: string; p_kind: string | null }; Returns: Json };
+      health_snapshot: { Args: Record<string, never>; Returns: Json };
       propose_center_changes: { Args: { p_center: string; p_changes: Json }; Returns: number };
       decide_center_change: { Args: { p_id: string; p_accept: boolean; p_note?: string | null }; Returns: undefined };
       my_profile_history: { Args: { p_limit?: number }; Returns: Json };

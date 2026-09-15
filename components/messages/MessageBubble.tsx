@@ -111,7 +111,7 @@ export function MessageBubble({
           </>
         )}
         <span className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-text-3">
-          {m.failed ? <span className="text-red-text">Échec · réessayer</span> : m.pending ? "Envoi…" : (pos === "last" || pos === "single") && time(m.created_at)}
+          {m.failed ? <span className="text-red-text">Échec · réessayer</span> : m.queued ? "En attente du réseau" : m.pending ? "Envoi…" : (pos === "last" || pos === "single") && time(m.created_at)}
         </span>
         {m.reactions.length > 0 && (
           <span className={cn("absolute -bottom-3 flex gap-1", mine ? "left-2" : "right-2")}>
