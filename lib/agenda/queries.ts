@@ -61,3 +61,20 @@ export const fetchEventById = cache(async (id: string): Promise<EventItem | null
   const { data } = await supabase.from("events").select(SELECT).eq("id", id).is("deleted_at", null).maybeSingle();
   return (data as unknown as EventItem | null) ?? null;
 });
+
+/** Prochain événement départemental (pastille « Agenda » sous les stories). */
+export async function fetchNextEvent(): Promise<EventItem | null> {
+  const supabase = await createClient();
+  const now = Date.now();
+  const { data } = await supabase
+    .from("events")
+    .select(SELECT)
+    .eq("status", "published")
+    .is("deleted_at", null)
+    .is("center_id", null)
+    .or(`ends_at.gte.${new Date(now).toISOString()},and(ends_at.is.null,starts_at.gte.${new Date(now - 3 * 3600_000).toISOString()})`)
+    .order("starts_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return (data as unknown as EventItem | null) ?? null;
+}

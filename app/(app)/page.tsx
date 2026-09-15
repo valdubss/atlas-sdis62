@@ -11,6 +11,8 @@ import { fetchActiveFlashes } from "@/lib/flash/queries";
 import { fetchUnreadCount } from "@/lib/notifications/queries";
 import { PostCard } from "@/components/feed/PostCard";
 import { StoryBar } from "@/components/stories/StoryBar";
+import { AgendaChip } from "@/components/feed/AgendaChip";
+import { fetchNextEvent } from "@/lib/agenda/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,7 @@ export default async function FeedPage({
   };
   const filtered = Boolean(params.category || params.center || params.q || params.tag);
 
-  const [current, categories, centers, pinned, posts, storyBar, flashes, unread] = await Promise.all([
+  const [current, categories, centers, pinned, posts, storyBar, flashes, unread, nextEvent] = await Promise.all([
     getCurrentUser(),
     FEATURES.categories ? fetchCategories() : Promise.resolve([]),
     FEATURES.centers ? fetchCenters() : Promise.resolve([]),
@@ -37,6 +39,7 @@ export default async function FeedPage({
     filtered ? Promise.resolve({ series: [], highlights: [] }) : fetchStoryBar(),
     filtered ? Promise.resolve([]) : fetchActiveFlashes(),
     fetchUnreadCount(),
+    filtered ? Promise.resolve(null) : fetchNextEvent(),
   ]);
   const canModerate = isEditorRole(current?.profile.role);
   const pinnedIds = new Set(pinned.map((p) => p.id));
@@ -58,6 +61,7 @@ export default async function FeedPage({
         <div className="space-y-3">
           <FlashBanner flashes={flashes} />
           <StoryBar bar={storyBar} canEdit={canModerate} />
+          {!filtered && <AgendaChip next={nextEvent} />}
 
           {pinned.map((p) => (
             <PostCard key={p.id} post={p} canModerate={canModerate} />

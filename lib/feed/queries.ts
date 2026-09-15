@@ -12,6 +12,14 @@ export async function fetchFeed(
   limit = FEED_PAGE_SIZE,
 ): Promise<FeedPost[]> {
   const supabase = await createClient();
+  if (params.centerId) {
+    const { data, error } = await supabase.rpc("get_center_feed", { p_center_id: params.centerId, p_limit: limit, p_cursor_at: cursor?.at ?? null, p_cursor_id: cursor?.id ?? null });
+    if (error) {
+      console.error("get_center_feed", error.message);
+      return [];
+    }
+    return (data ?? []) as unknown as FeedPost[];
+  }
   const { data, error } = await supabase.rpc("get_feed", {
     p_limit: limit,
     p_cursor_at: cursor?.at ?? null,

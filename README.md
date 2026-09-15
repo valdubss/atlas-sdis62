@@ -100,6 +100,7 @@ redirige vers `/login`.
 | `0015_stats_definer.sql` | `studio_post_stats` en SECURITY DEFINER (lecture de la file de notifications) |
 | `0016_centres_enums.sql` | valeurs d'énumération du réseau de référents (rôle `referent`, statuts `pending` / `declined`, `push_center`, `center_type`, `post_scope`) — **à exécuter seule, avant 0017** |
 | `0017_centres.sql` | réseau de référents communication (lot A) : `groupings`, `services`, `center_referents`, `center_follows`, `page_views`, fiche `centers` enrichie, publications et événements de centre (`scope`, validation, `promote_center_post`), RLS référents, `studio_center_stats` |
+| `0018_centre_page.sql` | onglet « Mon centre » (lot B) : `get_center_feed`, lecture des couvertures de centre, `record_page_view`, notification des éditeurs à chaque proposition |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -310,7 +311,23 @@ npm run import:centres -- docs/import/centres.csv --services docs/import/service
    recherchez l'agent par nom ou e-mail puis « Désigner ». Son rôle passe
    automatiquement à `referent` (et redevient `reader` au retrait). Un centre peut
    avoir plusieurs référents ; l'historique reste consultable sur la fiche.
-3. Le référent voit alors l'espace « Proposer » de son centre (lot B).
+3. Le référent voit alors le bouton « Proposer » sur la page de son centre.
+
+**Onglet « Mon centre » (agents)**
+
+- La barre basse est : Fil · Mon centre · Annuaire · Profil. L'agenda est accessible
+  depuis la pastille sous les stories et depuis le profil ; les favoris depuis le profil.
+- Au premier passage, l'agent choisit son centre (ou son service de direction) ;
+  il peut en changer dans Profil → Mon centre, y suivre jusqu'à 3 autres centres,
+  accepter d'être présenté (« Bienvenue à », 60 jours) et d'apparaître dans l'annuaire.
+- La page d'un centre : couverture, présentation, chef et référents, Appeler /
+  Itinéraire (Plans sur iPhone, application par défaut sur Android, OpenStreetMap
+  sinon), événements de la semaine (.ics), nouveaux arrivants, actus du centre,
+  photos. Un référent y propose actus, photos, vidéo, événements ou une mise à
+  jour de fiche ; il suit ses propositions dans Profil → Mes propositions et est
+  prévenu (cloche + push) de la validation ou du refus, avec le message éventuel.
+- Les actus de centre validées n'apparaissent que sur la page du centre. Push
+  « Nouveautés de mon centre » réglable dans Profil → Notifications.
 
 **Vérifier les règles de sécurité**
 
@@ -318,8 +335,8 @@ npm run import:centres -- docs/import/centres.csv --services docs/import/service
 npm run test:rls
 ```
 
-Le script crée quatre comptes `@sdis62.fr` et deux centres temporaires, vérifie
-30 règles (un référent ne peut ni publier directement, ni écrire pour un autre
+Le script crée quatre comptes `@sdis62.fr` et des centres temporaires, vérifie
+une quarantaine de règles (un référent ne peut ni publier directement, ni écrire pour un autre
 centre, ni dans le fil ; une proposition en attente n'est visible que de son
 auteur et des éditeurs ; la promotion au fil est réservée aux éditeurs, etc.)
 puis supprime tout. Il échoue (code 1) dès qu'une règle n'est pas respectée.

@@ -27,7 +27,6 @@ export async function updateProfile(
   const parsed = profileSchema.safeParse({
     first_name: formData.get("first_name"),
     last_name: formData.get("last_name"),
-    center_id: formData.get("center_id") ?? "",
   });
 
   if (!parsed.success) {

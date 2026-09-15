@@ -6,7 +6,7 @@ import { currentSubscription, pushSupported, subscribeBrowser, unsubscribeBrowse
 import { useToast } from "@/components/ui/Toast";
 import { CheckboxField } from "@/components/ui/Field";
 
-type Prefs = { push_new_posts: boolean; push_pinned: boolean; digest_email: boolean };
+type Prefs = { push_new_posts: boolean; push_pinned: boolean; push_center: boolean; digest_email: boolean };
 
 /**
  * Réglages des notifications (profil) : activation des push sur cet appareil,
@@ -85,6 +85,9 @@ export function NotificationSettings({ prefs: initial, hasSubscriptions }: { pre
       </div>
       <div className="py-2">
         <CheckboxField label="Publications épinglées" name="push_pinned" checked={prefs.push_pinned} disabled={pending} onChange={(e) => setPref("push_pinned", e.target.checked)} hint="Les annonces importantes, même si les nouvelles publications sont coupées" />
+      </div>
+      <div className="py-2">
+        <CheckboxField label="Nouveautés de mon centre" name="push_center" checked={prefs.push_center} disabled={pending} onChange={(e) => setPref("push_center", e.target.checked)} hint="Actus validées et événements de mon centre" />
       </div>
       <div className="py-2">
         <CheckboxField label="Résumé hebdomadaire par e-mail" name="digest_email" checked={prefs.digest_email} disabled={pending} onChange={(e) => setPref("digest_email", e.target.checked)} hint="Le lundi matin, les publications de la semaine" />

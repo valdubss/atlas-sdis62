@@ -8,8 +8,8 @@
  * Nécessite .env.local (NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
  * SUPABASE_SERVICE_ROLE_KEY). Quatre comptes @sdis62.fr sont créés avec un mot
  * de passe aléatoire : référent A (centre A), référent B (centre B), agent
- * lecteur, éditeur. Chaque cas attendu en échec doit échouer, sinon le script
- * sort en erreur (code 1).
+ * lecteur, éditeur. Lot B : suivis (3 max), fil de centre, consultations.
+ * Chaque cas attendu en échec doit échouer, sinon le script sort en erreur (code 1).
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -123,6 +123,35 @@ async function run() {
     check("référent B : ne voit pas l'événement en attente", (seenB ?? []).length === 0);
   }
 
+  // Lot B : suivis (3 max), fil de centre, consultations
+  const { data: extra } = await admin.from("centers").insert([1, 2, 3].map((i) => ({ slug: `rls-test-f${i}-${stamp}`, name: `Centre suivi ${i} ${stamp}`, type: "cs" }))).select("id");
+  state.centers.extra = (extra ?? []).map((c) => c.id);
+  for (const id of [A, B, state.centers.extra[0]]) await reader.from("center_follows").insert({ profile_id: state.users.reader, center_id: id });
+  const { count: nFollows } = await admin.from("center_follows").select("*", { count: "exact", head: true }).eq("profile_id", state.users.reader);
+  check("agent : 3 centres suivis", nFollows === 3);
+  await expectFail(reader.from("center_follows").insert({ profile_id: state.users.reader, center_id: state.centers.extra[1] }).select("center_id").single(), "agent : 4e suivi refusé");
+  await expectFail(reader.from("center_follows").insert({ profile_id: state.users.referentA, center_id: state.centers.extra[2] }).select("center_id").single(), "agent : suivi au nom d'un autre refusé");
+  if (pid) {
+    const { data: cf } = await reader.rpc("get_center_feed", { p_center_id: A, p_limit: 10 });
+    check("fil du centre : le post validé y figure", JSON.stringify(cf ?? []).includes(pid));
+  }
+  const pend = await refA.from("posts").insert({ type: "text", body: "Encore en attente", scope: "center", center_id: A, status: "pending" }).select("id").single();
+  if (pend.data) {
+    state.posts.push(pend.data.id);
+    const { data: cf2 } = await reader.rpc("get_center_feed", { p_center_id: A, p_limit: 10 });
+    check("fil du centre : une proposition en attente n'y figure pas", !JSON.stringify(cf2 ?? []).includes(pend.data.id));
+    const { data: notifEditors } = await admin.from("notifications").select("id, user_id").eq("body", "Encore en attente");
+    check("proposition : les éditeurs sont prévenus dans l'app", (notifEditors ?? []).some((n) => n.user_id === state.users.editor));
+    if (notifEditors?.length) await admin.from("notifications").delete().in("id", notifEditors.map((n) => n.id));
+  }
+  const pv = await reader.rpc("record_page_view", { p_kind: "center", p_target: A });
+  const pv2 = await reader.rpc("record_page_view", { p_kind: "center", p_target: A });
+  check("consultation : enregistrée une fois par jour", !pv.error && !pv2.error);
+  const { data: views } = await admin.from("page_views").select("user_id").eq("user_id", state.users.reader).eq("target_id", A);
+  check("consultation : une seule ligne", (views ?? []).length === 1);
+  const { data: viewsAsB } = await refB.from("page_views").select("user_id").eq("user_id", state.users.reader);
+  check("consultation : invisible pour un autre agent", (viewsAsB ?? []).length === 0);
+
   // Retrait du référent → retour au rôle lecteur
   await admin.from("center_referents").update({ is_active: false, ended_at: new Date().toISOString() }).eq("profile_id", state.users.referentA);
   const { data: pa2 } = await admin.from("profiles").select("role").eq("id", state.users.referentA).single();
@@ -173,7 +202,8 @@ async function cleanup() {
     await admin.from("events").delete().in("author_id", ids);
     await admin.from("center_referents").delete().in("profile_id", ids);
   }
-  const centers = Object.values(state.centers);
+  const centers = Object.values(state.centers).flat();
+  if (ids.length) await admin.from("page_views").delete().in("user_id", ids);
   if (centers.length) await admin.from("centers").delete().in("id", centers);
   for (const id of ids) await admin.auth.admin.deleteUser(id);
   console.log("Données de test supprimées.");

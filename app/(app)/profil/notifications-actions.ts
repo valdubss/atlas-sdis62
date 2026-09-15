@@ -49,6 +49,7 @@ export async function removePushSubscription(endpoint: string): Promise<Result> 
 const prefsSchema = z.object({
   push_new_posts: z.boolean().optional(),
   push_pinned: z.boolean().optional(),
+  push_center: z.boolean().optional(),
   digest_email: z.boolean().optional(),
 });
 

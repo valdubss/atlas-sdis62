@@ -76,6 +76,8 @@ export type CommentItem = {
 };
 
 export type FeedParams = {
+  /** Fil d'un centre (page « Mon centre ») : identifiant du centre. */
+  centerId?: string | null;
   category?: string | null;
   center?: string | null;
   q?: string | null;

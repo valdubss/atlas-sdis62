@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bookmark, CalendarDays, Newspaper, SquarePen, User } from "lucide-react";
+import { BookUser, Flame, Newspaper, SquarePen, User } from "lucide-react";
 import { useRole } from "./RoleContext";
 import { NAV_ITEMS } from "@/lib/config";
 import { cn } from "@/lib/cn";
 
-const ICONS = { feed: Newspaper, calendar: CalendarDays, bookmark: Bookmark, user: User, studio: SquarePen } as const;
+const ICONS = { feed: Newspaper, center: Flame, directory: BookUser, user: User, studio: SquarePen } as const;
 
 /**
  * Barre basse flottante en verre : 4 entrées (+ « Studio » pour les éditeurs),
@@ -33,7 +33,7 @@ export function BottomNav() {
       <ul className={cn("grid", canEdit ? "grid-cols-5" : "grid-cols-4")}>
         {items.map((item) => {
           const current = pendingHref ?? pathname;
-          const active = item.href === "/" ? current === "/" : current.startsWith(item.href);
+          const active = item.href === "/" ? current === "/" : item.href === "/centre" ? current.startsWith("/centre") || current.startsWith("/service") : current.startsWith(item.href);
           const Icon = ICONS[item.icon];
           return (
             <li key={item.href}>

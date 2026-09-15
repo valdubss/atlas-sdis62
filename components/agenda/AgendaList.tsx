@@ -107,7 +107,7 @@ function EventRow({ event: e, onOpen }: { event: EventItem; onOpen: () => void }
   );
 }
 
-function EventDetail({ event: e }: { event: EventItem }) {
+export function EventDetail({ event: e }: { event: EventItem }) {
   return (
     <div className="space-y-4 px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
       <p className="text-[15px] text-text-2">{eventWhen(e)}</p>
