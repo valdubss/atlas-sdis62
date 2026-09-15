@@ -29,6 +29,7 @@ export async function fetchAgenda(): Promise<{ upcoming: EventItem[]; past: Even
       .select(SELECT)
       .eq("status", "published")
       .is("deleted_at", null)
+      .is("center_id", null)
       .or(`ends_at.gte.${now.toISOString()},and(ends_at.is.null,starts_at.gte.${new Date(now.getTime() - 3 * 3600_000).toISOString()})`)
       .order("starts_at", { ascending: true })
       .limit(200),
@@ -37,6 +38,7 @@ export async function fetchAgenda(): Promise<{ upcoming: EventItem[]; past: Even
       .select(SELECT)
       .eq("status", "published")
       .is("deleted_at", null)
+      .is("center_id", null)
       .lt("starts_at", now.toISOString())
       .gte("starts_at", horizonPast)
       .order("starts_at", { ascending: false })
@@ -50,7 +52,7 @@ export async function fetchAgenda(): Promise<{ upcoming: EventItem[]; past: Even
 /** Tous les événements pour le Studio (brouillons compris, sans les supprimés). */
 export async function fetchEventsStudio(): Promise<EventItem[]> {
   const supabase = await createClient();
-  const { data } = await supabase.from("events").select(SELECT).is("deleted_at", null).order("starts_at", { ascending: false }).limit(500);
+  const { data } = await supabase.from("events").select(SELECT).is("deleted_at", null).is("center_id", null).order("starts_at", { ascending: false }).limit(500);
   return (data ?? []) as unknown as EventItem[];
 }
 

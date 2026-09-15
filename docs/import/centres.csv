@@ -1,0 +1,4 @@
+name;type;grouping;slug;address;postal_code;city;phone;email;presentation;displayed_headcount;sort_order;lat;lng;is_active
+CIS Arras;cis;Groupement Centre;;"6 rue de l'Exemple";62000;Arras;03 21 00 00 00;cis.arras@sdis62.fr;"Centre d'incendie et de secours d'Arras : secours à personnes, incendie, secours routier. Défend Arras et son agglomération.";;1;;;oui
+CS Exemple-sur-Mer;cs;Groupement Littoral;;"12 avenue de la Plage";62100;Calais;03 21 00 00 01;;"Centre de secours volontaire. Équipe de 30 sapeurs-pompiers volontaires.";30;2;;;oui
+Direction départementale;direction;;;"18 rue René Cassin";62223;Saint-Laurent-Blangy;03 21 58 18 18;;"Siège du SDIS 62.";;0;;;oui

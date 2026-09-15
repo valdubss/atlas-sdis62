@@ -18,7 +18,7 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
     .from("notification_queue")
     .select("id")
     .eq("status", "pending")
-    .in("kind", ["push_pinned", "push_category", "push_flash", "email_feedback"])
+    .in("kind", ["push_pinned", "push_category", "push_flash", "push_center", "email_feedback"])
     .order("created_at")
     .limit(limit);
   if (!candidates || candidates.length === 0) return { processed: 0, sent: 0, removed: 0 };
@@ -54,7 +54,7 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
     const prefColumn = item.kind === "push_pinned" ? "push_pinned" : item.kind === "push_flash" ? null : "push_new_posts";
     const [{ data: subs, error: subsError }, { data: settings }] = await Promise.all([
       admin.from("push_subscriptions").select("id, endpoint, p256dh, auth, user_id").limit(5000),
-      admin.from("user_settings").select("user_id, push_pinned, push_new_posts"),
+      admin.from("user_settings").select("user_id, push_pinned, push_new_posts, push_center"),
     ]);
     if (subsError) {
       console.error("dispatch: abonnements illisibles", subsError.message);
@@ -65,7 +65,18 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
       continue;
     }
     const optOut = new Set(prefColumn ? (settings ?? []).filter((s) => s[prefColumn] === false).map((s) => s.user_id) : []);
-    const targets = (subs ?? []).filter((s) => !optOut.has(s.user_id));
+    let targets = (subs ?? []).filter((s) => !optOut.has(s.user_id));
+    if (item.kind === "push_center") {
+      // Contenu de centre : agents rattachés au centre (préférence push_center), ou un seul destinataire (refus / validation)
+      const p = item.payload as unknown as { center_id?: string; user_id?: string };
+      if (p.user_id) targets = (subs ?? []).filter((s) => s.user_id === p.user_id);
+      else if (p.center_id) {
+        const { data: members } = await admin.from("profiles").select("id").eq("center_id", p.center_id).eq("is_active", true);
+        const ids = new Set((members ?? []).map((m) => m.id));
+        const off = new Set((settings ?? []).filter((s) => s.push_center === false).map((s) => s.user_id));
+        targets = (subs ?? []).filter((s) => ids.has(s.user_id) && !off.has(s.user_id));
+      } else targets = [];
+    }
 
     const payload: PushPayload = { title: item.payload.title, body: item.payload.body, url: item.payload.url, tag: item.payload.post_id ?? (item.payload as { flash_id?: string }).flash_id, urgent: item.kind === "push_flash" };
     const gone: string[] = [];

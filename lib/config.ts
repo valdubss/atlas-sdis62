@@ -56,5 +56,15 @@ export const NAV_ITEMS = [
 export const ROLE_LABELS = {
   admin: "Administrateur",
   editor: "Éditeur",
+  referent: "Référent communication",
   reader: "Agent",
+} as const;
+
+export const CENTER_TYPE_LABELS = {
+  cis: "CIS",
+  cs: "CS",
+  cpi: "CPI",
+  cta_codis: "CTA-CODIS",
+  direction: "Direction",
+  service: "Service",
 } as const;

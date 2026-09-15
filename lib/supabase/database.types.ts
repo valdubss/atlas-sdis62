@@ -15,9 +15,9 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type UserRole = "admin" | "editor" | "reader";
+export type UserRole = "admin" | "editor" | "referent" | "reader";
 export type PostType = "photo" | "video" | "article" | "text" | "poll";
-export type PostStatus = "draft" | "scheduled" | "published" | "archived";
+export type PostStatus = "draft" | "scheduled" | "published" | "archived" | "pending" | "declined";
 export type AuthorDisplay = "service_com" | "agent";
 export type MediaKind = "image" | "video";
 export type MediaStatus = "uploading" | "processing" | "ready" | "failed";
@@ -34,6 +34,12 @@ type ProfileRow = {
   first_name: string;
   last_name: string;
   center_id: string | null;
+  service_id: string | null;
+  job_title: string | null;
+  directory_visible: boolean;
+  work_phone: string | null;
+  present_me: boolean;
+  center_joined_at: string | null;
   role: UserRole;
   avatar_key: string | null;
   is_active: boolean;
@@ -70,6 +76,12 @@ type PostRow = {
   slug: string;
   title: string | null;
   location: string | null;
+  scope: "departmental" | "center";
+  submitted_by: string | null;
+  reviewed_by: string | null;
+  reviewed_at: Timestamp | null;
+  moderation_message: string | null;
+  promoted_from_id: string | null;
   excerpt: string | null;
   body: string | null;
   category_id: string | null;
@@ -163,6 +175,66 @@ type StoryReplyRow = {
   read_at: Timestamp | null;
 };
 
+export type CenterType = "cis" | "cs" | "cpi" | "cta_codis" | "direction" | "service";
+
+type CenterRow = {
+  id: string;
+  name: string;
+  slug: string;
+  sort_order: number;
+  is_active: boolean;
+  created_at: Timestamp;
+  grouping_id: string | null;
+  type: CenterType;
+  address: string | null;
+  postal_code: string | null;
+  city: string | null;
+  lat: number | null;
+  lng: number | null;
+  phone: string | null;
+  email: string | null;
+  cover_media_id: string | null;
+  presentation: string | null;
+  chief_id: string | null;
+  displayed_headcount: number | null;
+  pending_cover_media_id: string | null;
+  pending_presentation: string | null;
+  pending_by: string | null;
+  pending_at: Timestamp | null;
+  updated_at: Timestamp;
+};
+
+type GroupingRow = { id: string; name: string; sort_order: number; created_at: Timestamp };
+
+type ServiceRow = {
+  id: string;
+  name: string;
+  slug: string;
+  short_description: string | null;
+  mission: string | null;
+  contact_reasons: string[];
+  manager_id: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  grouping_id: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: Timestamp;
+  updated_at: Timestamp;
+};
+
+type CenterReferentRow = {
+  id: string;
+  center_id: string;
+  profile_id: string;
+  since: string;
+  ended_at: string | null;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: Timestamp;
+};
+
 type EventRow = {
   id: string;
   title: string;
@@ -172,7 +244,12 @@ type EventRow = {
   ends_at: Timestamp | null;
   all_day: boolean;
   post_id: string | null;
-  status: "draft" | "published";
+  status: "draft" | "published" | "pending" | "declined";
+  center_id: string | null;
+  submitted_by: string | null;
+  reviewed_by: string | null;
+  reviewed_at: Timestamp | null;
+  moderation_message: string | null;
   author_id: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
@@ -205,14 +282,44 @@ export type Database = {
     Tables: {
       profiles: {
         Row: ProfileRow;
-        Insert: Optional<ProfileRow, "first_name" | "last_name" | "center_id" | "role" | "avatar_key" | "is_active" | "onboarded_at" | "created_at" | "updated_at">;
+        Insert: Optional<ProfileRow, "first_name" | "last_name" | "center_id" | "service_id" | "job_title" | "directory_visible" | "work_phone" | "present_me" | "center_joined_at" | "role" | "avatar_key" | "is_active" | "onboarded_at" | "created_at" | "updated_at">;
         Update: Partial<ProfileRow>;
         Relationships: [];
       };
       centers: {
-        Row: RefRow;
-        Insert: Optional<RefRow, "id" | "sort_order" | "is_active" | "created_at">;
-        Update: Partial<RefRow>;
+        Row: CenterRow;
+        Insert: Optional<CenterRow, "id" | "sort_order" | "is_active" | "created_at" | "grouping_id" | "type" | "address" | "postal_code" | "city" | "lat" | "lng" | "phone" | "email" | "cover_media_id" | "presentation" | "chief_id" | "displayed_headcount" | "pending_cover_media_id" | "pending_presentation" | "pending_by" | "pending_at" | "updated_at">;
+        Update: Partial<CenterRow>;
+        Relationships: [];
+      };
+      groupings: {
+        Row: GroupingRow;
+        Insert: Optional<GroupingRow, "id" | "sort_order" | "created_at">;
+        Update: Partial<GroupingRow>;
+        Relationships: [];
+      };
+      services: {
+        Row: ServiceRow;
+        Insert: Optional<ServiceRow, "id" | "short_description" | "mission" | "contact_reasons" | "manager_id" | "phone" | "email" | "address" | "grouping_id" | "sort_order" | "is_active" | "created_at" | "updated_at">;
+        Update: Partial<ServiceRow>;
+        Relationships: [];
+      };
+      center_referents: {
+        Row: CenterReferentRow;
+        Insert: Optional<CenterReferentRow, "id" | "since" | "ended_at" | "is_active" | "created_by" | "created_at">;
+        Update: Partial<CenterReferentRow>;
+        Relationships: [];
+      };
+      center_follows: {
+        Row: { profile_id: string; center_id: string; created_at: Timestamp };
+        Insert: { profile_id: string; center_id: string; created_at?: Timestamp };
+        Update: Partial<{ profile_id: string; center_id: string }>;
+        Relationships: [];
+      };
+      page_views: {
+        Row: { kind: "center" | "directory"; target_id: string; user_id: string; day: string };
+        Insert: { kind: "center" | "directory"; target_id?: string; user_id: string; day?: string };
+        Update: Partial<{ kind: "center" | "directory"; target_id: string; user_id: string; day: string }>;
         Relationships: [];
       };
       categories: {
@@ -233,7 +340,7 @@ export type Database = {
           push_pinned: boolean;
           push_followed_categories: boolean;
           digest_email: boolean;
-          push_new_posts: boolean;
+          push_new_posts: boolean; push_center: boolean;
           theme: "system" | "light" | "dark";
           updated_at: Timestamp;
         };
@@ -273,7 +380,7 @@ export type Database = {
         Row: PostRow;
         Insert: Optional<
           PostRow,
-          | "id" | "slug" | "title" | "location" | "excerpt" | "body" | "category_id" | "center_id" | "tags"
+          | "id" | "slug" | "title" | "location" | "scope" | "submitted_by" | "reviewed_by" | "reviewed_at" | "moderation_message" | "promoted_from_id" | "excerpt" | "body" | "category_id" | "center_id" | "tags"
           | "author_id" | "author_display" | "status" | "scheduled_at" | "published_at"
           | "pinned_at" | "comments_enabled" | "cover_media_id" | "created_at" | "updated_at" | "deleted_at"
         >;
@@ -366,7 +473,7 @@ export type Database = {
       };
       events: {
         Row: EventRow;
-        Insert: Optional<EventRow, "id" | "description" | "location" | "ends_at" | "all_day" | "post_id" | "status" | "author_id" | "created_at" | "updated_at" | "deleted_at">;
+        Insert: Optional<EventRow, "id" | "description" | "location" | "ends_at" | "all_day" | "post_id" | "status" | "center_id" | "submitted_by" | "reviewed_by" | "reviewed_at" | "moderation_message" | "author_id" | "created_at" | "updated_at" | "deleted_at">;
         Update: Partial<EventRow>;
         Relationships: [];
       };
@@ -448,6 +555,10 @@ export type Database = {
       get_comments: { Args: { p_post_id: string }; Returns: Json[] };
       studio_stats: { Args: Record<string, never>; Returns: Json };
       studio_post_stats: { Args: { p_days?: number }; Returns: Json };
+      studio_center_stats: { Args: { p_days?: number }; Returns: Json };
+      is_referent_of: { Args: { p_center_id: string }; Returns: boolean };
+      is_referent: { Args: Record<string, never>; Returns: boolean };
+      promote_center_post: { Args: { p_post_id: string }; Returns: string };
       mark_notifications_read: { Args: Record<string, never>; Returns: number };
       purge_notifications: { Args: Record<string, never>; Returns: undefined };
       notify_events_tomorrow: { Args: Record<string, never>; Returns: number };
@@ -484,5 +595,7 @@ export type Tables<T extends keyof Database["public"]["Tables"]> =
 
 export type Profile = Tables<"profiles">;
 export type Center = Tables<"centers">;
+export type Grouping = Tables<"groupings">;
+export type Service = Tables<"services">;
 export type Category = Tables<"categories">;
 export type Post = Tables<"posts">;

@@ -98,6 +98,8 @@ redirige vers `/login`.
 | `0013_post_location.sql` | `posts.location` (lieu affiché sous l'auteur) et `post_to_json` mis à jour |
 | `0014_flash_notifications_replies_stats.sql` | flash prioritaire (`flashes`, push forcé), notifications dans l'app (`notifications`, triggers publication / réponse / flash, rappel agenda), réponses aux stories (`story_replies`), statistiques détaillées (`studio_post_stats`) |
 | `0015_stats_definer.sql` | `studio_post_stats` en SECURITY DEFINER (lecture de la file de notifications) |
+| `0016_centres_enums.sql` | valeurs d'énumération du réseau de référents (rôle `referent`, statuts `pending` / `declined`, `push_center`, `center_type`, `post_scope`) — **à exécuter seule, avant 0017** |
+| `0017_centres.sql` | réseau de référents communication (lot A) : `groupings`, `services`, `center_referents`, `center_follows`, `page_views`, fiche `centers` enrichie, publications et événements de centre (`scope`, validation, `promote_center_post`), RLS référents, `studio_center_stats` |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -251,7 +253,8 @@ ligne `OK` / `ECHEC` par règle (onglet *Messages* ou *Logs*).
 | Rôle | Peut |
 |---|---|
 | `reader` (défaut) | lire les contenus publiés, réagir, commenter, voter, enregistrer des favoris, modifier son profil (nom, centre, avatar) |
-| `editor` | tout ce qui précède + créer, programmer, publier, épingler, modérer, consulter les statistiques et les vues de stories |
+| `referent` | tout ce qu'un `reader` peut faire + proposer des actus (photos, texte, vidéo), des événements et une mise à jour de fiche **pour son centre uniquement** ; chaque proposition passe par la file de validation du Studio |
+| `editor` | tout ce qui précède + créer, programmer, publier, épingler, modérer, consulter les statistiques et les vues de stories, valider / refuser / promouvoir les propositions des centres, gérer le référentiel (groupements, centres, services, référents) |
 | `admin` | tout + gérer les utilisateurs (rôle, désactivation, export / suppression RGPD), catégories, centres, paramètres |
 
 Points clés :
@@ -270,6 +273,56 @@ Points clés :
 - `audit_log` est alimenté automatiquement (publications, stories, modération,
   changements de rôle, référentiels) et n'est ni modifiable ni supprimable via l'API.
 - Fonctions RGPD : `export_user_data(uuid)` et `anonymize_user_data(uuid)` (admin).
+- **Contenus de centre** : un post ou un événement rattaché à un centre (`scope = 'center'`)
+  n'apparaît jamais dans le fil départemental. Le seul chemin vers le fil est
+  « Publier aussi dans le fil » (`promote_center_post`), qui crée une publication
+  départementale distincte créditée « Vie des centres ». Voir
+  `docs/ARCHITECTURE-CENTRES.md`.
+
+### 6.1 Réseau de référents communication
+
+Le référentiel se gère dans **Studio → Centres → Référentiel** (groupements,
+centres, services) ; la file de validation dans **Studio → Centres**.
+
+**Importer les centres et services en masse (CSV)**
+
+1. Copiez `docs/import/centres.csv` et `docs/import/services.csv` et remplissez-les
+   (séparateur `;`, en-tête obligatoire, encodage UTF-8 ; les colonnes sont
+   documentées en tête de `scripts/import-centres.mjs`). Le type d'un centre est
+   `cis`, `cs`, `cpi`, `cta_codis`, `direction` ou `service`.
+2. Simulation puis import (adresses géocodées automatiquement via la Base Adresse
+   Nationale si `lat` / `lng` sont vides ; relancer l'import met à jour les fiches
+   existantes, identifiées par leur `slug`) :
+
+```bash
+npm run import:centres -- docs/import/centres.csv --services docs/import/services.csv --dry-run
+```
+
+```bash
+npm run import:centres -- docs/import/centres.csv --services docs/import/services.csv
+```
+
+**Désigner le premier référent**
+
+1. L'agent doit avoir un compte (connexion par lien magique ou compte créé dans
+   Studio → Utilisateurs) et être rattaché à son centre dans son profil.
+2. Studio → Centres → Référentiel → fiche du centre → « Ajouter un référent » :
+   recherchez l'agent par nom ou e-mail puis « Désigner ». Son rôle passe
+   automatiquement à `referent` (et redevient `reader` au retrait). Un centre peut
+   avoir plusieurs référents ; l'historique reste consultable sur la fiche.
+3. Le référent voit alors l'espace « Proposer » de son centre (lot B).
+
+**Vérifier les règles de sécurité**
+
+```bash
+npm run test:rls
+```
+
+Le script crée quatre comptes `@sdis62.fr` et deux centres temporaires, vérifie
+30 règles (un référent ne peut ni publier directement, ni écrire pour un autre
+centre, ni dans le fil ; une proposition en attente n'est visible que de son
+auteur et des éditeurs ; la promotion au fil est réservée aux éditeurs, etc.)
+puis supprime tout. Il échoue (code 1) dès qu'une règle n'est pas respectée.
 
 ## 7. Structure du projet
 
@@ -414,4 +467,6 @@ variables de `.env.local` dans **Settings → Environment Variables**, définir
 | `npm run db:types` | régénère les types TypeScript depuis la base |
 | `npm run db:reset` | (local uniquement) recrée la base locale + seed |
 | `npm run screenshots` | captures de référence Playwright (dev server lancé) |
+| `npm run import:centres -- <centres.csv> [--services services.csv] [--dry-run]` | import CSV des groupements, centres et services (géocodage BAN) |
+| `npm run test:rls` | test des règles RLS du réseau de référents (comptes temporaires, nettoyés) |
 | `npm run vapid` | génère une paire de clés VAPID pour les push |

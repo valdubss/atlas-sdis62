@@ -37,6 +37,11 @@ export type FeedPost = {
   slug: string;
   title: string | null;
   location: string | null;
+  scope?: "departmental" | "center";
+  center_id?: string | null;
+  submitted_by?: string | null;
+  moderation_message?: string | null;
+  promoted_from_id?: string | null;
   excerpt: string | null;
   body: string | null;
   tags: string[];

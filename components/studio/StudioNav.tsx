@@ -11,6 +11,7 @@ const NAV = [
   { href: "/studio/posts", label: "Publications" },
   { href: "/studio/stories", label: "Stories" },
   { href: "/studio/agenda", label: "Agenda" },
+  { href: "/studio/centres", label: "Centres" },
   { href: "/studio/statistiques", label: "Statistiques" },
   { href: "/studio/moderation", label: "Modération" },
   { href: "/studio/retours", label: "Retours" },
@@ -19,7 +20,7 @@ const NAV = [
   ...(process.env.NODE_ENV === "production" ? [] : [{ href: "/studio/dev-ui", label: "Composants" }]),
 ];
 
-export function StudioNav({ compact = false }: { compact?: boolean }) {
+export function StudioNav({ compact = false, pendingCenters = 0 }: { compact?: boolean; pendingCenters?: number }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -35,6 +36,7 @@ export function StudioNav({ compact = false }: { compact?: boolean }) {
           {NAV.map((n) => (
             <option key={n.href} value={n.href}>
               {n.label}
+              {n.href === "/studio/centres" && pendingCenters > 0 ? ` (${pendingCenters})` : ""}
             </option>
           ))}
         </select>
@@ -57,7 +59,10 @@ export function StudioNav({ compact = false }: { compact?: boolean }) {
               active ? "bg-bg-2 font-medium text-text-1" : "text-text-2 hover:text-text-1",
             )}
           >
-            {item.label}
+            <span className="flex-1">{item.label}</span>
+            {item.href === "/studio/centres" && pendingCenters > 0 && (
+              <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-fill px-1.5 text-[11px] font-semibold tabular-nums text-white">{pendingCenters}</span>
+            )}
           </Link>
         );
       })}
