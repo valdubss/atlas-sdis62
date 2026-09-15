@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 /** La génération n'est proposée que si un fournisseur est configuré (gratuit possible : Groq). */
-export function transcriptionEnabled() {
+function transcriptionEnabled() {
   return Boolean(process.env.TRANSCRIPTION_API_KEY);
 }
 
