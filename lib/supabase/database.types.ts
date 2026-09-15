@@ -375,6 +375,11 @@ export type Database = {
           digest_email: boolean;
           push_new_posts: boolean;
           push_center: boolean;
+          push_agenda: boolean;
+          push_messages: "all" | "mentions" | "none";
+          quiet_start: string;
+          quiet_end: string;
+          hide_preview: boolean;
           theme: "system" | "light" | "dark";
           updated_at: Timestamp;
         };
@@ -385,6 +390,11 @@ export type Database = {
           digest_email?: boolean;
           push_new_posts?: boolean;
           push_center?: boolean;
+          push_agenda?: boolean;
+          push_messages?: "all" | "mentions" | "none";
+          quiet_start?: string;
+          quiet_end?: string;
+          hide_preview?: boolean;
           theme?: "system" | "light" | "dark";
           updated_at?: Timestamp;
         };
@@ -396,6 +406,11 @@ export type Database = {
           push_new_posts?: boolean;
           theme?: "system" | "light" | "dark";
           updated_at?: Timestamp;
+          push_agenda?: boolean;
+          push_messages?: "all" | "mentions" | "none";
+          quiet_start?: string;
+          quiet_end?: string;
+          hide_preview?: boolean;
         };
         Relationships: [];
       };
@@ -406,9 +421,9 @@ export type Database = {
         Relationships: [];
       };
       notification_queue: {
-        Row: { id: number; kind: string; payload: Json; status: QueueStatus; attempts: number; created_at: Timestamp; sent_at: Timestamp | null; error: string | null; stats: string | null };
+        Row: { id: number; kind: string; payload: Json; status: QueueStatus; attempts: number; created_at: Timestamp; sent_at: Timestamp | null; error: string | null; stats: string | null; dedupe_key: string | null; sent_count: number };
         Insert: { kind: string; payload: Json; status?: QueueStatus; attempts?: number; sent_at?: Timestamp | null; error?: string | null; stats?: string | null };
-        Update: { status?: QueueStatus; attempts?: number; sent_at?: Timestamp | null; error?: string | null; stats?: string | null };
+        Update: { status?: QueueStatus; attempts?: number; sent_at?: Timestamp | null; error?: string | null; stats?: string | null; sent_count?: number };
         Relationships: [];
       };
       posts: {
@@ -543,6 +558,18 @@ export type Database = {
         Update: Partial<MediaRow>;
         Relationships: [];
       };
+      notification_deferred: {
+        Row: { id: number; user_id: string; kind: string; payload: Json; deliver_after: Timestamp; created_at: Timestamp };
+        Insert: { user_id: string; kind: string; payload: Json; deliver_after: string };
+        Update: Partial<{ deliver_after: string }>;
+        Relationships: [];
+      };
+      push_opens: {
+        Row: { user_id: string; tag: string; day: string };
+        Insert: { user_id: string; tag: string; day?: string };
+        Update: never;
+        Relationships: [];
+      };
       post_versions: {
         Row: { id: number; post_id: string; version: number; snapshot: Json; saved_by: string | null; saved_at: Timestamp };
         Insert: { post_id: string; version: number; snapshot: Json; saved_by?: string | null };
@@ -617,6 +644,9 @@ export type Database = {
       record_video_progress: { Args: { p_post_id: string; p_pct: number }; Returns: undefined };
       studio_video_stats: { Args: { p_days?: number }; Returns: Json };
       studio_calendar: { Args: { p_from: string; p_to: string }; Returns: Json };
+      record_push_open: { Args: { p_tag: string }; Returns: undefined };
+      studio_notification_stats: { Args: { p_days?: number }; Returns: Json };
+      schedule_hourly_dispatch: { Args: { p_url: string; p_secret: string }; Returns: string };
       purge_page_views: { Args: Record<string, never>; Returns: undefined };
       is_referent: { Args: Record<string, never>; Returns: boolean };
       promote_center_post: { Args: { p_post_id: string }; Returns: string };

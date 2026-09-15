@@ -104,6 +104,7 @@ redirige vers `/login`.
 | `0019_annuaire.sql` | annuaire (lot C) : extensions `pg_trgm` + `unaccent`, `search_directory` (recherche tolérante aux fautes : centres, services, agents ayant choisi d'être visibles), `purge_page_views` (13 mois) |
 | `0020_video.sql` | vidéo (lot 1 v3) : états `video_status`, orientation, HLS (`hls_key`, `renditions`, `hls_files`), poster (auto / image / timecode), `media_subtitles`, paliers de lecture (`post_views.progress`, `record_video_progress`, `studio_video_stats`), purge des fichiers HLS |
 | `0021_studio_editorial.sql` | studio (lot 2 v3) : verrou d'édition, sauvegarde automatique, `post_versions` (30 versions), relecture (`review_status`, commentaires internes, blocage de publication hors admin, notifications), empreinte des médias (doublons), politiques `storage.objects` pour les envois reprenables (TUS), `studio_calendar` |
+| `0022_notifications_v2.sql` | notifications (lot 3 v3) : préférences détaillées (`push_agenda`, `push_messages`, plage de silence, aperçu masqué), une seule push par contenu (`dedupe_key`), pushs différées et regroupées (`notification_deferred`), ouvertures (`push_opens`), `studio_notification_stats`, `schedule_hourly_dispatch` (pg_cron + pg_net) |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -461,6 +462,32 @@ docs/ARCHITECTURE.md       plan d'architecture
   description » sous chaque photo ; la proposition est toujours relue et éditable.
 - **Contraste des stories** : le texte superposé est mesuré contre la zone de
   l'image où il s'affiche ; sous 4,5:1, avertissement avant publication.
+
+## 7b bis. Notifications : préférences, plage de silence, boîte de réception
+
+- **Préférences** (Profil → Notifications) : nouvelles publications, épinglées,
+  nouveautés de mon centre, agenda (rappel la veille), messagerie (tout / mentions /
+  rien), résumé e-mail. Les **flashs** sont affichés non désactivables avec l'explication.
+- **Plage de silence** : 21 h – 7 h par défaut, modifiable par l'agent (heure de Paris).
+  Les pushs non urgentes émises pendant la plage sont mises en attente
+  (`notification_deferred`) puis regroupées en une seule à la fin de la plage
+  (« 3 nouveautés cette nuit »). Les flashs passent toujours.
+- **Une seule push par contenu** : clé de dédoublonnage calculée à l'entrée en file
+  (trigger `notification_queue_dedupe`) ; aucun rappel automatique.
+- **Boîte de réception** (`/notifications`) : 90 jours, filtre Toutes / Non lues, lien
+  vers le contenu ; cloche avec point rouge dans la barre haute de tous les écrans,
+  badge de l'application (icône) sur les appareils compatibles.
+- **Statistiques** (Studio → Statistiques → Notifications) : taux d'activation des
+  pushs par centre, taux d'ouverture par type de contenu (clic sur la notification,
+  enregistré par agent et par jour).
+- **Distribution horaire** : Vercel Hobby ne déclenche un cron qu'une fois par jour.
+  Pour respecter la fin de plage de silence à l'heure près, la base appelle
+  `/api/cron/dispatch` toutes les heures via pg_cron + pg_net. À planifier une fois,
+  dans l'éditeur SQL Supabase (remplacez le secret par la valeur de `CRON_SECRET`) :
+
+```sql
+select public.schedule_hourly_dispatch('https://atlas-sdis62.vercel.app/api/cron/dispatch', 'VOTRE_CRON_SECRET');
+```
 
 ## 7b. Notifications push, PWA et digest
 

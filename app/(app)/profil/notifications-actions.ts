@@ -50,6 +50,11 @@ const prefsSchema = z.object({
   push_new_posts: z.boolean().optional(),
   push_pinned: z.boolean().optional(),
   push_center: z.boolean().optional(),
+  push_agenda: z.boolean().optional(),
+  push_messages: z.enum(["all", "mentions", "none"]).optional(),
+  quiet_start: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  quiet_end: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  hide_preview: z.boolean().optional(),
   digest_email: z.boolean().optional(),
 });
 

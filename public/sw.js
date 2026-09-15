@@ -96,6 +96,11 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const url = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  // Ouverture comptée (par agent, par contenu et par jour) : statistiques du studio
+  const tag = event.notification.tag;
+  if (tag && tag !== "atlas") {
+    event.waitUntil(fetch("/api/push/open", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tag }), credentials: "same-origin" }).catch(() => {}));
+  }
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (list) => {
       const own = list.find((c) => new URL(c.url).origin === self.location.origin);

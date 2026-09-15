@@ -1,6 +1,12 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { fetchUnreadCount } from "@/lib/notifications/queries";
+
+/** Nombre de non-lues (cloche, rafraîchie côté client). */
+export async function getUnreadCount(): Promise<number> {
+  return fetchUnreadCount();
+}
 
 /** Marque toutes les notifications de l'agent comme lues (ouverture de la page). */
 export async function markAllRead(): Promise<number> {

@@ -273,3 +273,14 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
 - Relecture : section `--bg-1`, badge d'état, commentaires internes en cartes `--bg-2`.
 - File d'envois : verre flottant rayon 16 px au-dessus de la barre basse, une ligne
   13 px + barre 4 px `--text-1`.
+
+## Notifications (lot 3 v3)
+
+- Centre de préférences : liste `hairline` d'interrupteurs 50 × 30, un réglage par
+  ligne avec son explication 13 px `--text-3` ; les flashs restent cochés et grisés
+  avec la phrase d'explication plutôt que masqués.
+- Plage de silence : deux champs `time` 40 px sur `--bg-2`, libellés « de » / « à ».
+- Boîte de réception : segments « Toutes · Non lues (n) » dans une pilule `--bg-1`,
+  point `--red` 8 px sur les non-lues, lecture marquée 1,5 s après l'ouverture.
+- Cloche : présente dans la barre haute de tous les écrans, pastille `--red` 18 px
+  avec chiffre, badge d'icône d'application synchronisé.

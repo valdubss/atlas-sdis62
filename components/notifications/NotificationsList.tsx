@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CalendarDays, MessageCircle, Newspaper, Reply } from "lucide-react";
@@ -15,15 +15,29 @@ const ICONS = { post: Newspaper, flash: AlertTriangle, reply: Reply, event: Cale
 /** Liste des notifications ; tout est marqué lu à l'ouverture. */
 export function NotificationsList({ items, unread }: { items: NotificationItem[]; unread: number }) {
   const router = useRouter();
+  const [filter, setFilter] = useState<"all" | "unread">("all");
   useEffect(() => {
-    if (unread > 0) markAllRead().then(() => router.refresh());
+    if (unread > 0) {
+      const t = setTimeout(() => markAllRead().then(() => router.refresh()), 1500);
+      return () => clearTimeout(t);
+    }
   }, [unread, router]);
 
-  if (items.length === 0) return <EmptyState title="Aucune notification" description="Les nouvelles publications, flashs, rappels d'événements et réponses à vos commentaires apparaîtront ici." />;
+  if (items.length === 0) return <EmptyState title="Aucune notification" description="Les nouvelles publications, flashs, rappels d'événements et réponses à vos commentaires des 90 derniers jours apparaîtront ici." />;
+  const shown = filter === "unread" ? items.filter((n) => !n.read_at) : items;
 
   return (
+    <div className="space-y-3">
+      <div role="tablist" aria-label="Filtre" className="flex w-fit rounded-full bg-bg-1 p-1">
+        {(["all", "unread"] as const).map((f) => (
+          <button key={f} type="button" role="tab" aria-selected={filter === f} onClick={() => setFilter(f)} className={cn("h-8 rounded-full px-4 text-[13px] font-medium", filter === f ? "bg-bg-2 text-text-1" : "text-text-2")}>
+            {f === "all" ? "Toutes" : `Non lues${unread ? ` (${unread})` : ""}`}
+          </button>
+        ))}
+      </div>
+      {shown.length === 0 && <p className="px-1 py-6 text-center text-[15px] text-text-2">Tout est lu.</p>}
     <ul className="hairline overflow-hidden rounded-[16px] bg-bg-1">
-      {items.map((n) => {
+      {shown.map((n) => {
         const Icon = ICONS[n.kind] ?? Newspaper;
         const fresh = !n.read_at;
         const inner = (
@@ -52,5 +66,6 @@ export function NotificationsList({ items, unread }: { items: NotificationItem[]
         );
       })}
     </ul>
+    </div>
   );
 }

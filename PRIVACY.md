@@ -23,7 +23,9 @@ fonctionnement du service). **Responsable** : SDIS 62, service communication.
 | Consultations des pages de centre et de l'annuaire (`page_views`, une ligne par agent, par jour et par page, sans horodatage fin) | mesurer l'usage du réseau de référents (chiffres agrégés dans le Studio) | 13 mois, purge automatique |
 | Vues de stories (`story_views`) | statistiques visibles des seuls éditeurs | 13 mois |
 | Abonnements push (`push_subscriptions` : point de terminaison, clés, navigateur) | envoyer les notifications choisies par l'agent | jusqu'à désactivation, ou purge automatique si le navigateur refuse |
-| Préférences de notification (`user_settings`) | respecter les choix de l'agent (dont « Nouveautés de mon centre ») | durée du compte |
+| Préférences de notification (`user_settings` : par type de contenu, plage de silence, aperçu masqué) | respecter les choix de l'agent | durée du compte |
+| Pushs en attente de fin de plage de silence (`notification_deferred`) | regrouper les notifications de nuit | quelques heures, supprimées à l'envoi |
+| Ouvertures de push (`push_opens` : agent, contenu, jour, sans heure) | taux d'ouverture par type de contenu dans le Studio | 13 mois |
 | Notifications dans l'app (`notifications`) | cloche : validation, refus, nouveautés du centre | 90 jours |
 | Signalements (`feedback` : catégorie, description, capture facultative, page, navigateur, version) | corriger les problèmes remontés par les agents | 13 mois après traitement |
 | Signalements de commentaires (`comment_reports`) | modération | 13 mois |

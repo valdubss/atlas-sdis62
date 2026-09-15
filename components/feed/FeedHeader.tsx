@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
-import { BellButton } from "@/components/layout/BellButton";
 import { FeedFilters } from "./FeedFilters";
 
 type Ref = { id: string; name: string; slug: string };
@@ -21,7 +20,6 @@ export function FeedHeader(props: { categories: Ref[]; centers: Ref[]; showCateg
       <TopBar
         right={
           <>
-            <BellButton unread={props.unread ?? 0} />
             <button
               type="button"
               aria-label="Rechercher"

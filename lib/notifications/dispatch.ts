@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendPush, type PushPayload } from "@/lib/push/server";
 import { sendMail } from "@/lib/email/transport";
 import { mediaUrl } from "@/lib/media/url";
+import { groupDeferred, isQuiet, nextQuietEnd, parseClock } from "./quiet";
 
 type QueueRow = { id: number; kind: string; payload: PushPayload & { post_id?: string }; attempts: number };
 
@@ -54,7 +55,7 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
     const prefColumn = item.kind === "push_pinned" ? "push_pinned" : item.kind === "push_flash" ? null : "push_new_posts";
     const [{ data: subs, error: subsError }, { data: settings }] = await Promise.all([
       admin.from("push_subscriptions").select("id, endpoint, p256dh, auth, user_id").limit(5000),
-      admin.from("user_settings").select("user_id, push_pinned, push_new_posts, push_center"),
+      admin.from("user_settings").select("user_id, push_pinned, push_new_posts, push_center, quiet_start, quiet_end"),
     ]);
     if (subsError) {
       console.error("dispatch: abonnements illisibles", subsError.message);
@@ -79,6 +80,30 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
     }
 
     const payload: PushPayload = { title: item.payload.title, body: item.payload.body, url: item.payload.url, tag: item.payload.post_id ?? (item.payload as { flash_id?: string }).flash_id, urgent: item.kind === "push_flash" };
+
+    // Plage de silence (par agent, heure de Paris) : les pushs non urgentes sont
+    // mises en attente et regroupées à la fin de la plage. Les flashs passent toujours.
+    if (item.kind !== "push_flash") {
+      const now = new Date();
+      const quietOf = new Map((settings ?? []).map((s) => [s.user_id, s] as const));
+      const deferredUsers = new Set<string>();
+      for (const s of targets) {
+        if (deferredUsers.has(s.user_id)) continue;
+        const pref = quietOf.get(s.user_id);
+        const start = parseClock(pref?.quiet_start, { h: 21, m: 0 });
+        const end = parseClock(pref?.quiet_end, { h: 7, m: 0 });
+        if (isQuiet(now, start, end)) deferredUsers.add(s.user_id);
+      }
+      if (deferredUsers.size > 0) {
+        await admin.from("notification_deferred").insert(
+          [...deferredUsers].map((user_id) => {
+            const pref = quietOf.get(user_id);
+            return { user_id, kind: item.kind, payload: { title: payload.title, body: payload.body, url: payload.url, tag: payload.tag ?? null }, deliver_after: nextQuietEnd(now, parseClock(pref?.quiet_end, { h: 7, m: 0 })).toISOString() };
+          }),
+        );
+        targets = targets.filter((s) => !deferredUsers.has(s.user_id));
+      }
+    }
     const gone: string[] = [];
     let ok = 0;
     let failed = 0;
@@ -112,10 +137,43 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
         attempts: item.attempts + 1,
         error: failed ? summary : null,
         stats: summary,
+        sent_count: ok,
       })
       .eq("id", item.id);
   }
-  return { processed: (queue ?? []).length, sent, removed };
+  const flushed = await flushDeferred().catch((e) => {
+    console.error("différées", e);
+    return 0;
+  });
+  return { processed: (queue ?? []).length, sent: sent + flushed, removed };
+}
+
+/**
+ * Fin de plage de silence : envoie à chaque agent concerné une seule push
+ * (« 3 nouveautés cette nuit ») regroupant celles mises en attente.
+ */
+export async function flushDeferred(): Promise<number> {
+  const admin = createAdminClient();
+  const { data: due } = await admin.from("notification_deferred").select("id, user_id, kind, payload").lte("deliver_after", new Date().toISOString()).order("created_at").limit(2000);
+  if (!due || due.length === 0) return 0;
+  const byUser = new Map<string, typeof due>();
+  for (const d of due) byUser.set(d.user_id, [...(byUser.get(d.user_id) ?? []), d]);
+  const { data: subs } = await admin.from("push_subscriptions").select("id, endpoint, p256dh, auth, user_id").in("user_id", [...byUser.keys()]);
+  let sent = 0;
+  const gone: string[] = [];
+  for (const [userId, items] of byUser) {
+    const grouped = groupDeferred(items.map((i) => i.payload as { title: string; body: string; url: string }));
+    if (!grouped) continue;
+    const payload: PushPayload = { ...grouped, tag: items.length === 1 ? ((items[0].payload as { tag?: string }).tag ?? undefined) : "atlas-night" };
+    for (const s of (subs ?? []).filter((x) => x.user_id === userId)) {
+      const r = await sendPush(s, payload);
+      if (r.status === "sent") sent++;
+      else if (r.status === "gone") gone.push(s.id);
+    }
+  }
+  if (gone.length) await admin.from("push_subscriptions").delete().in("id", gone);
+  await admin.from("notification_deferred").delete().in("id", due.map((d) => d.id));
+  return sent;
 }
 
 /** E-mail au service communication pour un signalement (adresse app_settings.feedback_email). */

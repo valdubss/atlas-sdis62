@@ -20,11 +20,12 @@ export async function fetchUnreadCount(): Promise<number> {
 }
 
 /** Dernières notifications de l'agent connecté (RLS). */
-export async function fetchNotifications(limit = 60): Promise<NotificationItem[]> {
+export async function fetchNotifications(limit = 200): Promise<NotificationItem[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("notifications")
     .select("id, kind, title, body, url, created_at, read_at")
+    .gte("created_at", new Date(Date.now() - 90 * 86_400_000).toISOString())
     .order("created_at", { ascending: false })
     .limit(limit);
   return (data ?? []) as unknown as NotificationItem[];

@@ -5,8 +5,6 @@ import { createClient, getCurrentUser, isEditorRole } from "@/lib/supabase/serve
 import { fetchCenterBySlug, fetchCenterPhotos, fetchCenterWeek, fetchFollows, fetchNewcomers, isReferentOf } from "@/lib/centres/public";
 import { FEED_PAGE_SIZE, fetchFeed } from "@/lib/feed/queries";
 import { TopBar } from "@/components/layout/TopBar";
-import { BellButton } from "@/components/layout/BellButton";
-import { fetchUnreadCount } from "@/lib/notifications/queries";
 import { CenterHero } from "@/components/centre/CenterHero";
 import { CenterIdentity } from "@/components/centre/CenterIdentity";
 import { CenterWeek } from "@/components/centre/CenterWeek";
@@ -41,14 +39,13 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
   const { profile } = current;
   const supabase = await createClient();
 
-  const [week, newcomers, photos, posts, follows, referent, unread, home, team] = await Promise.all([
+  const [week, newcomers, photos, posts, follows, referent, home, team] = await Promise.all([
     fetchCenterWeek(center.id),
     fetchNewcomers(center.id),
     fetchCenterPhotos(center.id),
     fetchFeed({ centerId: center.id }),
     fetchFollows(profile.id),
     isReferentOf(profile.id, center.id),
-    fetchUnreadCount(),
     profile.center_id ? supabase.from("centers").select("id, slug, name, type, city, grouping_id").eq("id", profile.center_id).maybeSingle().then((r) => r.data) : Promise.resolve(null),
     fetchTeam("center", center.id),
   ]);
@@ -60,7 +57,7 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
 
   return (
     <div className="space-y-3">
-      <TopBar title={center.name} right={<BellButton unread={unread} />} leading={!isHome ? <Link href="/centre" className="pressable -ml-2 flex h-12 items-center pr-2 text-[15px] font-medium text-text-2 hover:text-text-1">Mon centre</Link> : undefined} />
+      <TopBar title={center.name} leading={!isHome ? <Link href="/centre" className="pressable -ml-2 flex h-12 items-center pr-2 text-[15px] font-medium text-text-2 hover:text-text-1">Mon centre</Link> : undefined} />
       <FollowTabs home={home ?? null} follows={follows} currentSlug={slug} />
       <PullToRefresh>
         <div className="space-y-3">
