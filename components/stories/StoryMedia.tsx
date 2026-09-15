@@ -60,11 +60,13 @@ export function StoryMedia({
       {overlay?.text && (
         <p
           className={cn(
-            "pointer-events-none absolute inset-x-6 whitespace-pre-line text-center text-[22px] font-semibold leading-[1.2] tracking-[-0.02em] text-white [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]",
-            position === "top" && "top-[18%]",
-            position === "middle" && "top-1/2 -translate-y-1/2",
-            position === "bottom" && "bottom-[16%]",
+            "pointer-events-none absolute whitespace-pre-line text-center text-[22px] font-semibold leading-[1.2] tracking-[-0.02em] text-white [text-shadow:0_1px_12px_rgba(0,0,0,0.6)]",
+            typeof overlay.y === "number" ? "w-[88%] -translate-x-1/2 -translate-y-1/2" : "inset-x-6",
+            typeof overlay.y !== "number" && position === "top" && "top-[18%]",
+            typeof overlay.y !== "number" && position === "middle" && "top-1/2 -translate-y-1/2",
+            typeof overlay.y !== "number" && position === "bottom" && "bottom-[16%]",
           )}
+          style={typeof overlay.y === "number" ? { left: `${(overlay.x ?? 0.5) * 100}%`, top: `${overlay.y * 100}%` } : undefined}
         >
           {overlay.text}
         </p>

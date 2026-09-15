@@ -9,6 +9,14 @@ import { Avatar } from "@/components/ui/Avatar";
 export const metadata: Metadata = { title: "Réponses à la story" };
 export const dynamic = "force-dynamic";
 
+type Answer = {
+  id: string;
+  answer: string;
+  created_at: string;
+  question: { prompt: string } | null;
+  author: { first_name: string; last_name: string; avatar_key: string | null; center: { name: string } | null } | null;
+};
+
 type Reply = {
   id: string;
   emoji: string | null;
@@ -21,8 +29,14 @@ type Reply = {
 export default async function StoryRepliesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [story, { data }] = await Promise.all([
+  const [story, { data }, { data: answerRows }] = await Promise.all([
     fetchStoryById(id),
+    supabase
+      .from("story_question_answers")
+      .select("id, answer, created_at, question:story_questions!inner(story_id, prompt), author:profiles!story_question_answers_user_id_fkey(first_name, last_name, avatar_key, center:centers(name))")
+      .eq("question.story_id", id)
+      .order("created_at", { ascending: false })
+      .limit(500),
     supabase
       .from("story_replies")
       .select("id, emoji, message, created_at, author:profiles!story_replies_user_id_fkey(first_name, last_name, avatar_key, center:centers(name))")
@@ -32,8 +46,10 @@ export default async function StoryRepliesPage({ params }: { params: Promise<{ i
   ]);
   if (!story) notFound();
   const replies = (data ?? []) as unknown as Reply[];
+  const answers = (answerRows ?? []) as unknown as Answer[];
   // Marquage « lu » : réponses de cette story
   await supabase.from("story_replies").update({ read_at: new Date().toISOString() }).eq("story_id", id).is("read_at", null);
+  if (answers.length) await supabase.from("story_question_answers").update({ read_at: new Date().toISOString() }).in("id", answers.map((a) => a.id)).is("read_at", null);
 
   return (
     <div className="mx-auto max-w-[720px] space-y-6">
@@ -47,6 +63,31 @@ export default async function StoryRepliesPage({ params }: { params: Promise<{ i
         {story.series_title ?? "Story"}
         {story.overlay?.text && ` — ${story.overlay.text}`} · {replies.length} {replies.length > 1 ? "réponses" : "réponse"}
       </p>
+      {answers.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">
+            Question « {answers[0].question?.prompt ?? story.question?.prompt ?? ""} » <span className="text-text-3">{answers.length}</span>
+          </h2>
+          <p className="text-[13px] text-text-3">Réponses visibles du service communication seulement.</p>
+          <div className="hairline rounded-[16px] bg-bg-1">
+            {answers.map((a) => {
+              const name = a.author ? `${a.author.first_name} ${a.author.last_name}`.trim() : "Agent supprimé";
+              return (
+                <div key={a.id} className="flex items-start gap-3 px-5 py-3">
+                  <Avatar name={name} avatarKey={a.author?.avatar_key} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] text-text-3">
+                      <span className="font-medium text-text-1">{name}</span>
+                      {a.author?.center?.name && ` · ${a.author.center.name}`} · {formatDateTime(a.created_at)}
+                    </p>
+                    <p className="whitespace-pre-line text-[15px] text-text-1">{a.answer}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
       <div className="hairline rounded-[16px] bg-bg-1">
         {replies.length === 0 ? (
           <p className="px-5 py-8 text-center text-[15px] text-text-2">Aucune réponse pour le moment.</p>

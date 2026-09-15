@@ -101,7 +101,23 @@ export function cursorOf(posts: FeedPost[]): FeedCursor {
 }
 
 /** Story sérialisée par story_to_json(). */
-export type StoryOverlay = { text?: string; position?: "top" | "middle" | "bottom" } | null;
+export type StoryOverlay = { text?: string; position?: "top" | "middle" | "bottom"; x?: number; y?: number } | null;
+
+/** Sondage superposé à une story (position relative 0–1, largeur relative). */
+export type StoryPoll = {
+  id: string;
+  question: string;
+  options: string[];
+  x: number;
+  y: number;
+  w: number;
+  my_vote: number | null;
+  /** Répartition des votes : après avoir voté, ou pour les éditeurs ; sinon null. */
+  counts: number[] | null;
+};
+
+/** Question ouverte superposée à une story (réponses lisibles des éditeurs seulement). */
+export type StoryQuestion = { id: string; prompt: string; x: number; y: number };
 
 export type StoryItem = {
   id: string;
@@ -119,6 +135,10 @@ export type StoryItem = {
   seen: boolean;
   views: number;
   replies?: number;
+  reactions?: number;
+  my_reaction?: ReactionKind | null;
+  poll?: StoryPoll | null;
+  question?: StoryQuestion | null;
 };
 
 /** Bulle du bandeau : une série active ou un à-la-une. */

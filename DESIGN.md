@@ -297,3 +297,17 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
   en verre flottant au-dessus de la barre basse.
 - Recherche globale : feuille haute, champ 44 px sur `--bg-2`, groupes en capitales
   13 px `--text-3`, lignes 44 px, historique avec icône horloge.
+
+## Stories (lot 5 v3)
+
+- Réactions du viewer : quatre icônes Lucide 26 px blanches avec ombre portée, actives en
+  `--red` remplies, montée ×1,25 en 0,7 s ; réparties sur toute la largeur au-dessus du
+  champ de réponse.
+- Sondage et question : carte blanche 95 % opaque, rayon 16 px, ombre douce, largeur 80 %
+  du cadre ; réponses 40 px sur `--bg-2`, barre de résultat `--navy-link` à 20 % qui
+  s'étend en 0,5 s, pourcentage 13 px `--text-2` à droite ; total en 12 px `--text-3`.
+- Aperçu du Studio : cadre 9:16 sur noir, zones masquées en hachures blanches à 18 % (haut
+  14 %, bas 22 %), éléments déplaçables entourés d'un pointillé blanc 60 % (plein au
+  glisser), retour automatique dans la zone visible au relâcher.
+- À la une : poignée `GripVertical` `--text-4`, vignette ronde 48 px, flèches monter /
+  descendre 32 px, compteur 0/16 sous le champ de titre.

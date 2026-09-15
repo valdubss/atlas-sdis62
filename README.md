@@ -106,6 +106,7 @@ redirige vers `/login`.
 | `0021_studio_editorial.sql` | studio (lot 2 v3) : verrou d'édition, sauvegarde automatique, `post_versions` (30 versions), relecture (`review_status`, commentaires internes, blocage de publication hors admin, notifications), empreinte des médias (doublons), politiques `storage.objects` pour les envois reprenables (TUS), `studio_calendar` |
 | `0022_notifications_v2.sql` | notifications (lot 3 v3) : préférences détaillées (`push_agenda`, `push_messages`, plage de silence, aperçu masqué), une seule push par contenu (`dedupe_key`), pushs différées et regroupées (`notification_deferred`), ouvertures (`push_opens`), `studio_notification_stats`, `schedule_hourly_dispatch` (pg_cron + pg_net) |
 | `0023_reading.sql` | fil et articles (lot 4 v3) : légende par photo (`post_media.caption`), aperçu flou (`media.lqip`), lecture qualifiée (`post_views.read` / `interacted`, `record_post_read`, triggers d'interaction, `studio_reading_stats`), recherche globale `search_all` |
+| `0024_stories_v2.sql` | stories (lot 5 v3) : réactions (`story_reactions`, `set_story_reaction`), sondage (`story_polls` / `story_poll_votes`, `vote_story_poll`, `story_poll_counts`), question ouverte (`story_questions` / `story_question_answers`, lecture éditeurs), à-la-une (titre ≤ 16, `reorder_highlights`), vues qualifiées (`story_views.advanced`, `record_story_progress`), `studio_story_stats` |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -411,6 +412,25 @@ supabase/
 scripts/extract-colors.mjs extraction des couleurs du logo
 docs/ARCHITECTURE.md       plan d'architecture
 ```
+
+## 7d. Stories : réactions, sondage, question, à la une
+
+- **Réactions** : les quatre réactions du fil en bas du viewer (une par personne,
+  modifiable, retirable). Visibles du service communication seulement (Studio →
+  Stories et Statistiques), jamais des autres agents.
+- **Sondage** (un par story, 2 à 4 réponses) et **question ouverte** (un par story),
+  placés au doigt dans l'aperçu 9:16 du Studio ; les zones hachurées (haut 14 %, bas
+  22 %) sont recouvertes par l'interface et un élément qui y tombe est ramené dans la
+  zone visible. Le vote affiche la répartition (pourcentages) après avoir voté ; les
+  réponses aux questions ne sont lisibles que du service communication (page
+  « Réponses » de la story, avec les réponses libres).
+- **Texte superposé** : position libre (x, y relatifs) ou préréglages haut / milieu / bas ;
+  vérification du contraste sur la zone choisie.
+- **À la une** : titre court (16 caractères), ordre du bandeau par glisser ou flèches,
+  couverture choisie parmi les stories du regroupement.
+- **Vues qualifiées** : progression maximale atteinte (0–100 %) et « passage à la
+  suivante » (tap avant la fin) remontés au changement de story, sans horodatage fin.
+  Studio → Statistiques → Stories : vues, complétion, passage, réactions, votes et réponses.
 
 ## 7c. Fil, carrousel, articles, recherche
 

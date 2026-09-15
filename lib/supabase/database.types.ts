@@ -548,9 +548,39 @@ export type Database = {
         Relationships: [];
       };
       story_views: {
-        Row: { story_id: string; user_id: string; viewed_at: Timestamp };
-        Insert: { story_id: string; user_id: string; viewed_at?: Timestamp };
+        Row: { story_id: string; user_id: string; viewed_at: Timestamp; progress: number; advanced: boolean };
+        Insert: { story_id: string; user_id: string; viewed_at?: Timestamp; progress?: number; advanced?: boolean };
         Update: never;
+        Relationships: [];
+      };
+      story_reactions: {
+        Row: { story_id: string; user_id: string; kind: ReactionKindDb; created_at: Timestamp };
+        Insert: { story_id: string; user_id: string; kind: ReactionKindDb; created_at?: Timestamp };
+        Update: { kind?: ReactionKindDb };
+        Relationships: [];
+      };
+      story_polls: {
+        Row: { id: string; story_id: string; question: string; options: Json; x: number; y: number; w: number; created_at: Timestamp };
+        Insert: { id?: string; story_id: string; question: string; options: Json; x?: number; y?: number; w?: number; created_at?: Timestamp };
+        Update: { question?: string; options?: Json; x?: number; y?: number; w?: number };
+        Relationships: [];
+      };
+      story_poll_votes: {
+        Row: { poll_id: string; user_id: string; option_index: number; created_at: Timestamp };
+        Insert: { poll_id: string; user_id: string; option_index: number; created_at?: Timestamp };
+        Update: never;
+        Relationships: [];
+      };
+      story_questions: {
+        Row: { id: string; story_id: string; prompt: string; x: number; y: number; created_at: Timestamp };
+        Insert: { id?: string; story_id: string; prompt: string; x?: number; y?: number; created_at?: Timestamp };
+        Update: { prompt?: string; x?: number; y?: number };
+        Relationships: [];
+      };
+      story_question_answers: {
+        Row: { id: string; question_id: string; user_id: string | null; answer: string; created_at: Timestamp; read_at: Timestamp | null };
+        Insert: { id?: string; question_id: string; user_id?: string | null; answer: string; created_at?: Timestamp; read_at?: Timestamp | null };
+        Update: { read_at?: Timestamp | null };
         Relationships: [];
       };
       media: {
@@ -661,6 +691,12 @@ export type Database = {
       get_story_items: { Args: { p_series_id?: string | null; p_highlight_id?: string | null }; Returns: Json[] };
       get_highlight_items: { Args: { p_highlight_id: string }; Returns: Json[] };
       record_story_view: { Args: { p_story_id: string }; Returns: undefined };
+      record_story_progress: { Args: { p_story_id: string; p_pct: number; p_advanced?: boolean }; Returns: undefined };
+      set_story_reaction: { Args: { p_story_id: string; p_kind?: string | null }; Returns: Json };
+      vote_story_poll: { Args: { p_poll_id: string; p_option: number }; Returns: Json };
+      story_poll_counts: { Args: { p_poll_id: string }; Returns: Json };
+      reorder_highlights: { Args: { p_ids: string[] }; Returns: undefined };
+      studio_story_stats: { Args: { p_days?: number }; Returns: Json };
       get_story_by_id: { Args: { p_id: string }; Returns: Json };
       vote_poll: { Args: { p_post_id: string; p_option_id: string }; Returns: Json };
       get_notification_stats: { Args: Record<string, never>; Returns: Json };

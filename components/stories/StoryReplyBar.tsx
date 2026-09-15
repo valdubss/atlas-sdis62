@@ -1,61 +1,86 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Send } from "lucide-react";
+import { useEffect, useState, useTransition } from "react";
+import { BicepsFlexed, Flame, Heart, Send, ThumbsUp, type LucideIcon } from "lucide-react";
 import { replyToStory } from "@/app/(app)/story-reply-actions";
+import { setStoryReaction } from "@/app/(app)/story-actions";
+import { REACTIONS, type ReactionKind } from "@/lib/config";
 import { useToast } from "@/components/ui/Toast";
 import { haptic } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 
-const QUICK = ["🔥", "❤️", "👏", "💪", "😂", "😮"];
+const ICONS: Record<ReactionKind, LucideIcon> = { clap: ThumbsUp, fire: Flame, heart: Heart, muscle: BicepsFlexed };
 
 /**
- * Pied du viewer : réactions rapides et message au service communication.
+ * Pied du viewer : les quatre réactions du fil (une par personne, visibles du
+ * service communication seulement) et message au service communication.
  * La story se met en pause pendant la saisie.
  */
-export function StoryReplyBar({ storyId, onFocusChange }: { storyId: string; onFocusChange: (focused: boolean) => void }) {
+export function StoryReplyBar({ storyId, mine, onFocusChange }: { storyId: string; mine: ReactionKind | null; onFocusChange: (focused: boolean) => void }) {
   const [text, setText] = useState("");
-  const [sent, setSent] = useState<string | null>(null);
+  const [current, setCurrent] = useState<ReactionKind | null>(mine);
+  const [burst, setBurst] = useState<ReactionKind | null>(null);
   const [pending, start] = useTransition();
   const toast = useToast();
 
-  function send(payload: { emoji?: string; message?: string }) {
+  useEffect(() => setCurrent(mine), [storyId, mine]);
+
+  function react(kind: ReactionKind) {
+    haptic();
+    const next = current === kind ? null : kind;
+    setCurrent(next);
+    if (next) {
+      setBurst(next);
+      setTimeout(() => setBurst(null), 700);
+    }
+    start(async () => {
+      const r = await setStoryReaction(storyId, next);
+      if (!r.ok) {
+        setCurrent(current);
+        toast(r.error);
+      }
+    });
+  }
+
+  function send(message: string) {
     haptic();
     start(async () => {
-      const r = await replyToStory({ story_id: storyId, ...payload });
+      const r = await replyToStory({ story_id: storyId, message });
       if (!r.ok) {
         toast(r.error);
         return;
       }
-      setSent(payload.emoji ?? "✓");
       setText("");
       onFocusChange(false);
-      setTimeout(() => setSent(null), 1200);
       toast("Envoyé au service communication");
     });
   }
 
   return (
-    <div className="pointer-events-auto flex flex-col gap-2" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-      <div className="flex items-center justify-between gap-1">
-        {QUICK.map((e) => (
-          <button
-            key={e}
-            type="button"
-            disabled={pending}
-            onClick={() => send({ emoji: e })}
-            aria-label={`Réagir ${e}`}
-            className={cn("pressable flex h-11 w-11 items-center justify-center rounded-full text-[24px] leading-none", sent === e && "scale-125")}
-          >
-            {e}
-          </button>
-        ))}
+    <div className="pointer-events-auto flex flex-col gap-2" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center justify-around" role="group" aria-label="Réactions">
+        {REACTIONS.map((r) => {
+          const Icon = ICONS[r.kind];
+          const active = current === r.kind;
+          return (
+            <button
+              key={r.kind}
+              type="button"
+              onClick={() => react(r.kind)}
+              aria-pressed={active}
+              aria-label={r.label}
+              className={cn("pressable relative flex h-11 w-11 items-center justify-center rounded-full text-white/90 transition-transform", active && "text-red", burst === r.kind && "scale-125")}
+            >
+              <Icon size={26} strokeWidth={1.75} fill={active ? "currentColor" : "none"} aria-hidden="true" className="[filter:drop-shadow(0_1px_6px_rgba(0,0,0,0.6))]" />
+            </button>
+          );
+        })}
       </div>
       <form
         className="flex items-center gap-2 rounded-full bg-black/45 py-1 pl-4 pr-1 ring-1 ring-white/20 backdrop-blur-md"
         onSubmit={(e) => {
           e.preventDefault();
-          if (text.trim()) send({ message: text.trim() });
+          if (text.trim()) send(text.trim());
         }}
       >
         <input

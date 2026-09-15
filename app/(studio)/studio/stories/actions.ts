@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { storySchema } from "@/lib/validation/story";
 import { friendlyDbError } from "@/lib/validation/comment";
 import { fromLocalInput } from "@/lib/time";
+import { HIGHLIGHT_TITLE_MAX_LENGTH, snapToVisible } from "@/lib/stories/overlay";
 
 export type StoryFormState = { status: "idle" } | { status: "error"; message: string; fields?: Record<string, string> };
 type Result = { ok: true } | { ok: false; error: string };
@@ -90,7 +91,9 @@ export async function saveStory(_prev: StoryFormState, formData: FormData): Prom
   const row = {
     series_id: seriesId!,
     media_id: v.media_id!,
-    overlay: v.overlay_text ? { text: v.overlay_text, position: v.overlay_position } : null,
+    overlay: v.overlay_text
+      ? { text: v.overlay_text, position: v.overlay_position, ...(v.overlay_y !== null ? { x: v.overlay_x ?? 0.5, y: snapToVisible(v.overlay_y) } : {}) }
+      : null,
     link_post_id: v.link_post_id,
     display_seconds: v.display_seconds,
     status,
@@ -103,13 +106,33 @@ export async function saveStory(_prev: StoryFormState, formData: FormData): Prom
   // on refuse donc l'enregistrement sans média même en brouillon.
   if (!v.media_id) return { status: "error", message: "Ajoutez une photo ou une vidéo avant d'enregistrer.", fields: { media: "Média requis." } };
 
-  if (v.id) {
-    const { error } = await supabase.from("stories").update(row).eq("id", v.id);
+  let storyId = v.id;
+  if (storyId) {
+    const { error } = await supabase.from("stories").update(row).eq("id", storyId);
     if (error) return { status: "error", message: friendlyStoryError(error.message) };
   } else {
     const { count } = await supabase.from("stories").select("id", { count: "exact", head: true }).eq("series_id", seriesId!);
-    const { error } = await supabase.from("stories").insert({ ...row, author_id: user.id, position: count ?? 0 });
-    if (error) return { status: "error", message: friendlyStoryError(error.message) };
+    const { data: created, error } = await supabase.from("stories").insert({ ...row, author_id: user.id, position: count ?? 0 }).select("id").single();
+    if (error || !created) return { status: "error", message: friendlyStoryError(error?.message) };
+    storyId = created.id;
+  }
+
+  // Superpositions : un sondage et une question au plus ; retirés quand absents du formulaire.
+  // Les votes et réponses existants suivent la suppression (cascade) : modifier la
+  // question d'un sondage déjà voté le remet à zéro, ce que l'éditeur annonce.
+  if (v.poll_question && v.poll_options.length >= 2) {
+    const poll = { story_id: storyId, question: v.poll_question, options: v.poll_options, x: v.poll_x ?? 0.5, y: snapToVisible(v.poll_y ?? 0.62) };
+    const { error } = await supabase.from("story_polls").upsert(poll, { onConflict: "story_id" });
+    if (error) return { status: "error", message: friendlyDbError(error.message) };
+  } else {
+    await supabase.from("story_polls").delete().eq("story_id", storyId);
+  }
+  if (v.question_prompt) {
+    const question = { story_id: storyId, prompt: v.question_prompt, x: v.question_x ?? 0.5, y: snapToVisible(v.question_y ?? 0.62) };
+    const { error } = await supabase.from("story_questions").upsert(question, { onConflict: "story_id" });
+    if (error) return { status: "error", message: friendlyDbError(error.message) };
+  } else {
+    await supabase.from("story_questions").delete().eq("story_id", storyId);
   }
 
   revalidate();
@@ -153,7 +176,7 @@ export async function deleteStory(id: string): Promise<Result> {
 
 export async function createHighlight(title: string): Promise<Result> {
   const t = title.trim();
-  if (t.length < 1 || t.length > 80) return { ok: false, error: "Titre entre 1 et 80 caractères." };
+  if (t.length < 1 || t.length > HIGHLIGHT_TITLE_MAX_LENGTH) return { ok: false, error: `Titre entre 1 et ${HIGHLIGHT_TITLE_MAX_LENGTH} caractères.` };
   const supabase = await createClient();
   const { count } = await supabase.from("story_highlights").select("id", { count: "exact", head: true });
   const { error } = await supabase.from("story_highlights").insert({ title: t, position: count ?? 0 });
@@ -164,7 +187,7 @@ export async function createHighlight(title: string): Promise<Result> {
 
 export async function renameHighlight(id: string, title: string): Promise<Result> {
   const t = title.trim();
-  if (!z.uuid().safeParse(id).success || t.length < 1 || t.length > 80) return { ok: false, error: "Valeur invalide." };
+  if (!z.uuid().safeParse(id).success || t.length < 1 || t.length > HIGHLIGHT_TITLE_MAX_LENGTH) return { ok: false, error: `Titre entre 1 et ${HIGHLIGHT_TITLE_MAX_LENGTH} caractères.` };
   const supabase = await createClient();
   const { error } = await supabase.from("story_highlights").update({ title: t }).eq("id", id);
   if (error) return { ok: false, error: friendlyDbError(error.message) };
@@ -176,6 +199,26 @@ export async function setHighlightActive(id: string, active: boolean): Promise<R
   if (!z.uuid().safeParse(id).success) return { ok: false, error: "Identifiant invalide." };
   const supabase = await createClient();
   const { error } = await supabase.from("story_highlights").update({ is_active: active }).eq("id", id);
+  if (error) return { ok: false, error: friendlyDbError(error.message) };
+  revalidate();
+  return { ok: true };
+}
+
+/** Ordre des à-la-une dans le bandeau (liste complète des identifiants). */
+export async function reorderHighlights(ids: string[]): Promise<Result> {
+  if (ids.length === 0 || ids.some((id) => !z.uuid().safeParse(id).success)) return { ok: false, error: "Liste invalide." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("reorder_highlights", { p_ids: ids });
+  if (error) return { ok: false, error: friendlyDbError(error.message) };
+  revalidate();
+  return { ok: true };
+}
+
+/** Couverture d'un à-la-une : le média d'une de ses stories (null → première story). */
+export async function setHighlightCover(id: string, mediaId: string | null): Promise<Result> {
+  if (!z.uuid().safeParse(id).success || (mediaId !== null && !z.uuid().safeParse(mediaId).success)) return { ok: false, error: "Identifiant invalide." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("story_highlights").update({ cover_media_id: mediaId }).eq("id", id);
   if (error) return { ok: false, error: friendlyDbError(error.message) };
   revalidate();
   return { ok: true };

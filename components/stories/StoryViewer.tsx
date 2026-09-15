@@ -6,7 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-motion";
 import { MoreHorizontal, Volume2, VolumeX, X } from "lucide-react";
 import type { StoryGroup, StoryItem } from "@/lib/feed/types";
-import { fetchStoryItems, recordStoryView } from "@/app/(app)/story-actions";
+import { fetchStoryItems, recordStoryProgress, recordStoryView } from "@/app/(app)/story-actions";
+import { StoryPollOverlay, StoryQuestionOverlay } from "./StoryOverlays";
 import { formatRelative } from "@/lib/format";
 import { imageSrc, posterSrc } from "@/lib/media/url";
 import { SPRING } from "@/lib/motion";
@@ -43,6 +44,10 @@ export function StoryViewer({
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seen = useRef(new Set<string>());
   const reduced = useReducedMotion();
+  // Progression de la story affichée (pour la complétion) et passage manuel
+  const progressRef = useRef(0);
+  const manualNext = useRef(false);
+  const shown = useRef<string | null>(null);
 
   const group = groups[gi];
   const list = items[`${group.kind}-${group.id}`];
@@ -99,6 +104,7 @@ export function StoryViewer({
 
   const next = useCallback(() => {
     if (!list) return;
+    if (progressRef.current < 0.98) manualNext.current = true;
     if (si + 1 < list.length) {
       setSi(si + 1);
       setProgress(0);
@@ -112,13 +118,30 @@ export function StoryViewer({
     } else goGroup(-1);
   }, [si, goGroup]);
 
-  // Vue enregistrée à l'affichage
+  // Vue enregistrée à l'affichage ; progression et passage manuel remontés
+  // au changement de story et à la fermeture (sans horodatage fin).
+  const flush = useCallback(() => {
+    const id = shown.current;
+    if (!id) return;
+    const pct = Math.round(progressRef.current * 100);
+    if (pct > 0 || manualNext.current) recordStoryProgress(id, pct, manualNext.current).catch(() => {});
+    manualNext.current = false;
+    progressRef.current = 0;
+  }, []);
   useEffect(() => {
+    if (story && shown.current !== story.id) {
+      flush();
+      shown.current = story.id;
+    }
     if (story && !seen.current.has(story.id)) {
       seen.current.add(story.id);
       recordStoryView(story.id);
     }
-  }, [story]);
+  }, [story, flush]);
+  useEffect(() => () => flush(), [flush]);
+  useEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
 
   // Minuterie des images (les vidéos pilotent la barre via timeupdate)
   useEffect(() => {
@@ -271,10 +294,22 @@ export function StoryViewer({
             </button>
           </div>
 
-          {/* Réponses : réactions rapides + message au service communication */}
+          {/* Sondage / question superposés (position relative choisie dans le Studio) */}
+          {story?.poll && (
+            <div className="pointer-events-none absolute inset-0">
+              <StoryPollOverlay key={story.poll.id} poll={story.poll} />
+            </div>
+          )}
+          {story?.question && (
+            <div className="pointer-events-none absolute inset-0">
+              <StoryQuestionOverlay key={story.question.id} question={story.question} onFocusChange={setPaused} />
+            </div>
+          )}
+
+          {/* Réponses : les quatre réactions + message au service communication */}
           {story && (
             <div className="pointer-events-none absolute inset-x-3 bottom-[max(env(safe-area-inset-bottom),12px)]">
-              <StoryReplyBar storyId={story.id} onFocusChange={setPaused} />
+              <StoryReplyBar storyId={story.id} mine={story.my_reaction ?? null} onFocusChange={setPaused} />
             </div>
           )}
 

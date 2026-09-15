@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { NewButton } from "@/components/studio/NewButton";
 import { useState, useTransition } from "react";
-import { createHighlight, deleteHighlight, deleteStory, expireStory, renameHighlight, republishStory, setHighlightActive, toggleStoryInHighlight } from "@/app/(studio)/studio/stories/actions";
+import { deleteStory, expireStory, republishStory, toggleStoryInHighlight } from "@/app/(studio)/studio/stories/actions";
+import { HighlightsManager, type HighlightRow } from "./HighlightsManager";
 import type { MediaItem, StoryOverlay } from "@/lib/feed/types";
 import { imageSrc, posterSrc } from "@/lib/media/url";
 import { formatDateTime } from "@/lib/format";
 import { useToast } from "@/components/ui/Toast";
-import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 
 export type StoryRow = {
@@ -24,10 +24,13 @@ export type StoryRow = {
   media: MediaItem | null;
   views: { count: number }[];
   replies?: { count: number }[];
+  reactions?: { count: number }[];
+  poll?: { id: string; votes: { count: number }[] } | null;
+  question?: { id: string; answers: { count: number }[] } | null;
   highlight_items: { highlight_id: string }[];
 };
 
-export type HighlightRow = { id: string; title: string; is_active: boolean; position: number; items: { story_id: string }[] };
+export type { HighlightRow };
 
 function remaining(iso: string | null) {
   if (!iso) return "";
@@ -84,15 +87,18 @@ export function StoriesList({ stories, highlights, notice }: { stories: StoryRow
             {s.status === "scheduled" && s.scheduled_at && `, prévue le ${formatDateTime(s.scheduled_at)}`}
             {inLive && s.expires_at && `, ${remaining(s.expires_at)}`}
             {s.status !== "draft" && s.status !== "scheduled" && `, ${s.views?.[0]?.count ?? 0} ${(s.views?.[0]?.count ?? 0) > 1 ? "vues" : "vue"}`}
+            {(s.reactions?.[0]?.count ?? 0) > 0 && `, ${s.reactions![0].count} réaction${s.reactions![0].count > 1 ? "s" : ""}`}
+            {s.poll && `, sondage (${s.poll.votes?.[0]?.count ?? 0} vote${(s.poll.votes?.[0]?.count ?? 0) > 1 ? "s" : ""})`}
+            {s.question && `, question (${s.question.answers?.[0]?.count ?? 0} réponse${(s.question.answers?.[0]?.count ?? 0) > 1 ? "s" : ""})`}
             {s.highlight_items.length > 0 && `, à la une`}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-4">
             <Link href={`/studio/stories/${s.id}`} className="text-[13px] font-medium text-text-2 hover:text-text-1">
               Modifier
             </Link>
-            {(s.replies?.[0]?.count ?? 0) > 0 && (
+            {(s.replies?.[0]?.count ?? 0) + (s.question?.answers?.[0]?.count ?? 0) > 0 && (
               <Link href={`/studio/stories/${s.id}/reponses`} className="text-[13px] font-medium text-navy-link">
-                {s.replies?.[0]?.count} {(s.replies?.[0]?.count ?? 0) > 1 ? "réponses" : "réponse"}
+                {(s.replies?.[0]?.count ?? 0) + (s.question?.answers?.[0]?.count ?? 0)} {(s.replies?.[0]?.count ?? 0) + (s.question?.answers?.[0]?.count ?? 0) > 1 ? "réponses" : "réponse"}
               </Link>
             )}
             {inLive && <TextButton disabled={pending} onClick={() => run(() => expireStory(s.id), "Story retirée du bandeau")}>Retirer maintenant</TextButton>}
@@ -160,88 +166,9 @@ export function StoriesList({ stories, highlights, notice }: { stories: StoryRow
       <Section title="Programmées" rows={scheduled} empty="Aucune story programmée." />
       <Section title="Brouillons" rows={drafts} empty="Aucun brouillon." />
 
-      <section className="space-y-3">
-        <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">À la une</h2>
-        <p className="text-[13px] text-text-3">Regroupements permanents visibles dans le bandeau (par exemple « Feux de forêt 2026 » ou « JSP »). Ajoutez-y des stories depuis les listes ci-dessus ou l&apos;archive.</p>
-        <div className="hairline rounded-[16px] bg-bg-1">
-          {highlights.map((h) => (
-            <HighlightRowItem key={h.id} h={h} pending={pending} run={run} />
-          ))}
-          <form
-            className="flex gap-2 px-5 py-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!newTitle.trim()) return;
-              run(() => createHighlight(newTitle), "À-la-une créé");
-              setNewTitle("");
-            }}
-          >
-            <input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Nouvel à-la-une (titre)"
-              aria-label="Titre du nouvel à-la-une"
-              maxLength={80}
-              className="h-10 flex-1 rounded-[10px] bg-bg-2 px-3 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
-            />
-            <Button type="submit" variant="secondary" size="md" disabled={pending || !newTitle.trim()}>
-              Créer
-            </Button>
-          </form>
-        </div>
-      </section>
+      <HighlightsManager highlights={highlights} pending={pending} run={run} />
 
       <Section title="Archive" rows={archive} empty="Les stories expirées se retrouvent ici et peuvent rejoindre un à-la-une." />
-    </div>
-  );
-}
-
-function HighlightRowItem({ h, pending, run }: { h: HighlightRow; pending: boolean; run: (fn: () => Promise<{ ok: boolean; error?: string }>, ok: string) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(h.title);
-  return (
-    <div className="flex items-center gap-4 px-5 py-3">
-      <div className="min-w-0 flex-1">
-        {editing ? (
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              run(() => renameHighlight(h.id, title), "Titre modifié");
-              setEditing(false);
-            }}
-          >
-            <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} autoFocus aria-label="Titre" className="h-9 flex-1 rounded-[8px] bg-bg-2 px-2 text-[15px] text-text-1 outline-none" />
-            <Button type="submit" variant="secondary" size="sm">
-              OK
-            </Button>
-          </form>
-        ) : (
-          <>
-            <p className={cn("text-[15px] text-text-1", !h.is_active && "opacity-50")}>{h.title}</p>
-            <p className="text-[13px] text-text-3">
-              {h.items.length} {h.items.length > 1 ? "stories" : "story"}
-              {!h.is_active && ", masqué"}
-            </p>
-          </>
-        )}
-      </div>
-      <div className="flex gap-4">
-        <TextButton disabled={pending} onClick={() => setEditing((v) => !v)}>
-          Renommer
-        </TextButton>
-        <TextButton disabled={pending} onClick={() => run(() => setHighlightActive(h.id, !h.is_active), h.is_active ? "À-la-une masqué" : "À-la-une visible")}>
-          {h.is_active ? "Masquer" : "Afficher"}
-        </TextButton>
-        <TextButton
-          disabled={pending}
-          onClick={() => {
-            if (window.confirm(`Supprimer l'à-la-une « ${h.title} » ? Les stories restent dans l'archive.`)) run(() => deleteHighlight(h.id), "À-la-une supprimé");
-          }}
-        >
-          Supprimer
-        </TextButton>
-      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { CenterStats, type CenterStatsData } from "@/components/studio/CenterSta
 import { VideoStats, type VideoStatRow } from "@/components/studio/VideoStats";
 import { NotificationStats, type NotificationStatsData } from "@/components/studio/NotificationStats";
 import { ReadingStats, type ReadingStatsData } from "@/components/studio/ReadingStats";
+import { StoryStats, type StoryStatsData } from "@/components/studio/StoryStats";
 
 export const metadata: Metadata = { title: "Statistiques" };
 export const dynamic = "force-dynamic";
@@ -30,7 +31,15 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   const { jours } = await searchParams;
   const days = PERIODS.includes(Number(jours)) ? Number(jours) : 30;
   const supabase = await createClient();
-  const [{ data }, { data: centerData }, { data: videoData }, { data: notifData }, { data: readingData }] = await Promise.all([supabase.rpc("studio_post_stats", { p_days: days }), supabase.rpc("studio_center_stats", { p_days: days }), supabase.rpc("studio_video_stats", { p_days: days }), supabase.rpc("studio_notification_stats", { p_days: days }), supabase.rpc("studio_reading_stats", { p_days: days })]);
+  const [{ data }, { data: centerData }, { data: videoData }, { data: notifData }, { data: readingData }, { data: storyData }] = await Promise.all([
+    supabase.rpc("studio_post_stats", { p_days: days }),
+    supabase.rpc("studio_center_stats", { p_days: days }),
+    supabase.rpc("studio_video_stats", { p_days: days }),
+    supabase.rpc("studio_notification_stats", { p_days: days }),
+    supabase.rpc("studio_reading_stats", { p_days: days }),
+    supabase.rpc("studio_story_stats", { p_days: days }),
+  ]);
+  const ss = (storyData ?? null) as unknown as StoryStatsData | null;
   const s = (data ?? null) as unknown as Stats | null;
   const cs = (centerData ?? null) as unknown as CenterStatsData | null;
   const vs = ((videoData ?? []) as unknown as VideoStatRow[]) ?? [];
@@ -106,6 +115,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
 
       {rs?.totals && <ReadingStats s={rs} />}
       <VideoStats rows={vs} />
+      {ss?.totals && <StoryStats s={ss} />}
       {ns?.by_kind && <NotificationStats s={ns} />}
       {cs && <CenterStats s={cs} days={days} />}
 
