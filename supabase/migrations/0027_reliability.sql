@@ -118,3 +118,19 @@ grant execute on function public.studio_audit(uuid, text, text, timestamptz, tim
 grant execute on function public.studio_audit_facets() to authenticated;
 grant execute on function public.set_reaction(uuid, text) to authenticated;
 grant execute on function public.health_snapshot() to service_role;
+
+-- -----------------------------------------------------------------------------
+-- 6. Correctif : le trigger d'interaction (0023) référençait new.poll_id sur des
+--    tables sans cette colonne (réactions, commentaires, favoris échouaient).
+-- -----------------------------------------------------------------------------
+create or replace function public.mark_post_interacted()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_row jsonb := to_jsonb(new);
+  v_post uuid := coalesce((v_row ->> 'post_id')::uuid, (v_row ->> 'poll_id')::uuid);  -- poll_votes.poll_id est l'identifiant de la publication
+begin
+  if v_post is null or auth.uid() is null then return new; end if;
+  insert into public.post_views (post_id, user_id, read, interacted) values (v_post, auth.uid(), true, true)
+  on conflict (post_id, user_id) do update set read = true, interacted = true;
+  return new;
+end $$;
