@@ -1,0 +1,52 @@
+name;type;grouping;slug;address;postal_code;city;phone;email;presentation;displayed_headcount;sort_order;lat;lng;is_active
+Direction départementale (DDSIS 62);direction;;direction;"Avenue de l'Hermitage, CS 60169";62054;Saint-Laurent-Blangy;03 21 24 49 00;;"Siège du service départemental d'incendie et de secours du Pas-de-Calais.";;0;50.3005;2.8120;oui
+Groupement territorial Est;direction;Groupement Est;;"Avenue de l'Hermitage";62054;Saint-Laurent-Blangy;03 21 24 49 00;;"Secteurs de Lens, Arras et Bapaume : bassin minier, autoroutes, stade Bollaert-Delelis.";;1;50.3005;2.8120;oui
+Groupement territorial Centre;direction;Groupement Centre;;"18 rue Jean-Joseph-Étienne Lenoir, Parc Porte Nord";62700;Bruay-la-Buissière;03 21 54 96 00;;"Secteurs de Béthune, Bruay-la-Buissière et Saint-Pol-sur-Ternoise.";;2;;;oui
+Groupement territorial Ouest;direction;Groupement Ouest;;"12 impasse du Crac-Lot, Longfossé";62240;Desvres;03 21 33 05 00;;"Secteurs de Boulogne, Calais, Saint-Omer et Montreuil : littoral, ports, tunnel sous la Manche.";;3;;;oui
+CIS Arras;cis;Groupement Est;;"2 rue Victor Leroy";62000;Arras;03 21 15 27 18;;;;10;;;oui
+CIS Avion;cis;Groupement Est;;"18 rue Achille Thumerelle";62210;Avion;03 91 84 25 20;;;;11;;;oui
+CIS Bapaume;cis;Groupement Est;;"42 route de Douai";62450;Bapaume;03 21 51 95 90;;;;12;;;oui
+CIS Bucquoy;cis;Groupement Est;;"RD 12";62116;Bucquoy;03 21 51 95 70;;;;13;;;oui
+CIS Bully-les-Mines;cis;Groupement Est;;"Rue Olof Palme";62160;Bully-les-Mines;03 21 45 81 10;;;;14;;;oui
+CIS Haisnes-Vermelles;cis;Groupement Est;;"Rue Simone de Beauvoir";62138;Haisnes;03 21 63 62 30;;;;15;;;oui
+CIS Harnes;cis;Groupement Est;;"Chemin Marquois";62440;Harnes;03 21 13 75 60;;;;16;;;oui
+CIS Hénin-Beaumont;cis;Groupement Est;;"246 rue du Docteur Laënnec";62110;Hénin-Beaumont;03 21 74 80 18;;;;17;;;oui
+CIS Leforest;cis;Groupement Est;;"Rue de Touraine";62790;Leforest;03 21 21 77 80;;;;18;;;oui
+CIS Lens;cis;Groupement Est;;"71 bis avenue Raoul Briquet";62300;Lens;03 91 84 01 80;;;;19;;;oui
+CIS Liévin;cis;Groupement Est;;"112 rue du Docteur Piette";62800;Liévin;03 21 72 72 80;;;;20;;;oui
+CIS Marquion;cis;Groupement Est;;"ZA La Croisette, RD 14";62860;Baralle;03 21 16 02 50;;;;21;50.2080;3.0780;oui
+CIS Oignies;cis;Groupement Est;;"105 rue des 80 Fusillés";62590;Oignies;03 21 69 26 18;;;;22;;;oui
+CIS Vitry-en-Artois;cis;Groupement Est;;"Rue Jean Monnet";62490;Vitry-en-Artois;03 21 16 30 00;;;;23;;;oui
+CIS Wingles;cis;Groupement Est;;"Grand-Place";62410;Wingles;03 21 21 77 90;;;;24;;;oui
+CIS Aire-sur-la-Lys;cis;Groupement Centre;;"6 ter rue des Alliés";62120;Aire-sur-la-Lys;03 21 38 93 18;;;;30;;;oui
+CIS Aubigny-en-Artois;cis;Groupement Centre;;"Rue Georges Lamiot";62690;Aubigny-en-Artois;03 21 21 02 00;;;;31;;;oui
+CIS Auchel;cis;Groupement Centre;;"63 rue du Docteur Laennec";62260;Auchel;03 91 80 54 90;;;;32;;;oui
+CIS Auxi-le-Château;cis;Groupement Centre;;"Zone d'activité légère, RD 938";62390;Auxi-le-Château;03 21 47 44 40;;;;33;50.2330;2.1170;oui
+CIS Avesnes-le-Comte;cis;Groupement Centre;;"1 rue Marie Curie";62810;Avesnes-le-Comte;03 21 16 04 10;;;;34;;;oui
+CIS Béthune;cis;Groupement Centre;;"Rue de l'Abattoir";62400;Béthune;03 21 61 46 00;;;;35;;;oui
+CIS Bruay-Houdain;cis;Groupement Centre;;"ZAL du Bois Carré, rue des Déportés";62150;Houdain;03 21 61 47 00;;;;36;;;oui
+CIS Frévent;cis;Groupement Centre;;"48 bis avenue Philippe Lebas";62270;Frévent;03 21 47 78 30;;;;37;;;oui
+CIS Laventie;cis;Groupement Centre;;"8 rue du Vieux Moulin";62840;Laventie;03 91 82 62 18;;;;38;;;oui
+CIS Lillers;cis;Groupement Centre;;"ZA du Plantin, rue de la Liberté";62190;Lillers;03 21 61 51 60;;;;39;;;oui
+CIS Nœux-les-Mines;cis;Groupement Centre;cis-noeux-les-mines;"Rue de la Pierre au Puits";62290;Nœux-les-Mines;03 21 61 31 70;;;;40;;;oui
+CIS Pas-en-Artois;cis;Groupement Centre;;"45 rue d'en Bas";62760;Pas-en-Artois;03 91 19 04 40;;;;41;;;oui
+CIS Pernes-en-Artois;cis;Groupement Centre;;"39 rue Nationale";62550;Pernes-en-Artois;03 21 47 55 10;;;;42;;;oui
+CIS Saint-Pol-sur-Ternoise;cis;Groupement Centre;;"Route de Croisette";62130;Ramecourt;03 21 47 48 40;;;;43;;;oui
+CIS Saint-Venant;cis;Groupement Centre;;"Chemin de Saint-Floris";62350;Saint-Venant;03 21 63 19 00;;;;44;;;oui
+CIS Ardres;cis;Groupement Ouest;;"CD 224, route de Licques";62610;Louches;03 21 00 71 18;;;;50;;;oui
+CIS Audruicq;cis;Groupement Ouest;;"Route du Fort Bâtard";62370;Audruicq;03 21 17 17 60;;;;51;;;oui
+CIS Berck-sur-Mer;cis;Groupement Ouest;cis-berck;"Rue des Argousiers, ZI de la Vigogne";62600;Berck-sur-Mer;03 21 89 63 50;;;;52;;;oui
+CIS Boulogne-sur-Mer;cis;Groupement Ouest;cis-boulogne;"2 rue Gérard Hansen";62200;Boulogne-sur-Mer;03 21 30 73 00;;;;53;;;oui
+CIS Calais;cis;Groupement Ouest;;"Rue Louise Michel";62100;Calais;03 21 46 19 30;;;;54;;;oui
+CIS Campagne-Beaurainville;cis;Groupement Ouest;;"Zone du Fond de Lianne";62990;Beaurainville;03 21 05 78 02;;;;55;;;oui
+CIS Desvres;cis;Groupement Ouest;;"Impasse du Crac-Lot, Longfossé";62240;Desvres;03 21 99 15 60;;;;56;;;oui
+CIS Étaples;cis;Groupement Ouest;;"ZI Opalopolis, route de Frencq";62630;Étaples;03 21 89 79 40;;;;57;;;oui
+CIS Fauquembergues;cis;Groupement Ouest;;"Parc d'activités du Pré Maréchal";62560;Fauquembergues;03 91 92 20 05;;;;58;;;oui
+CIS Fruges;cis;Groupement Ouest;;"ZAL de la Petite Dîmerie, 8 rue du 8 Mai";62310;Fruges;03 21 47 79 90;;;;59;;;oui
+CIS Hesdin;cis;Groupement Ouest;;"Chemin départemental 136";62140;Marconne;03 21 90 00 30;;;;60;50.3742;2.0415;oui
+CIS Hucqueliers;cis;Groupement Ouest;;"Rue Gatou";62650;Hucqueliers;03 21 90 68 18;;;;61;;;oui
+CIS Lumbres;cis;Groupement Ouest;;"Avenue Bernard Chochoy";62380;Lumbres;03 21 11 67 60;;;;62;;;oui
+CIS Marck-en-Calaisis;cis;Groupement Ouest;;"Rue Léonard de Vinci";62730;Marck;03 21 82 03 54;;;;63;;;oui
+CIS Marquise;cis;Groupement Ouest;;"Avenue de Beaupré";62250;Marquise;03 91 98 16 20;;;;64;;;oui
+CIS Montreuil-sur-Mer;cis;Groupement Ouest;cis-montreuil;"130 chaussée Marcadée";62170;Montreuil-sur-Mer;03 21 06 62 90;;;;65;;;oui
+CIS Saint-Omer;cis;Groupement Ouest;;"Rue Rembrandt";62219;Longuenesse;03 21 12 20 50;;;;66;;;oui
