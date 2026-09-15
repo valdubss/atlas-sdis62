@@ -18,7 +18,7 @@ const TARGET_FPS = 30;
 // Débits façon Instagram : lisibles en 4G dès la première seconde
 const VIDEO_KBPS_1080 = 2600;
 const VIDEO_KBPS_720 = 1600;
-const AUDIO_KBPS = 64;
+const AUDIO_KBPS = 96; // 64 k n'est pas accepté par l'encodeur AAC WebCodecs (paliers 96 / 128 / 160 / 192)
 const KEYFRAME_INTERVAL_S = 2;
 
 let supportCache: Promise<boolean> | null = null;

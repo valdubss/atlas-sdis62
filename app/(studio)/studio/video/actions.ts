@@ -125,7 +125,11 @@ export async function saveSubtitles(mediaId: string, cues: unknown, publish: boo
   if (publish) {
     if (clean.length === 0) return { ok: false, error: "Aucune ligne à publier." };
     vtt_key = mediaKeys.subtitles(mediaId, "fr");
-    await getStorage().putObject(vtt_key, Buffer.from(serializeVtt(clean), "utf8"), "text/vtt; charset=utf-8");
+    try {
+      await getStorage().putObject(vtt_key, Buffer.from(serializeVtt(clean), "utf8"), "text/vtt; charset=utf-8");
+    } catch {
+      return { ok: false, error: "Fichier de sous-titres non enregistré : réessayez dans un instant." };
+    }
   }
   const { data: existing } = await supabase.from("media_subtitles").select("source").eq("media_id", mediaId).eq("lang", "fr").maybeSingle();
   const { error: dbError } = await supabase

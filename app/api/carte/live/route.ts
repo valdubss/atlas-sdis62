@@ -8,8 +8,11 @@ export const maxDuration = 30;
 
 const TEN_MIN = { next: { revalidate: 600 } } as const;
 
+// Délai maximal par fournisseur : un service lent ne bloque pas toute la réponse (Promise.all gardé)
+const TIMEOUT_MS = 8_000;
+
 async function getJson<T>(url: string, init?: RequestInit & { next?: { revalidate: number } }): Promise<T> {
-  const res = await fetch(url, { ...TEN_MIN, ...init });
+  const res = await fetch(url, { ...TEN_MIN, signal: AbortSignal.timeout(TIMEOUT_MS), ...init });
   if (!res.ok) throw new Error(`${new URL(url).host} ${res.status}`);
   return (await res.json()) as T;
 }
@@ -167,7 +170,7 @@ async function sea(): Promise<SeaPoint[]> {
 async function traffic(): Promise<TrafficLayer> {
   const url = process.env.TRAFIC_FEED_URL;
   if (!url) return { configured: false, source: null, updated_at: null, events: [] };
-  const res = await fetch(url, TEN_MIN);
+  const res = await fetch(url, { ...TEN_MIN, signal: AbortSignal.timeout(TIMEOUT_MS) });
   if (!res.ok) throw new Error(`trafic ${res.status}`);
   const xml = await res.text();
   const events: TrafficEvent[] = [];

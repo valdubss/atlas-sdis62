@@ -41,6 +41,10 @@ test("vidéo : publication, HLS, sous-titres, paliers de lecture", async ({ brow
     await expect(page.getByText("Vidéo", { exact: true }).first()).toBeVisible();
     await expect(page.getByRole("button", { name: /Importer \.vtt/ })).toBeVisible({ timeout: 120_000 });
 
+    // Transcodage : prêt (HLS) dans les 2 minutes — attendu avant d'agir sur le panneau,
+    // sinon l'arrivée des rendus décale la mise en page pendant le clic
+    await expect(page.getByText("Prête", { exact: true })).toBeVisible({ timeout: 150_000 });
+
     // Sous-titres importés puis publiés
     const vtt = path.join(os.tmpdir(), `atlas-${stamp}.vtt`);
     fs.writeFileSync(vtt, "WEBVTT\n\n00:00:00.500 --> 00:00:03.000\nBonjour à tous\n\n00:00:03.000 --> 00:00:05.500\nManœuvre du samedi\n");
@@ -48,9 +52,6 @@ test("vidéo : publication, HLS, sous-titres, paliers de lecture", async ({ brow
     await expect(page.getByLabel("Ligne 1")).toHaveValue("Bonjour à tous", { timeout: 15_000 });
     await page.getByRole("button", { name: "Publier les sous-titres" }).click();
     await expect(page.getByText("Publiés", { exact: true })).toBeVisible({ timeout: 15_000 });
-
-    // Transcodage : prêt (HLS) dans les 2 minutes
-    await expect(page.getByText("Prête", { exact: true })).toBeVisible({ timeout: 150_000 });
 
     await page.getByRole("button", { name: "Publier", exact: true }).click();
     await page.waitForURL(/\/studio\/posts\/[0-9a-f-]{36}\?ok=published/, { timeout: 30_000 });

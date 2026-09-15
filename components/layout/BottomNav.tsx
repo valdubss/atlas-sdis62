@@ -59,10 +59,12 @@ export function BottomNav() {
     };
     check();
     document.addEventListener("focusin", check);
-    document.addEventListener("focusout", () => setTimeout(check, 50));
+    const onBlur = () => setTimeout(check, 50);
+    document.addEventListener("focusout", onBlur);
     vv?.addEventListener("resize", check);
     return () => {
       document.removeEventListener("focusin", check);
+      document.removeEventListener("focusout", onBlur);
       vv?.removeEventListener("resize", check);
     };
   }, []);

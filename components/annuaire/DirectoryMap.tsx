@@ -49,6 +49,7 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
   const mapRef = useRef<maplibregl.Map | null>(null);
   const libRef = useRef<typeof maplibregl | null>(null);
   const chipMarkers = useRef<maplibregl.Marker[]>([]);
+  const meMarker = useRef<maplibregl.Marker | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<DirectoryCenter | null>(null);
@@ -69,6 +70,7 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
   // ---- Carte -------------------------------------------------------------------
   useEffect(() => {
     let map: maplibregl.Map | null = null;
+    let ro: ResizeObserver | null = null;
     let cancelled = false;
     (async () => {
       const lib = await import("maplibre-gl");
@@ -78,13 +80,13 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
       map.addControl(new lib.NavigationControl({ showCompass: false }), "top-right");
       map.on("error", () => setFailed(true));
       // Le conteneur peut être mesuré avant sa mise en page : on recalcule la taille du canevas
-      const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => map?.resize()) : null;
+      ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => map?.resize()) : null;
       ro?.observe(container.current);
       map.on("load", () => {
         if (cancelled) return;
         setReady(true);
         map!.resize();
-        setTimeout(() => map?.resize(), 300);
+        setTimeout(() => !cancelled && map?.resize(), 300);
         for (const c of located) {
           const el = document.createElement("button");
           el.type = "button";
@@ -142,6 +144,7 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
     })();
     return () => {
       cancelled = true;
+      ro?.disconnect();
       map?.remove();
       mapRef.current = null;
     };
@@ -272,10 +275,14 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
         const map = mapRef.current;
         const lib = libRef.current;
         if (map && lib) {
-          const el = document.createElement("span");
-          el.className = "atlas-marker-me";
-          el.setAttribute("aria-label", "Ma position");
-          new lib.Marker({ element: el, anchor: "center" }).setLngLat([me.lng, me.lat]).addTo(map);
+          // Un seul marqueur « ma position » : déplacé à chaque nouvelle localisation
+          if (meMarker.current) meMarker.current.setLngLat([me.lng, me.lat]);
+          else {
+            const el = document.createElement("span");
+            el.className = "atlas-marker-me";
+            el.setAttribute("aria-label", "Ma position");
+            meMarker.current = new lib.Marker({ element: el, anchor: "center" }).setLngLat([me.lng, me.lat]).addTo(map);
+          }
           const b = new lib.LngLatBounds([me.lng, me.lat], [me.lng, me.lat]);
           for (const c of sorted.slice(0, 3)) b.extend([c.lng, c.lat]);
           map.fitBounds(b, { padding: 64, maxZoom: 13 });
