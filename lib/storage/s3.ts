@@ -1,10 +1,13 @@
 import "server-only";
 
 import {
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
+  UploadPartCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { PresignedUpload, StorageDriver } from "./types";
@@ -70,5 +73,20 @@ export const s3Storage: StorageDriver = {
 
   publicUrl(key) {
     return `${(process.env.S3_PUBLIC_URL ?? "").replace(/\/$/, "")}/${key}`;
+  },
+};
+
+/** Envoi multipart S3 (parties de 8 Mo signées une à une, reprise côté client). */
+export const s3Multipart = {
+  async start(key: string, mime: string): Promise<string> {
+    const res = await s3().send(new CreateMultipartUploadCommand({ Bucket: bucket(), Key: key, ContentType: mime }));
+    if (!res.UploadId) throw new Error("multipart : UploadId manquant");
+    return res.UploadId;
+  },
+  presignPart(key: string, uploadId: string, partNumber: number): Promise<string> {
+    return getSignedUrl(s3(), new UploadPartCommand({ Bucket: bucket(), Key: key, UploadId: uploadId, PartNumber: partNumber }), { expiresIn: 15 * 60 });
+  },
+  async complete(key: string, uploadId: string, parts: { partNumber: number; etag: string }[]): Promise<void> {
+    await s3().send(new CompleteMultipartUploadCommand({ Bucket: bucket(), Key: key, UploadId: uploadId, MultipartUpload: { Parts: parts.map((p) => ({ PartNumber: p.partNumber, ETag: p.etag })) } }));
   },
 };

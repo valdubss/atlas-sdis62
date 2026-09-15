@@ -1,9 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Upload, X } from "lucide-react";
-import { createUpload, discardMedia, finalizeMedia } from "@/app/(studio)/studio/media/actions";
+import { completeMultipart, createUpload, discardMedia, finalizeMedia, presignMultipartPart } from "@/app/(studio)/studio/media/actions";
+import { altAssistEnabled, suggestAlt } from "@/app/(studio)/studio/media/alt-actions";
 import { prepareFile, uploadWithProgress } from "@/lib/media/client";
+import { uploadFile } from "@/lib/media/uploader";
+import { fingerprintFile } from "@/lib/media/fingerprint";
+import { uploadQueue } from "@/lib/media/queue";
 import type { MediaItem } from "@/lib/feed/types";
 import { LIMITS } from "@/lib/config";
 import { imageSrc, posterSrc } from "@/lib/media/url";
@@ -16,8 +20,10 @@ export type EditorMedia = MediaItem & {
   error?: string;
   /** Libellé de l'étape en cours (« Compression 42 % ») */
   label?: string;
-  /** Avertissement non bloquant (ex. vidéo très lourde) */
+  /** Avertissement non bloquant (ex. vidéo très lourde, doublon) */
   warning?: string;
+  /** Texte alternatif proposé par l'assistance (à relire) */
+  alt_source?: "manual" | "assisted";
 };
 
 type Accept = "images" | "video" | "cover" | "center_cover" | "story" | "screenshot";
@@ -44,6 +50,11 @@ export function MediaUploader({
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [rejected, setRejected] = useState<string[]>([]);
+  const [altAssist, setAltAssist] = useState(false);
+  const [suggesting, setSuggesting] = useState<string | null>(null);
+  useEffect(() => {
+    altAssistEnabled().then(setAltAssist).catch(() => {});
+  }, []);
 
   const patch = useCallback(
     (id: string, p: Partial<EditorMedia>) => onChange((prev) => prev.map((m) => (m.id === id ? { ...m, ...p } : m))),
@@ -83,12 +94,17 @@ export function MediaUploader({
           progress: 0,
         };
         onChange((prev) => [...prev, placeholder]);
+        uploadQueue.upsert({ id: tempId, name: file.name, kind: kindGuess, status: "preparing", progress: 0 });
 
         try {
           const prepared = await prepareFile(file, {
             maxDurationS: accept === "story" ? LIMITS.storyVideoMaxSeconds : LIMITS.postVideoMaxSeconds,
-            onProgress: (progress, label) => patch(tempId, { progress, label }),
+            onProgress: (progress, label) => {
+              patch(tempId, { progress, label });
+              uploadQueue.upsert({ id: tempId, name: file.name, kind: kindGuess, status: "preparing", progress });
+            },
           });
+          const fingerprint = await fingerprintFile(prepared.blob);
           if (accept === "story" && prepared.kind === "video" && (prepared.duration ?? 0) > LIMITS.storyVideoMaxSeconds + 0.5) {
             throw new Error(`Une story vidéo dure ${LIMITS.storyVideoMaxSeconds} s au plus (${Math.round(prepared.duration ?? 0)} s).`);
           }
@@ -100,8 +116,11 @@ export function MediaUploader({
             height: prepared.height,
             duration: prepared.duration,
             hasPoster: Boolean(prepared.poster),
+            fingerprint: fingerprint ?? undefined,
           });
           if (!created.ok) throw new Error(created.error);
+          uploadQueue.rename(tempId, created.mediaId);
+          const duplicateWarning = created.duplicate ? `Ce fichier semble déjà envoyé${created.duplicate.postTitle ? ` (« ${created.duplicate.postTitle} »)` : ""}. Vous pouvez tout de même continuer.` : undefined;
 
           const posterPreview = prepared.poster ? URL.createObjectURL(prepared.poster) : undefined;
           onChange((prev) =>
@@ -118,19 +137,31 @@ export function MediaUploader({
                     duration_s: prepared.duration ?? null,
                     poster_preview_url: posterPreview,
                     status: "uploading",
+                    warning: duplicateWarning,
                   }
                 : m,
             ),
           );
 
-          await uploadWithProgress(created.upload.url, created.upload.headers, prepared.blob, (f) => patch(created.mediaId, { progress: f }));
+          await uploadFile(
+            created.upload,
+            prepared.blob,
+            (f) => {
+              patch(created.mediaId, { progress: f });
+              uploadQueue.upsert({ id: created.mediaId, name: file.name, kind: prepared.kind, status: "uploading", progress: f });
+            },
+            { presignPart: presignMultipartPart, complete: completeMultipart },
+            fingerprint,
+          );
           if (created.posterUpload && prepared.poster) {
             await uploadWithProgress(created.posterUpload.url, created.posterUpload.headers, prepared.poster, () => {});
           }
 
           patch(created.mediaId, { status: "processing", progress: 1 });
+          uploadQueue.upsert({ id: created.mediaId, name: file.name, kind: prepared.kind, status: "processing", progress: 1 });
           const done = await finalizeMedia(created.mediaId);
           if (!done.ok) throw new Error(done.error);
+          uploadQueue.upsert({ id: created.mediaId, name: file.name, kind: prepared.kind, status: "ready", progress: 1 });
           // Vidéo très lourde (4K, 60 i/s) : elle démarre lentement sur mobile
           const perSecond = prepared.kind === "video" && prepared.duration && !prepared.originalBytes ? prepared.blob.size / prepared.duration : 0;
           const warning =
@@ -139,12 +170,14 @@ export function MediaUploader({
               : undefined;
           onChange((prev) =>
             prev.map((m) =>
-              m.id === created.mediaId ? { ...m, ...done.media, preview_url: m.preview_url, poster_preview_url: m.poster_preview_url, status: "ready", progress: 1, warning } : m,
+              m.id === created.mediaId ? { ...m, ...done.media, preview_url: m.preview_url, poster_preview_url: m.poster_preview_url, status: "ready", progress: 1, warning: warning ?? m.warning } : m,
             ),
           );
         } catch (e) {
           const message = e instanceof Error ? e.message : "Échec de l'envoi.";
           onChange((prev) => prev.map((m) => (m.id === tempId || m.preview_url === previewUrl ? { ...m, status: "error", error: message } : m)));
+          uploadQueue.upsert({ id: tempId, name: file.name, kind: kindGuess, status: "error", progress: 0, error: message });
+          setTimeout(() => uploadQueue.remove(tempId), 6000);
         }
       }
     },
@@ -283,6 +316,22 @@ export function MediaUploader({
                   maxLength={300}
                   className="h-9 w-full rounded-[10px] bg-bg-1 px-3 text-[13px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
                 />
+                {altAssist && m.kind === "image" && m.status === "ready" && (
+                  <button
+                    type="button"
+                    disabled={suggesting === m.id}
+                    onClick={async () => {
+                      setSuggesting(m.id);
+                      const r = await suggestAlt(m.id);
+                      setSuggesting(null);
+                      if (r.ok) patch(m.id, { alt: r.alt, alt_source: "assisted" });
+                      else setRejected((list) => [...list, r.error]);
+                    }}
+                    className="mt-1 text-[12px] font-medium text-text-3 hover:text-text-1 disabled:opacity-50"
+                  >
+                    {suggesting === m.id ? "Proposition en cours…" : m.alt_source === "assisted" ? "Proposer une autre description (à relire)" : "Proposer une description (à relire)"}
+                  </button>
+                )}
                 <div className="flex items-center justify-between">
                   {accept === "images" ? (
                     <span className="flex">

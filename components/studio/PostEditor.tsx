@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useMemo, useState, useTransition } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { deletePost, savePost, type PostFormState } from "@/app/(studio)/studio/posts/actions";
 import type { FeedPost } from "@/lib/feed/types";
 import { toDatetimeLocal } from "@/lib/format";
@@ -12,6 +12,9 @@ import { CheckboxField, Field, SelectField, TextareaField } from "@/components/u
 import { Badge } from "@/components/ui/Badge";
 import { PostCard } from "@/components/feed/PostCard";
 import { VideoPanel } from "@/components/studio/VideoPanel";
+import { DraftLock, ReviewPanel, VersionHistory } from "@/components/studio/DraftTools";
+import { autosavePost } from "@/app/(studio)/studio/posts/draft-actions";
+import { useRouter } from "next/navigation";
 import { MediaUploader, type EditorMedia } from "./MediaUploader";
 import { cn } from "@/lib/cn";
 
@@ -41,10 +44,15 @@ export function PostEditor({
   authorName,
   notice,
   defaultType,
+  isAdmin = false,
+  reviewStatus: initialReviewStatus = "none",
 }: {
   post: FeedPost | null;
   /** Type présélectionné pour une nouvelle publication (menu « + ») */
   defaultType?: EditorPostType;
+  /** Un administrateur peut publier malgré une relecture en cours */
+  isAdmin?: boolean;
+  reviewStatus?: "none" | "requested" | "approved" | "returned";
   categories: Ref[];
   centers: Ref[];
   authorName: string;
@@ -81,6 +89,25 @@ export function PostEditor({
 
   const readyMedia = media.filter((m) => m.status !== "error");
   const busy = media.some((m) => m.status !== "ready" && m.status !== "error");
+
+  // Brouillon partagé : verrou (la sauvegarde automatique ne tourne que si l'on a la main)
+  const router = useRouter();
+  const [hasLock, setHasLock] = useState(!post);
+  const [reviewStatus, setReviewStatus] = useState(initialReviewStatus);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
+  const lastSaved = useRef(JSON.stringify({ title: post?.title ?? "", location: post?.location ?? "", excerpt: post?.excerpt ?? "", body: post?.body ?? "" }));
+  useEffect(() => {
+    if (!post || !hasLock) return;
+    const timer = setInterval(() => {
+      const snapshot = { title, location, excerpt, body };
+      const key = JSON.stringify(snapshot);
+      if (key === lastSaved.current) return;
+      lastSaved.current = key;
+      autosavePost(post.id, snapshot).then((r) => r.ok && setSavedAt(r.at));
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [post, hasLock, title, location, excerpt, body]);
+  const publishBlocked = reviewStatus === "requested" && !isAdmin;
 
   const preview: FeedPost = useMemo(
     () => ({
@@ -165,6 +192,14 @@ export function PostEditor({
           <p role="status" className="text-[15px] text-text-2">
             {notice}
           </p>
+        )}
+        {post && <DraftLock postId={post.id} onLocked={setHasLock} />}
+        {post && (
+          <div className="flex flex-wrap items-center gap-3 text-[13px] text-text-3">
+            <VersionHistory postId={post.id} onRestored={() => router.refresh()} />
+            {savedAt && <span>Enregistré automatiquement {new Date(savedAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}</span>}
+            {!hasLock && <span>Lecture seule tant qu&apos;un autre éditeur a la main.</span>}
+          </div>
         )}
         {state.status === "error" && (
           <p role="alert" className="text-[15px] text-red-text">
@@ -326,13 +361,20 @@ export function PostEditor({
           )}
         </section>
 
+        {post && <ReviewPanel postId={post.id} isAdmin={isAdmin} onChanged={setReviewStatus} />}
+        {publishBlocked && (
+          <p role="status" className="text-[13px] text-text-2">
+            Publication bloquée : une relecture est en cours. Enregistrez le brouillon ; la mise en ligne reviendra après validation.
+          </p>
+        )}
+
         <div className="flex flex-wrap items-center gap-3">
           {schedule ? (
-            <Button type="submit" name="action" value="schedule" loading={pending} disabled={busy}>
+            <Button type="submit" name="action" value="schedule" loading={pending} disabled={busy || publishBlocked}>
               Programmer
             </Button>
           ) : (
-            <Button type="submit" name="action" value="publish" loading={pending} disabled={busy}>
+            <Button type="submit" name="action" value="publish" loading={pending} disabled={busy || publishBlocked}>
               {status === "published" ? "Mettre à jour" : "Publier"}
             </Button>
           )}

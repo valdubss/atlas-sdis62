@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { fetchCategories, fetchCenters, fetchPostById } from "@/lib/feed/queries";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { PostEditor } from "@/components/studio/PostEditor";
 
 export const metadata: Metadata = { title: "Modifier la publication" };
@@ -29,6 +29,8 @@ export default async function EditPostPage({
   ]);
   if (!current) redirect("/login");
   if (!post) notFound();
+  const supabase = await createClient();
+  const { data: reviewRow } = await supabase.from("posts").select("review_status").eq("id", id).maybeSingle();
   const authorName = `${current.profile.first_name} ${current.profile.last_name}`.trim() || current.profile.email;
 
   return (
@@ -38,6 +40,8 @@ export default async function EditPostPage({
       centers={centers}
       authorName={authorName}
       notice={ok ? NOTICES[ok] ?? null : null}
+      isAdmin={current.profile.role === "admin"}
+      reviewStatus={(reviewRow?.review_status as "none" | "requested" | "approved" | "returned" | undefined) ?? "none"}
     />
   );
 }

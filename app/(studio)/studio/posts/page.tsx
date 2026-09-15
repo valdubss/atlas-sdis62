@@ -17,6 +17,7 @@ type Row = {
   title: string | null;
   body: string | null;
   status: "draft" | "scheduled" | "published" | "archived";
+  review_status?: "none" | "requested" | "approved" | "returned";
   published_at: string | null;
   scheduled_at: string | null;
   pinned_at: string | null;
@@ -28,6 +29,7 @@ type Row = {
 const TABS = [
   { id: "", label: "Toutes" },
   { id: "draft", label: "Brouillons" },
+  { id: "review", label: "En relecture" },
   { id: "scheduled", label: "Programmées" },
   { id: "published", label: "Publiées" },
 ] as const;

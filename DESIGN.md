@@ -260,3 +260,16 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
 - Bouton « + » de la barre haute (éditeurs) : carré 28 px liseré 1 px, icône plus 18 px,
   ouvre une feuille « Créer » (publication, vidéo, story, sondage, événement, flash,
   Studio). La barre basse reste à 4 entrées pour tous.
+
+## Calendrier éditorial et brouillons (lot 2 v3)
+
+- Calendrier : cellules `--bg-1` rayon 12 px, jour courant en `--red` (texte seulement),
+  puces 12 px rayon 8 px teintées par statut sur `--bg-2` (brouillon `--text-2`,
+  relecture `--navy-link`, programmé `--text-1`, publié `--success`) ; fantôme de
+  glisser en `--bg-2` avec ombre flottante ; colonne « Sans date » à gauche sur desktop,
+  au-dessus sur mobile.
+- Verrou : bandeau `--bg-2` rayon 12 px avec icône cadenas, texte 13 px, bouton
+  secondaire « Prendre la main » ; jamais de rouge (ce n'est pas une erreur).
+- Relecture : section `--bg-1`, badge d'état, commentaires internes en cartes `--bg-2`.
+- File d'envois : verre flottant rayon 16 px au-dessus de la barre basse, une ligne
+  13 px + barre 4 px `--text-1`.

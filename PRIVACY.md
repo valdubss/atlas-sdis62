@@ -28,6 +28,8 @@ fonctionnement du service). **Responsable** : SDIS 62, service communication.
 | Signalements (`feedback` : catégorie, description, capture facultative, page, navigateur, version) | corriger les problèmes remontés par les agents | 13 mois après traitement |
 | Signalements de commentaires (`comment_reports`) | modération | 13 mois |
 | Journal d'audit (`audit_log` : actions des éditeurs) | traçabilité des publications et de la modération | 13 mois |
+| Versions de brouillons, verrou d'édition, relecture (`post_versions`, `posts.lock_by`, `post_review_comments` : éditeurs seulement) | travail à plusieurs sur une publication | 30 versions par publication ; commentaires tant que la publication existe |
+| Empreinte de fichier (`media.fingerprint`, SHA-256 du média envoyé) | signaler un doublon à l'éditeur | durée du média |
 | Limitation de débit (`rate_limit_events`) | prévenir les abus | 24 heures |
 | Jeton de session (cookie) | authentification | session |
 
@@ -35,6 +37,7 @@ fonctionnement du service). **Responsable** : SDIS 62, service communication.
 
 - **Aucun numéro personnel** : seul un téléphone professionnel facultatif peut être saisi.
 - **Reprise de lecture vidéo** : la position est gardée sur l'appareil seulement (stockage local), jamais envoyée.
+- **Assistance au texte alternatif** : si le service communication branche une API vision, seule l'image (sans métadonnées) est envoyée pour proposer une description ; jamais de données d'agent.
 - **Transcription** : si le service communication branche un fournisseur de sous-titres automatiques, seule la piste audio de la vidéo publiée lui est envoyée, jamais de données d'agent.
 - **Position de l'agent** : la carte de l'annuaire ne demande la position qu'au toucher
   de « Autour de moi », l'affiche localement et ne la transmet ni ne l'enregistre.

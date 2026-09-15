@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 type Stats = {
   drafts: number;
+  in_review?: number;
   scheduled: number;
   published: number;
   week: { posts: number; reactions: number; comments: number; views: number };
@@ -27,9 +28,10 @@ export default async function StudioDashboardPage() {
         <NewButton href="/studio/posts/new" label="Nouvelle publication" />
       </div>
 
-      <section className="grid grid-cols-3 gap-3">
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           ["Brouillons", stats.drafts, "/studio/posts?statut=draft"],
+          ["En relecture", stats.in_review ?? 0, "/studio/posts?statut=review"],
           ["Programmées", stats.scheduled, "/studio/posts?statut=scheduled"],
           ["Publiées", stats.published, "/studio/posts?statut=published"],
         ].map(([label, value, href]) => (

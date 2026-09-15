@@ -98,6 +98,15 @@ type PostRow = {
   created_at: Timestamp;
   updated_at: Timestamp;
   deleted_at: Timestamp | null;
+  lock_by: string | null;
+  lock_at: Timestamp | null;
+  autosave_at: Timestamp | null;
+  review_status: "none" | "requested" | "approved" | "returned";
+  review_requested_to: string | null;
+  review_requested_by: string | null;
+  review_requested_at: Timestamp | null;
+  review_decided_by: string | null;
+  review_decided_at: Timestamp | null;
 };
 
 type CommentRow = {
@@ -147,6 +156,8 @@ type MediaRow = {
   poster_time_s: number | null;
   transcode_started_at: Timestamp | null;
   transcode_attempts: number;
+  fingerprint: string | null;
+  alt_source: "manual" | "assisted";
   created_at: Timestamp;
   updated_at: Timestamp;
 };
@@ -407,6 +418,7 @@ export type Database = {
           | "id" | "slug" | "title" | "location" | "scope" | "submitted_by" | "reviewed_by" | "reviewed_at" | "moderation_message" | "promoted_from_id" | "excerpt" | "body" | "category_id" | "center_id" | "tags"
           | "author_id" | "author_display" | "status" | "scheduled_at" | "published_at"
           | "pinned_at" | "comments_enabled" | "cover_media_id" | "created_at" | "updated_at" | "deleted_at"
+          | "lock_by" | "lock_at" | "autosave_at" | "review_status" | "review_requested_to" | "review_requested_by" | "review_requested_at" | "review_decided_by" | "review_decided_at"
         >;
         Update: Partial<PostRow>;
         Relationships: [];
@@ -527,8 +539,20 @@ export type Database = {
       };
       media: {
         Row: MediaRow;
-        Insert: Optional<MediaRow, "id" | "status" | "variants" | "poster_key" | "width" | "height" | "duration_s" | "alt" | "error" | "created_at" | "updated_at" | "video_status" | "video_error" | "orientation" | "hls_key" | "renditions" | "hls_files" | "poster_source" | "poster_time_s" | "transcode_started_at" | "transcode_attempts">;
+        Insert: Optional<MediaRow, "id" | "status" | "variants" | "poster_key" | "width" | "height" | "duration_s" | "alt" | "error" | "created_at" | "updated_at" | "video_status" | "video_error" | "orientation" | "hls_key" | "renditions" | "hls_files" | "poster_source" | "poster_time_s" | "transcode_started_at" | "transcode_attempts" | "fingerprint" | "alt_source">;
         Update: Partial<MediaRow>;
+        Relationships: [];
+      };
+      post_versions: {
+        Row: { id: number; post_id: string; version: number; snapshot: Json; saved_by: string | null; saved_at: Timestamp };
+        Insert: { post_id: string; version: number; snapshot: Json; saved_by?: string | null };
+        Update: Partial<{ snapshot: Json }>;
+        Relationships: [];
+      };
+      post_review_comments: {
+        Row: { id: number; post_id: string; author_id: string | null; body: string; created_at: Timestamp; resolved_at: Timestamp | null };
+        Insert: { post_id: string; author_id?: string | null; body: string; resolved_at?: Timestamp | null };
+        Update: Partial<{ body: string; resolved_at: Timestamp | null }>;
         Relationships: [];
       };
       media_subtitles: {
@@ -592,6 +616,7 @@ export type Database = {
       search_directory: { Args: { p_q: string; p_limit?: number }; Returns: Json };
       record_video_progress: { Args: { p_post_id: string; p_pct: number }; Returns: undefined };
       studio_video_stats: { Args: { p_days?: number }; Returns: Json };
+      studio_calendar: { Args: { p_from: string; p_to: string }; Returns: Json };
       purge_page_views: { Args: Record<string, never>; Returns: undefined };
       is_referent: { Args: Record<string, never>; Returns: boolean };
       promote_center_post: { Args: { p_post_id: string }; Returns: string };

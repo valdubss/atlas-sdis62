@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { deleteStory, saveStory, type StoryFormState } from "@/app/(studio)/studio/stories/actions";
 import type { StoryItem } from "@/lib/feed/types";
 import { toDatetimeLocal } from "@/lib/format";
@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/Badge";
 import { MediaUploader, type EditorMedia } from "./MediaUploader";
 import { StoryMedia } from "@/components/stories/StoryMedia";
 import { cn } from "@/lib/cn";
+import { measureImageContrast } from "@/lib/media/contrast";
+import { imageSrc } from "@/lib/media/url";
 
 type Series = { id: string; title: string };
 type PostRef = { id: string; slug: string; title: string | null };
@@ -40,6 +42,21 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
   const [scheduledAt, setScheduledAt] = useState(toDatetimeLocal(story?.scheduled_at));
 
   const ready = media.find((m) => m.status === "ready") ?? null;
+
+  // Contraste du texte superposé (blanc) sur la zone de l'image : avertissement sous 4,5:1
+  const [contrast, setContrast] = useState<number | null>(null);
+  useEffect(() => {
+    if (!text.trim() || !ready || ready.kind !== "image") {
+      setContrast(null);
+      return;
+    }
+    let alive = true;
+    measureImageContrast(ready.preview_url ?? imageSrc(ready, "small"), position).then((c) => alive && setContrast(c));
+    return () => {
+      alive = false;
+    };
+  }, [text, ready, position]);
+  const lowContrast = contrast !== null && contrast < 4.5;
   // Aperçu dès l'envoi (vignette locale), même pendant le traitement
   const previewMedia = media.find((m) => m.status !== "error") ?? null;
   const busy = media.some((m) => m.status !== "ready" && m.status !== "error");
@@ -102,6 +119,11 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
             <Field label="Nom de la nouvelle série" name="series_title" value={newSeries} onChange={(e) => setNewSeries(e.target.value)} maxLength={80} placeholder="Feux de forêt, JSP Calais, Cérémonie du 14 juillet…" error={fields.series_title} />
           )}
           <TextareaField label="Texte superposé (facultatif)" name="overlay_text" value={text} onChange={(e) => setText(e.target.value)} maxLength={200} rows={2} error={fields.overlay_text} />
+          {lowContrast && (
+            <p role="status" className="rounded-[10px] bg-bg-2 px-3 py-2 text-[13px] text-text-1">
+              Contraste faible ({contrast!.toFixed(1)}:1) entre le texte et l&apos;image à cet endroit : le texte risque d&apos;être peu lisible. Changez la position ou raccourcissez le texte.
+            </p>
+          )}
           <fieldset>
             <legend className="mb-2 text-[13px] font-medium text-text-2">Position du texte</legend>
             <div className="flex gap-2">

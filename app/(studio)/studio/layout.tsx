@@ -6,6 +6,7 @@ import { Logo } from "@/components/brand/Logo";
 import { ROLE_LABELS } from "@/lib/config";
 import { getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { StudioNav } from "@/components/studio/StudioNav";
+import { UploadQueue } from "@/components/studio/UploadQueue";
 import { countPendingProposals } from "@/lib/centres/queries";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { RoleProvider } from "@/components/layout/RoleContext";
@@ -49,6 +50,7 @@ export default async function StudioLayout({ children }: { children: React.React
           </div>
         </header>
         <main className="min-w-0 flex-1 overflow-x-clip px-5 pb-28 pt-[calc(48px+env(safe-area-inset-top)+16px)] md:px-8 md:py-8">{children}</main>
+        <UploadQueue />
         <div className="md:hidden">
           <BottomNav />
         </div>

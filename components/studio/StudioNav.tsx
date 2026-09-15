@@ -9,6 +9,7 @@ const NAV = [
   { href: "/studio", label: "Tableau de bord", exact: true },
   { href: "/studio/flash", label: "Flash" },
   { href: "/studio/posts", label: "Publications" },
+  { href: "/studio/calendrier", label: "Calendrier" },
   { href: "/studio/stories", label: "Stories" },
   { href: "/studio/agenda", label: "Agenda" },
   { href: "/studio/centres", label: "Centres" },

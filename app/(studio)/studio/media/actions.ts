@@ -18,15 +18,25 @@ const createSchema = z.object({
   height: z.number().int().positive().max(20000),
   duration: z.number().nonnegative().max(3600).optional(),
   hasPoster: z.boolean().optional(),
+  /** Empreinte SHA-256 (hex) du fichier préparé, pour repérer un doublon */
+  fingerprint: z.string().regex(/^[0-9a-f]{64}$/).optional(),
 });
+
+/** Cible d'envoi : PUT signé, TUS (Supabase, reprise) ou multipart (S3, reprise). */
+export type UploadTargetInfo =
+  | { mode: "put"; url: string; headers: Record<string, string> }
+  | { mode: "tus"; endpoint: string; bucket: string; objectName: string; token: string; mime: string }
+  | { mode: "multipart"; key: string; mime: string; uploadId: string; partSize: number };
 
 export type CreateUploadResult =
   | {
       ok: true;
       mediaId: string;
       key: string;
-      upload: { url: string; method: "PUT"; headers: Record<string, string> };
+      upload: UploadTargetInfo;
       posterUpload?: { url: string; method: "PUT"; headers: Record<string, string> };
+      /** Un média identique existe déjà (avertissement, pas de blocage) */
+      duplicate?: { mediaId: string; postTitle: string | null };
     }
   | { ok: false; error: string };
 
@@ -63,6 +73,16 @@ export async function createUpload(input: unknown): Promise<CreateUploadResult> 
   const key = v.kind === "video" ? mediaKeys.video(id) : mediaKeys.original(id, extensionFor(v.mime));
   const posterKey = v.kind === "video" && v.hasPoster ? mediaKeys.poster(id) : null;
 
+  // Doublon : même empreinte, média prêt (le titre de la publication qui l'utilise, si elle existe)
+  let duplicate: { mediaId: string; postTitle: string | null } | undefined;
+  if (v.fingerprint) {
+    const { data: same } = await supabase.from("media").select("id, post_media(post:posts(title))").eq("fingerprint", v.fingerprint).eq("status", "ready").limit(1).maybeSingle();
+    if (same) {
+      const pm = (same as unknown as { post_media?: { post: { title: string | null } | null }[] }).post_media?.[0];
+      duplicate = { mediaId: same.id, postTitle: pm?.post?.title ?? null };
+    }
+  }
+
   const { error } = await supabase.from("media").insert({
     id,
     owner_id: user.id,
@@ -75,14 +95,30 @@ export async function createUpload(input: unknown): Promise<CreateUploadResult> 
     width: v.width,
     height: v.height,
     duration_s: v.duration ?? null,
+    fingerprint: v.fingerprint ?? null,
   });
   if (error) return { ok: false, error: "Création du média refusée (droits éditeur requis)." };
 
   try {
     const storage = getStorage();
-    const upload = await storage.presignUpload(key, v.mime, v.size);
     const posterUpload = posterKey ? await storage.presignUpload(posterKey, "image/jpeg", 0) : undefined;
-    return { ok: true, mediaId: id, key, upload, posterUpload };
+    let upload: UploadTargetInfo;
+    if (storage.name === "supabase" && v.size > 6 * 1024 * 1024) {
+      // Envoi reprenable (TUS) avec le jeton de session de l'éditeur (politiques storage.objects, migration 0021)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("session sans jeton");
+      upload = { mode: "tus", endpoint: `${process.env.NEXT_PUBLIC_SUPABASE_URL!.replace(/\/$/, "")}/storage/v1/upload/resumable`, bucket: process.env.NEXT_PUBLIC_STORAGE_BUCKET ?? "media", objectName: key, token, mime: v.mime };
+    } else if (storage.name === "s3" && v.size > 8 * 1024 * 1024) {
+      const { s3Multipart } = await import("@/lib/storage/s3");
+      upload = { mode: "multipart", key, mime: v.mime, uploadId: await s3Multipart.start(key, v.mime), partSize: 8 * 1024 * 1024 };
+    } else {
+      const signed = await storage.presignUpload(key, v.mime, v.size);
+      upload = { mode: "put", url: signed.url, headers: signed.headers };
+    }
+    return { ok: true, mediaId: id, key, upload, posterUpload, duplicate };
   } catch (e) {
     await supabase.from("media").update({ status: "failed", error: String(e) }).eq("id", id);
     return { ok: false, error: "Stockage indisponible. Vérifiez la configuration du bucket." };
@@ -222,4 +258,38 @@ function toItem(row: Tables<"media">): MediaItem {
     hls_key: row.hls_key,
     video_status: row.video_status,
   };
+}
+
+const KEY_RE = /^(originals|videos)\/[0-9a-f-]{36}\.[a-z0-9]{2,4}$/;
+
+/** Multipart S3 : signature d'une partie (propriétaire du média). */
+export async function presignMultipartPart(key: string, uploadId: string, partNumber: number): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  if (!KEY_RE.test(key) || !Number.isInteger(partNumber) || partNumber < 1 || partNumber > 10000) return { ok: false, error: "Partie invalide." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Session expirée." };
+  const { data: row } = await supabase.from("media").select("owner_id").eq("original_key", key).maybeSingle();
+  if (!row || row.owner_id !== user.id) return { ok: false, error: "Média introuvable." };
+  const { s3Multipart } = await import("@/lib/storage/s3");
+  return { ok: true, url: await s3Multipart.presignPart(key, uploadId, partNumber) };
+}
+
+export async function completeMultipart(key: string, uploadId: string, parts: { partNumber: number; etag: string }[]): Promise<{ ok: boolean; error?: string }> {
+  if (!KEY_RE.test(key) || !Array.isArray(parts) || parts.length === 0) return { ok: false, error: "Finalisation invalide." };
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Session expirée." };
+  const { data: row } = await supabase.from("media").select("owner_id").eq("original_key", key).maybeSingle();
+  if (!row || row.owner_id !== user.id) return { ok: false, error: "Média introuvable." };
+  try {
+    const { s3Multipart } = await import("@/lib/storage/s3");
+    await s3Multipart.complete(key, uploadId, parts.slice(0, 10000).map((p) => ({ partNumber: Number(p.partNumber), etag: String(p.etag) })));
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Finalisation refusée." };
+  }
 }

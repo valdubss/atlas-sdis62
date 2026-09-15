@@ -103,6 +103,7 @@ redirige vers `/login`.
 | `0018_centre_page.sql` | onglet « Mon centre » (lot B) : `get_center_feed`, lecture des couvertures de centre, `record_page_view`, notification des éditeurs à chaque proposition |
 | `0019_annuaire.sql` | annuaire (lot C) : extensions `pg_trgm` + `unaccent`, `search_directory` (recherche tolérante aux fautes : centres, services, agents ayant choisi d'être visibles), `purge_page_views` (13 mois) |
 | `0020_video.sql` | vidéo (lot 1 v3) : états `video_status`, orientation, HLS (`hls_key`, `renditions`, `hls_files`), poster (auto / image / timecode), `media_subtitles`, paliers de lecture (`post_views.progress`, `record_video_progress`, `studio_video_stats`), purge des fichiers HLS |
+| `0021_studio_editorial.sql` | studio (lot 2 v3) : verrou d'édition, sauvegarde automatique, `post_versions` (30 versions), relecture (`review_status`, commentaires internes, blocage de publication hors admin, notifications), empreinte des médias (doublons), politiques `storage.objects` pour les envois reprenables (TUS), `studio_calendar` |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -435,6 +436,31 @@ docs/ARCHITECTURE.md       plan d'architecture
   cadre selon l'orientation détectée à l'upload.
 - **Mesure** : paliers 25 / 50 / 75 / 100 % par agent et par vidéo, sans horodatage
   fin (`post_views.progress`), visibles dans Studio → Statistiques.
+
+## 7a bis. Studio : calendrier, brouillons partagés, relecture, upload robuste
+
+- **Calendrier** (`/studio/calendrier`) : vues semaine et mois, colonne « Sans date »
+  pour les brouillons, glisser-déposer (au doigt aussi) pour changer la date : un
+  brouillon déposé devient programmé à 9 h, un événement ou un flash est décalé en
+  gardant sa durée, un contenu publié ne bouge pas. Tap → éditeur.
+- **Brouillons partagés** : verrou d'édition (« Modifié par Prénom — il y a 2 min »),
+  repris automatiquement après 10 min d'inactivité ou par « Prendre la main » ;
+  sauvegarde automatique toutes les 5 s du texte (titre, lieu, chapô, corps) quand on
+  a la main ; historique des 30 dernières versions, restaurables.
+- **Relecture** : « Demander une relecture » à n'importe quel éditeur (ou à
+  l'administrateur), commentaires internes invisibles des agents, validation ou
+  renvoi. Une publication en relecture ne peut pas être mise en ligne (trigger
+  `posts_review_guard`), sauf par un administrateur.
+- **Upload robuste** : reprise après coupure (TUS par morceaux de 6 Mo sur Supabase
+  Storage, multipart 8 Mo sur S3/R2 : relancer le même fichier reprend où il s'était
+  arrêté), file d'attente visible en bas du studio, envoi en arrière-plan pendant la
+  rédaction (garde-fou à la fermeture de la page), conversion HEIC, empreinte SHA-256
+  avec avertissement de doublon (jamais bloquant).
+- **Texte alternatif assisté** (optionnel) : `VISION_API_KEY` (clé API Claude,
+  modèle `VISION_MODEL`, défaut `claude-haiku-4-5`) fait apparaître « Proposer une
+  description » sous chaque photo ; la proposition est toujours relue et éditable.
+- **Contraste des stories** : le texte superposé est mesuré contre la zone de
+  l'image où il s'affiche ; sous 4,5:1, avertissement avant publication.
 
 ## 7b. Notifications push, PWA et digest
 
