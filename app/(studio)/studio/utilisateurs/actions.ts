@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyDbError } from "@/lib/validation/comment";
 import type { UserRole } from "@/lib/supabase/database.types";
+import { LIMITS } from "@/lib/config";
+import { isAllowedEmail } from "@/lib/auth/domains";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -81,4 +83,62 @@ export async function deleteUser(userId: string): Promise<Result> {
 
   revalidatePath("/studio/utilisateurs");
   return { ok: true };
+}
+
+const createSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Adresse e-mail invalide.").max(160),
+  password: z.string().min(LIMITS.passwordMinLength, `${LIMITS.passwordMinLength} caractères minimum.`).max(200),
+  first_name: z.string().trim().max(60).optional().default(""),
+  last_name: z.string().trim().max(60).optional().default(""),
+  role: z.enum(["reader", "editor", "admin"]).default("reader"),
+});
+
+export type CreateUserState = { status: "idle" } | { status: "created"; email: string } | { status: "error"; message: string; fields?: Record<string, string> };
+
+/**
+ * Création d'un compte par un administrateur : adresse + mot de passe initial
+ * (modifiable ensuite par l'agent dans son profil), prénom, nom et rôle.
+ * Le compte est confirmé d'office ; l'agent voit l'accueil au premier accès.
+ */
+export async function createUser(_prev: CreateUserState, formData: FormData): Promise<CreateUserState> {
+  const parsed = createSchema.safeParse({
+    email: formData.get("email") ?? "",
+    password: formData.get("password") ?? "",
+    first_name: formData.get("first_name") ?? "",
+    last_name: formData.get("last_name") ?? "",
+    role: formData.get("role") ?? "reader",
+  });
+  if (!parsed.success) {
+    const fields: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const key = String(issue.path[0] ?? "");
+      if (key && !fields[key]) fields[key] = issue.message;
+    }
+    return { status: "error", message: "Vérifiez les champs signalés.", fields };
+  }
+  const v = parsed.data;
+  const { user, error } = await requireAdmin();
+  if (!user) return { status: "error", message: error! };
+  if (!isAllowedEmail(v.email)) return { status: "error", message: "Ce domaine n'est pas autorisé sur ATLAS (voir ALLOWED_EMAIL_DOMAINS / adresses autorisées).", fields: { email: "Domaine non autorisé." } };
+
+  const admin = createAdminClient();
+  const { data, error: createError } = await admin.auth.admin.createUser({
+    email: v.email,
+    password: v.password,
+    email_confirm: true,
+    user_metadata: { first_name: v.first_name, last_name: v.last_name },
+  });
+  if (createError || !data.user) {
+    const msg = createError?.message ?? "";
+    if (/already|exists|registered/i.test(msg)) return { status: "error", message: "Un compte existe déjà avec cette adresse.", fields: { email: "Adresse déjà utilisée." } };
+    if (/DOMAINE_NON_AUTORISE/.test(msg)) return { status: "error", message: "Domaine non autorisé.", fields: { email: "Domaine non autorisé." } };
+    console.error("createUser", msg);
+    return { status: "error", message: "Création impossible : " + msg };
+  }
+  if (v.role !== "reader") {
+    const { error: roleError } = await admin.from("profiles").update({ role: v.role }).eq("id", data.user.id);
+    if (roleError) console.error("createUser role", roleError.message);
+  }
+  revalidatePath("/studio/utilisateurs");
+  return { status: "created", email: v.email };
 }
