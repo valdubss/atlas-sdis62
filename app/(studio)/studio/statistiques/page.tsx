@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 import { CenterStats, type CenterStatsData } from "@/components/studio/CenterStats";
 import { VideoStats, type VideoStatRow } from "@/components/studio/VideoStats";
 import { NotificationStats, type NotificationStatsData } from "@/components/studio/NotificationStats";
+import { ReadingStats, type ReadingStatsData } from "@/components/studio/ReadingStats";
 
 export const metadata: Metadata = { title: "Statistiques" };
 export const dynamic = "force-dynamic";
@@ -29,11 +30,12 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
   const { jours } = await searchParams;
   const days = PERIODS.includes(Number(jours)) ? Number(jours) : 30;
   const supabase = await createClient();
-  const [{ data }, { data: centerData }, { data: videoData }, { data: notifData }] = await Promise.all([supabase.rpc("studio_post_stats", { p_days: days }), supabase.rpc("studio_center_stats", { p_days: days }), supabase.rpc("studio_video_stats", { p_days: days }), supabase.rpc("studio_notification_stats", { p_days: days })]);
+  const [{ data }, { data: centerData }, { data: videoData }, { data: notifData }, { data: readingData }] = await Promise.all([supabase.rpc("studio_post_stats", { p_days: days }), supabase.rpc("studio_center_stats", { p_days: days }), supabase.rpc("studio_video_stats", { p_days: days }), supabase.rpc("studio_notification_stats", { p_days: days }), supabase.rpc("studio_reading_stats", { p_days: days })]);
   const s = (data ?? null) as unknown as Stats | null;
   const cs = (centerData ?? null) as unknown as CenterStatsData | null;
   const vs = ((videoData ?? []) as unknown as VideoStatRow[]) ?? [];
   const ns = (notifData ?? null) as unknown as NotificationStatsData | null;
+  const rs = (readingData ?? null) as unknown as ReadingStatsData | null;
   if (!s) return <p className="text-[15px] text-text-2">Statistiques indisponibles.</p>;
 
   const hours = Array.from({ length: 24 }, (_, h) => s.by_hour.find((x) => x.hour === h)?.views ?? 0);
@@ -102,6 +104,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
         </div>
       </section>
 
+      {rs?.totals && <ReadingStats s={rs} />}
       <VideoStats rows={vs} />
       {ns?.by_kind && <NotificationStats s={ns} />}
       {cs && <CenterStats s={cs} days={days} />}

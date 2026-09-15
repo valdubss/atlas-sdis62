@@ -39,11 +39,25 @@ export function Lightbox({
   const [current, setCurrent] = useState(index);
   const [dragY, setDragY] = useState(0);
   const touch = useRef<{ x: number; y: number; vertical: boolean | null } | null>(null);
+  // Zoom : pincement (distance entre deux doigts) ou double-tap ; le défilement horizontal est gelé tant que zoomé
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const pinch = useRef<{ d: number; z: number } | null>(null);
+  const lastTap = useRef(0);
+  const panStart = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
 
   useEffect(() => {
     if (!open) return;
     const opener = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        const el = scroller.current;
+        if (!el) return;
+        e.preventDefault();
+        el.scrollBy({ left: (e.key === "ArrowRight" ? 1 : -1) * el.clientWidth, behavior: "smooth" });
+      }
+    };
     document.addEventListener("keydown", onKey);
     lockScroll();
     return () => {
@@ -62,7 +76,11 @@ export function Lightbox({
     let raf = 0;
     const onScroll = () => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => setCurrent(Math.round(el.scrollLeft / Math.max(1, el.clientWidth))));
+      raf = requestAnimationFrame(() => {
+        setCurrent(Math.round(el.scrollLeft / Math.max(1, el.clientWidth)));
+        setZoom(1);
+        setPan({ x: 0, y: 0 });
+      });
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => {
@@ -71,10 +89,33 @@ export function Lightbox({
     };
   }, [open, index]);
 
+  const dist = (e: React.TouchEvent) => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  function resetZoom() {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }
   function onTouchStart(e: React.TouchEvent) {
+    if (e.touches.length === 2) {
+      pinch.current = { d: dist(e), z: zoom };
+      touch.current = null;
+      return;
+    }
+    if (zoom > 1) {
+      panStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, px: pan.x, py: pan.y };
+      return;
+    }
     touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, vertical: null };
   }
   function onTouchMove(e: React.TouchEvent) {
+    if (e.touches.length === 2 && pinch.current) {
+      setZoom(Math.min(4, Math.max(1, (pinch.current.z * dist(e)) / pinch.current.d)));
+      return;
+    }
+    if (zoom > 1 && panStart.current) {
+      const p = panStart.current;
+      setPan({ x: p.px + (e.touches[0].clientX - p.x), y: p.py + (e.touches[0].clientY - p.y) });
+      return;
+    }
     const t = touch.current;
     if (!t) return;
     const dx = e.touches[0].clientX - t.x;
@@ -82,11 +123,27 @@ export function Lightbox({
     if (t.vertical === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) t.vertical = Math.abs(dy) > Math.abs(dx);
     if (t.vertical) setDragY(dy);
   }
-  function onTouchEnd() {
+  function onTouchEnd(e: React.TouchEvent) {
+    if (pinch.current) {
+      pinch.current = null;
+      if (zoom < 1.05) resetZoom();
+      return;
+    }
+    if (panStart.current) {
+      panStart.current = null;
+      return;
+    }
     const t = touch.current;
     touch.current = null;
     if (t?.vertical && Math.abs(dragY) > 90) onClose();
     else setDragY(0);
+    // Double-tap : zoom ×2,5 ou retour
+    const now = Date.now();
+    if (t && !t.vertical && now - lastTap.current < 300 && e.changedTouches.length === 1) {
+      lastTap.current = 0;
+      if (zoom > 1) resetZoom();
+      else setZoom(2.5);
+    } else lastTap.current = now;
   }
 
   const progress = Math.min(1, Math.abs(dragY) / 260);
@@ -122,7 +179,7 @@ export function Lightbox({
           <motion.div
             ref={scroller}
             className="no-scrollbar flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overflow-y-hidden"
-            style={{ touchAction: "pan-x", y: dragY, scale: 1 - progress * 0.1 }}
+            style={{ touchAction: zoom > 1 ? "none" : "pan-x", y: dragY, scale: 1 - progress * 0.1, overflowX: zoom > 1 ? "hidden" : undefined }}
             transition={dragY === 0 ? SPRING : { duration: 0 }}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
@@ -141,8 +198,14 @@ export function Lightbox({
                     loading={Math.abs(i - current) <= 1 ? "eager" : "lazy"}
                     decoding="async"
                     className="max-h-full max-w-full select-none object-contain"
+                    style={i === current && zoom > 1 ? { transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transition: pinch.current ? "none" : "transform 120ms ease-out" } : undefined}
                     draggable={false}
                     onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      if (zoom > 1) resetZoom();
+                      else setZoom(2.5);
+                    }}
                   />
                 )}
               </div>

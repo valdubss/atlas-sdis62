@@ -154,7 +154,7 @@ export function PostEditor({
 
   const status = post?.status ?? "draft";
   const badge = STATUS_BADGE[status] ?? STATUS_BADGE.draft;
-  const mediaPayload = JSON.stringify(media.filter((m) => m.status === "ready").map((m) => ({ id: m.id, kind: m.kind, alt: m.alt })));
+  const mediaPayload = JSON.stringify(media.filter((m) => m.status === "ready").map((m) => ({ id: m.id, kind: m.kind, alt: m.alt, caption: m.caption ?? "" })));
   const uploaderAccept = type === "photo" ? "images" : type === "video" ? "video" : "cover";
 
   function changeType(next: EditorPostType) {

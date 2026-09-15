@@ -24,6 +24,8 @@ export type EditorMedia = MediaItem & {
   warning?: string;
   /** Texte alternatif proposé par l'assistance (à relire) */
   alt_source?: "manual" | "assisted";
+  /** Légende affichée sous la photo dans la publication (200 caractères) */
+  caption?: string | null;
 };
 
 type Accept = "images" | "video" | "cover" | "center_cover" | "story" | "screenshot";
@@ -316,6 +318,17 @@ export function MediaUploader({
                   maxLength={300}
                   className="h-9 w-full rounded-[10px] bg-bg-1 px-3 text-[13px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
                 />
+                {accept === "images" && (
+                  <input
+                    type="text"
+                    value={m.caption ?? ""}
+                    onChange={(e) => patch(m.id, { caption: e.target.value })}
+                    placeholder="Légende (facultatif)"
+                    aria-label="Légende"
+                    maxLength={200}
+                    className="h-9 w-full rounded-[10px] bg-bg-1 px-3 text-[13px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
+                  />
+                )}
                 {altAssist && m.kind === "image" && m.status === "ready" && (
                   <button
                     type="button"

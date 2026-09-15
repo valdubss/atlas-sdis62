@@ -105,6 +105,7 @@ redirige vers `/login`.
 | `0020_video.sql` | vidéo (lot 1 v3) : états `video_status`, orientation, HLS (`hls_key`, `renditions`, `hls_files`), poster (auto / image / timecode), `media_subtitles`, paliers de lecture (`post_views.progress`, `record_video_progress`, `studio_video_stats`), purge des fichiers HLS |
 | `0021_studio_editorial.sql` | studio (lot 2 v3) : verrou d'édition, sauvegarde automatique, `post_versions` (30 versions), relecture (`review_status`, commentaires internes, blocage de publication hors admin, notifications), empreinte des médias (doublons), politiques `storage.objects` pour les envois reprenables (TUS), `studio_calendar` |
 | `0022_notifications_v2.sql` | notifications (lot 3 v3) : préférences détaillées (`push_agenda`, `push_messages`, plage de silence, aperçu masqué), une seule push par contenu (`dedupe_key`), pushs différées et regroupées (`notification_deferred`), ouvertures (`push_opens`), `studio_notification_stats`, `schedule_hourly_dispatch` (pg_cron + pg_net) |
+| `0023_reading.sql` | fil et articles (lot 4 v3) : légende par photo (`post_media.caption`), aperçu flou (`media.lqip`), lecture qualifiée (`post_views.read` / `interacted`, `record_post_read`, triggers d'interaction, `studio_reading_stats`), recherche globale `search_all` |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -410,6 +411,26 @@ supabase/
 scripts/extract-colors.mjs extraction des couleurs du logo
 docs/ARCHITECTURE.md       plan d'architecture
 ```
+
+## 7c. Fil, carrousel, articles, recherche
+
+- **Carrousel** : points de position, légende par photo (13 px, repliable, saisie
+  dans le studio sous chaque photo), double-tap = ❤️ avec animation, aperçu flou
+  20 px (LQIP généré avec les variantes) sous chaque image, photo suivante et
+  première photo du post suivant préchargées, flèches du clavier sur desktop.
+  Lightbox : pincement et double-tap pour zoomer, flèches et Échap au clavier.
+- **Position du fil** restaurée au retour d'une publication, d'une lightbox ou d'un
+  autre onglet (mémoire par route, session du navigateur).
+- **Articles** : temps de lecture sous le titre, barre de progression 2 px sous la
+  barre haute, sommaire flottant sur grand écran (titres `##`), « Reprendre où j'en
+  étais » (position gardée sur l'appareil), lecture 17 px / 1,55 sur 680 px.
+- **Lecture qualifiée** : une carte est « lue » quand elle reste visible à 50 % pendant
+  2 s, un article à 80 % de défilement ; réaction, commentaire, favori ou vote marquent
+  une interaction. Studio → Statistiques distingue affichage, lecture et interaction.
+  Stockage sans horodatage fin (`post_views.read`, `interacted`).
+- **Recherche globale** (loupe du fil) : un champ, résultats groupés (publications,
+  centres, services, personnes visibles), tolérance aux fautes (`search_all`),
+  historique local des 5 dernières recherches.
 
 ## 7a. Vidéo : transcodage HLS, poster, sous-titres
 

@@ -138,7 +138,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
   const attached = v.type === "article" ? v.media.slice(0, 1) : v.type === "text" || v.type === "poll" ? [] : v.media;
   if (attached.length > 0) {
     const { error: pmError } = await supabase.from("post_media").insert(
-      attached.map((m, i) => ({ post_id: id!, media_id: m.id, position: i, alt: m.alt || null })),
+      attached.map((m, i) => ({ post_id: id!, media_id: m.id, position: i, alt: m.alt || null, caption: m.caption || null })),
     );
     if (pmError) return { status: "error", message: friendlyDbError(pmError.message) };
     // Texte alternatif : conservé aussi sur le média (galerie)

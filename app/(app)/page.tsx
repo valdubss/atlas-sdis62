@@ -12,6 +12,7 @@ import { fetchUnreadCount } from "@/lib/notifications/queries";
 import { PostCard } from "@/components/feed/PostCard";
 import { StoryBar } from "@/components/stories/StoryBar";
 import { AgendaChip } from "@/components/feed/AgendaChip";
+import { ScrollRestore } from "@/components/feed/ScrollRestore";
 import { fetchNextEvent } from "@/lib/agenda/queries";
 
 export const dynamic = "force-dynamic";
@@ -57,6 +58,7 @@ export default async function FeedPage({
       )}
 
       {!filtered && <FeedCache posts={[...pinned, ...posts.filter((p) => !pinnedIds.has(p.id))]} />}
+      <ScrollRestore />
       <PullToRefresh>
         <div className="space-y-3">
           <FlashBanner flashes={flashes} />

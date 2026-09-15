@@ -284,3 +284,16 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
   point `--red` 8 px sur les non-lues, lecture marquée 1,5 s après l'ouverture.
 - Cloche : présente dans la barre haute de tous les écrans, pastille `--red` 18 px
   avec chiffre, badge d'icône d'application synchronisé.
+
+## Carrousel, articles, recherche (lot 4 v3)
+
+- Points de position sous la photo : 6 px, actif 16 px `--text-1`, inactifs `--text-4`,
+  à droite ; légende 13 px `--text-2` à gauche, tronquée puis dépliée au tap.
+- Double-tap : cœur blanc 88 px, montée 0,4 → 1,15 → 1 en 0,7 s, ombre douce ; le
+  compteur de réactions bouge en même temps.
+- Article : temps de lecture 13 px `--text-3` sous le titre ; barre de progression
+  2 px `--text-1` sous la barre haute ; sommaire flottant à droite au-delà de 1280 px,
+  entrée active avec filet gauche `--text-1` ; bouton « Reprendre où j'en étais »
+  en verre flottant au-dessus de la barre basse.
+- Recherche globale : feuille haute, champ 44 px sur `--bg-2`, groupes en capitales
+  13 px `--text-3`, lignes 44 px, historique avec icône horloge.

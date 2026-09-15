@@ -43,6 +43,29 @@ export async function votePoll(postId: string, optionId: string): Promise<{ ok: 
   return { ok: true, poll: data as unknown as Poll };
 }
 
+export async function recordPostRead(postId: string) {
+  const supabase = await createClient();
+  await supabase.rpc("record_post_read", { p_post_id: postId });
+}
+
+export type SearchAllResult = {
+  posts: { id: string; slug: string; title: string | null; type: string; published_at: string; excerpt: string | null }[];
+  centers: { id: string; slug: string; name: string; type: string; city: string | null }[];
+  services: { id: string; slug: string; name: string; short_description: string | null }[];
+  people: { id: string; first_name: string; last_name: string; job_title: string | null; avatar_key: string | null; center: { name: string; slug: string } | null; service: { name: string; slug: string } | null }[];
+};
+
+/** Recherche globale (loupe du fil) : publications, centres, services, personnes visibles. */
+export async function searchAll(q: string): Promise<SearchAllResult> {
+  const empty: SearchAllResult = { posts: [], centers: [], services: [], people: [] };
+  const s = (q ?? "").toString().trim().slice(0, 80);
+  if (s.length < 2) return empty;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("search_all", { p_q: s, p_limit: 8 });
+  if (error || !data) return empty;
+  return { ...empty, ...(data as unknown as Partial<SearchAllResult>) };
+}
+
 export async function recordVideoProgress(postId: string, pct: number) {
   const supabase = await createClient();
   await supabase.rpc("record_video_progress", { p_post_id: postId, p_pct: Math.round(pct) });

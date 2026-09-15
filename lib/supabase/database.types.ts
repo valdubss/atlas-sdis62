@@ -158,6 +158,7 @@ type MediaRow = {
   transcode_attempts: number;
   fingerprint: string | null;
   alt_source: "manual" | "assisted";
+  lqip: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 };
@@ -463,15 +464,15 @@ export type Database = {
         Relationships: [];
       };
       post_views: {
-        Row: { post_id: string; user_id: string; first_viewed_at: Timestamp };
+        Row: { post_id: string; user_id: string; first_viewed_at: Timestamp; read: boolean; interacted: boolean };
         Insert: { post_id: string; user_id: string; first_viewed_at?: Timestamp };
         Update: never;
         Relationships: [];
       };
       post_media: {
-        Row: { post_id: string; media_id: string; position: number; alt: string | null; crop: Json | null };
-        Insert: { post_id: string; media_id: string; position?: number; alt?: string | null; crop?: Json | null };
-        Update: { position?: number; alt?: string | null; crop?: Json | null };
+        Row: { post_id: string; media_id: string; position: number; alt: string | null; crop: Json | null; caption: string | null };
+        Insert: { caption?: string | null; post_id: string; media_id: string; position?: number; alt?: string | null; crop?: Json | null };
+        Update: { caption?: string | null; position?: number; alt?: string | null; crop?: Json | null };
         Relationships: [];
       };
       feedback: {
@@ -554,7 +555,7 @@ export type Database = {
       };
       media: {
         Row: MediaRow;
-        Insert: Optional<MediaRow, "id" | "status" | "variants" | "poster_key" | "width" | "height" | "duration_s" | "alt" | "error" | "created_at" | "updated_at" | "video_status" | "video_error" | "orientation" | "hls_key" | "renditions" | "hls_files" | "poster_source" | "poster_time_s" | "transcode_started_at" | "transcode_attempts" | "fingerprint" | "alt_source">;
+        Insert: Optional<MediaRow, "id" | "status" | "variants" | "poster_key" | "width" | "height" | "duration_s" | "alt" | "error" | "created_at" | "updated_at" | "video_status" | "video_error" | "orientation" | "hls_key" | "renditions" | "hls_files" | "poster_source" | "poster_time_s" | "transcode_started_at" | "transcode_attempts" | "fingerprint" | "alt_source" | "lqip">;
         Update: Partial<MediaRow>;
         Relationships: [];
       };
@@ -645,6 +646,9 @@ export type Database = {
       studio_video_stats: { Args: { p_days?: number }; Returns: Json };
       studio_calendar: { Args: { p_from: string; p_to: string }; Returns: Json };
       record_push_open: { Args: { p_tag: string }; Returns: undefined };
+      record_post_read: { Args: { p_post_id: string }; Returns: undefined };
+      search_all: { Args: { p_q: string; p_limit?: number }; Returns: Json };
+      studio_reading_stats: { Args: { p_days?: number }; Returns: Json };
       studio_notification_stats: { Args: { p_days?: number }; Returns: Json };
       schedule_hourly_dispatch: { Args: { p_url: string; p_secret: string }; Returns: string };
       purge_page_views: { Args: Record<string, never>; Returns: undefined };

@@ -23,6 +23,9 @@ import { PhotoCarousel } from "./PhotoCarousel";
 import { VideoPlayer } from "./VideoPlayer";
 import { PollCard } from "./PollCard";
 import { PostOverlay } from "./PostOverlay";
+import { ReadTracker } from "./ReadTracker";
+import { ArticleReader } from "./ArticleReader";
+import { readingTimeMinutes } from "@/lib/feed/reading";
 import { AnimatePresence } from "framer-motion";
 
 /**
@@ -121,6 +124,7 @@ export function PostCard({
 
   return (
     <article className="space-y-2" aria-label={shown.title ?? "Publication"}>
+      <ReadTracker postId={shown.id} enabled={variant === "feed" && !preview}>
       <div className="overflow-hidden rounded-[22px] bg-bg-1">
         {shown.type === "photo" && images.length > 0 && (
           <PhotoCarousel
@@ -213,16 +217,23 @@ export function PostCard({
                   {shown.title}
                 </h2>
               )}
+              {shown.type === "article" && variant === "full" && <p className="mb-3 text-[13px] text-text-3">{readingTimeMinutes(body)} min de lecture</p>}
 
               {shown.type === "article" ? (
                 variant === "full" ? (
                   <>
                     {shown.excerpt && (
-                      <p className="mb-3 text-[17px] text-text-2">
+                      <p className="mb-3 text-[17px] leading-[1.55] text-text-2">
                         {shown.excerpt}
                       </p>
                     )}
-                    <Markdown>{body}</Markdown>
+                    {preview ? (
+                      <Markdown>{body}</Markdown>
+                    ) : (
+                      <ArticleReader slug={shown.slug} postId={shown.id} body={body}>
+                        <Markdown>{body}</Markdown>
+                      </ArticleReader>
+                    )}
                   </>
                 ) : (
                   <>
@@ -350,6 +361,7 @@ export function PostCard({
           />
         </Sheet>
       )}
+      </ReadTracker>
     </article>
   );
 }

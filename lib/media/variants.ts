@@ -30,7 +30,11 @@ export async function makeImageVariants(original: Buffer) {
     }
   }
 
-  return { variants: out, width, height };
+  // Aperçu flou 20 px (data URI WebP) affiché sous l'image le temps du chargement
+  const tiny = await base.clone().resize({ width: 20, withoutEnlargement: true }).blur(1).webp({ quality: 40 }).toBuffer();
+  const lqip = `data:image/webp;base64,${tiny.toString("base64")}`;
+
+  return { variants: out, width, height, lqip };
 }
 
 /** Avatar carré 256 px. */

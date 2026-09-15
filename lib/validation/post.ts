@@ -23,6 +23,7 @@ const mediaRef = z.object({
   id: z.uuid(),
   kind: z.enum(["image", "video"]),
   alt: z.string().trim().max(300).default(""),
+  caption: z.string().trim().max(200).default(""),
 });
 
 export const postSchema = z

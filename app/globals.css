@@ -285,7 +285,7 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
 }
 
 /* Rendu Markdown des articles */
-.prose-atlas { color: var(--text-1); font-size: 17px; line-height: 1.45; }
+.prose-atlas { color: var(--text-1); font-size: 17px; line-height: 1.55; max-width: 680px; }
 .prose-atlas > * + * { margin-top: 0.9em; }
 .prose-atlas h1, .prose-atlas h2, .prose-atlas h3, .prose-atlas h4 { margin-top: 1.4em; }
 .prose-atlas h1 { font-size: 28px; } .prose-atlas h2 { font-size: 22px; } .prose-atlas h3 { font-size: 17px; }

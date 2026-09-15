@@ -152,7 +152,7 @@ export async function finalizeMedia(mediaId: string): Promise<{ ok: true; media:
     if (row.kind === "image") {
       await supabase.from("media").update({ status: "processing" }).eq("id", mediaId);
       const original = await storage.getObject(row.original_key);
-      const { variants, width, height } = await makeImageVariants(original);
+      const { variants, width, height, lqip } = await makeImageVariants(original);
       const keys = {
         thumb: mediaKeys.variant(mediaId, "thumb"),
         small: mediaKeys.variant(mediaId, "small"),
@@ -167,7 +167,7 @@ export async function finalizeMedia(mediaId: string): Promise<{ ok: true; media:
       ]);
       const { data, error: updateError } = await supabase
         .from("media")
-        .update({ status: "ready", variants: keys, width, height, error: null })
+        .update({ status: "ready", variants: keys, width, height, error: null, lqip })
         .eq("id", mediaId)
         .select("*")
         .single();
@@ -257,6 +257,7 @@ function toItem(row: Tables<"media">): MediaItem {
     orientation: row.orientation,
     hls_key: row.hls_key,
     video_status: row.video_status,
+    lqip: row.lqip,
   };
 }
 

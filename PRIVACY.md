@@ -19,7 +19,7 @@ fonctionnement du service). **Responsable** : SDIS 62, service communication.
 | Désignation comme référent communication (`center_referents`, historique) | droits de proposition, traçabilité du réseau | durée du compte (l'historique des désignations reste consultable dans le Studio) |
 | Propositions de centre (`posts`, `events` : auteur, contenu, décision et message du service communication) | validation avant publication, réponse à l'auteur | durée du compte ; une proposition en attente peut être retirée par son auteur |
 | Réactions, commentaires, favoris, votes | fonctionnement du fil | durée du compte ; commentaires anonymisés à la suppression |
-| Vues de publications (`post_views`, une ligne par agent et par publication, date au jour) et palier de lecture vidéo atteint (25 / 50 / 75 / 100 %, sans horodatage) | statistiques de portée pour le service communication | 13 mois |
+| Vues de publications (`post_views`, une ligne par agent et par publication, date au jour) palier de lecture vidéo atteint (25 / 50 / 75 / 100 %), lecture qualifiée (`read` : carte visible 2 s ou article parcouru à 80 %) et interaction (`interacted`), sans horodatage | statistiques de portée pour le service communication | 13 mois |
 | Consultations des pages de centre et de l'annuaire (`page_views`, une ligne par agent, par jour et par page, sans horodatage fin) | mesurer l'usage du réseau de référents (chiffres agrégés dans le Studio) | 13 mois, purge automatique |
 | Vues de stories (`story_views`) | statistiques visibles des seuls éditeurs | 13 mois |
 | Abonnements push (`push_subscriptions` : point de terminaison, clés, navigateur) | envoyer les notifications choisies par l'agent | jusqu'à désactivation, ou purge automatique si le navigateur refuse |
@@ -38,6 +38,7 @@ fonctionnement du service). **Responsable** : SDIS 62, service communication.
 ## Ce qui n'est pas collecté
 
 - **Aucun numéro personnel** : seul un téléphone professionnel facultatif peut être saisi.
+- **Position du fil et reprise d'un article** : gardées sur l'appareil seulement (session du navigateur, stockage local), jamais envoyées ; historique des recherches idem.
 - **Reprise de lecture vidéo** : la position est gardée sur l'appareil seulement (stockage local), jamais envoyée.
 - **Assistance au texte alternatif** : si le service communication branche une API vision, seule l'image (sans métadonnées) est envoyée pour proposer une description ; jamais de données d'agent.
 - **Transcription** : si le service communication branche un fournisseur de sous-titres automatiques, seule la piste audio de la vidéo publiée lui est envoyée, jamais de données d'agent.

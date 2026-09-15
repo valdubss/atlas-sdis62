@@ -18,6 +18,9 @@ export type MediaItem = {
   hls_key?: string | null;
   video_status?: "uploaded" | "processing" | "ready" | "failed" | null;
   subtitles_key?: string | null;
+  /** Aperçu flou 20 px (data URI) et légende de la photo dans la publication */
+  lqip?: string | null;
+  caption?: string | null;
   /** Aperçu studio : URL locale (blob:) avant/pendant l'upload. */
   preview_url?: string;
   poster_preview_url?: string;

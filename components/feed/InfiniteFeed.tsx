@@ -8,6 +8,7 @@ import { SPRING } from "@/lib/motion";
 import { PostCard } from "./PostCard";
 import { PostSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { imageSrc } from "@/lib/media/url";
 
 const PAGE = 10;
 
@@ -68,6 +69,9 @@ export function InfiniteFeed({
     return () => io.disconnect();
   }, [posts, done, pending, params]);
 
+  // Première photo du post suivant préchargée (une seule balise, hors flux)
+  const nextCover = posts.length > 1 ? (posts[1].cover ?? posts[1].media.find((m) => m.kind === "image")) : null;
+
   if (posts.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
   }
@@ -89,6 +93,10 @@ export function InfiniteFeed({
           </motion.div>
         );
       })}
+      {nextCover && (
+        // eslint-disable-next-line @next/next/no-img-element -- préchargement invisible
+        <img src={imageSrc(nextCover, "medium")} alt="" aria-hidden="true" className="hidden" />
+      )}
       <div ref={sentinel} aria-hidden="true" />
       {pending && <PostSkeleton />}
       {done && posts.length >= PAGE && <p className="py-6 text-center text-[13px] text-text-3">Vous êtes à jour.</p>}
