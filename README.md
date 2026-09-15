@@ -428,13 +428,17 @@ docs/ARCHITECTURE.md       plan d'architecture
   - **Carte** : centres et groupements seulement.
   - **Météo** : couche sur tout le département, détail selon le zoom. Un maillage Open-Meteo
     (pas de 0,15°, 77 points, un appel groupé, cache 15 min) colore la carte par température
-    (cellules de Voronoï) ; dézoomé, une synthèse par groupement (moyenne des points du polygone) ;
+    (cellules de Voronoï rognées sur les groupements : la surface s'arrête à la côte et aux limites
+    du département), affiche une flèche de vent par point (orientée vers où va le vent, taille
+    selon la vitesse) et fait pulser en bleu les cellules où il pleut ;
+    dézoomé, une synthèse par groupement (moyenne des points du polygone) ;
     aux zooms moyens, une étiquette par point de maillage (température, vent, flèche, pluie) ;
     zoomé, une étiquette par commune (chef-lieu de geo.api.gouv.fr rattaché au point le plus
     proche, communes les plus peuplées d'abord, MapLibre masque les chevauchements). Bandeau de
     vigilance Météo-France (API officielle si `METEOFRANCE_API_KEY`, sinon relais open data) et,
     sous la carte, la synthèse départementale (température, vent, pluie, indice feu, air, cours
-    d'eau Hub'Eau, littoral Open-Meteo Marine).
+    d'eau Hub'Eau, littoral Open-Meteo Marine). Le bouton d'attribution MapLibre est désactivé :
+    les crédits (OpenFreeMap, OpenMapTiles, OpenStreetMap, IGN) figurent sous la carte.
   - **Drone** (équipe de télépilotes) : zones de restriction UAS de l'IGN (WMS Géoplateforme, sans clé)
     superposées et, sous chaque centre, une étiquette de verdict « favorable / prudence / déconseillé »
     calculé sur le vent à 10 / 80 / 120 m, les rafales, la visibilité, la pluie et le jour / la nuit

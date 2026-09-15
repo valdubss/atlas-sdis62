@@ -11,7 +11,7 @@ import { telHref } from "@/lib/geo/maps";
 import { droneVerdict, windCardinal } from "@/lib/carte/drone";
 import { VIGILANCE_HEX, type CenterWeather, type LiveLayers } from "@/lib/carte/live";
 import { aqiLabel, DRONE_WMS, fireColor, groupingColor, modeMemory, type MapMode } from "@/lib/carte/layers";
-import { communeLabels, gridLabels, groupingLabels, METEO_LAYER_IDS, tempColor } from "@/lib/carte/meteo-layers";
+import { arrowImage, communeLabels, gridLabels, groupingLabels, METEO_LAYER_IDS, tempColor } from "@/lib/carte/meteo-layers";
 import { CenterSheetCompact } from "./CompactSheets";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
@@ -74,7 +74,7 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
       const lib = await import("maplibre-gl");
       if (cancelled || !container.current) return;
       libRef.current = lib;
-      map = new lib.Map({ container: container.current, style: MAP_STYLE, bounds: DEFAULT_BOUNDS, fitBoundsOptions: { padding: 24 }, attributionControl: { compact: true }, cooperativeGestures: false });
+      map = new lib.Map({ container: container.current, style: MAP_STYLE, bounds: DEFAULT_BOUNDS, fitBoundsOptions: { padding: 24 }, attributionControl: false, cooperativeGestures: false });
       map.addControl(new lib.NavigationControl({ showCompass: false }), "top-right");
       map.on("error", () => setFailed(true));
       // Le conteneur peut être mesuré avant sa mise en page : on recalcule la taille du canevas
@@ -122,10 +122,17 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
         map!.addSource("meteo-grouping", { type: "geojson", data: empty });
         map!.addSource("meteo-grid", { type: "geojson", data: empty });
         map!.addSource("meteo-communes", { type: "geojson", data: empty });
-        map!.addLayer({ id: "meteo-fill", type: "fill", source: "meteo-cells", layout: { visibility: "none" }, paint: { "fill-color": ["to-color", ["get", "color"]], "fill-opacity": 0.28 } }, before);
+        map!.addLayer({ id: "meteo-fill", type: "fill", source: "meteo-cells", layout: { visibility: "none" }, paint: { "fill-color": ["to-color", ["get", "color"]], "fill-opacity": 0.4 } }, before);
+        // Pluie en cours : cellules bleutées dont l'opacité pulse lentement (animation)
+        map!.addLayer({ id: "meteo-rain", type: "fill", source: "meteo-cells", filter: ["==", ["get", "rain"], true], layout: { visibility: "none" }, paint: { "fill-color": "#4fa3d6", "fill-opacity": 0.25 } }, before);
+        // Vent : flèche par point de maillage, orientée vers où va le vent, taille selon la vitesse
+        try {
+          if (!map!.hasImage("atlas-arrow")) map!.addImage("atlas-arrow", arrowImage(32), { pixelRatio: 2 });
+        } catch {}
+        map!.addLayer({ id: "meteo-wind", type: "symbol", source: "meteo-grid", filter: ["==", ["get", "inside"], true], layout: { visibility: "none", "icon-image": "atlas-arrow", "icon-rotate": ["get", "rot"], "icon-rotation-alignment": "map", "icon-size": ["interpolate", ["linear"], ["get", "wind10"], 0, 0.45, 25, 0.8, 60, 1.3], "icon-allow-overlap": true, "icon-ignore-placement": true }, paint: { "icon-opacity": 0.85 } });
         const labelPaint = { "text-color": "#f5f5f7", "text-halo-color": "rgba(10,10,12,0.85)", "text-halo-width": 1.4 } as const;
-        map!.addLayer({ id: "meteo-grouping-label", type: "symbol", source: "meteo-grouping", maxzoom: 8.6, layout: { visibility: "none", "text-field": ["get", "label"], "text-font": ["Noto Sans Bold"], "text-size": 14, "text-line-height": 1.25, "text-allow-overlap": false }, paint: labelPaint });
-        map!.addLayer({ id: "meteo-grid-label", type: "symbol", source: "meteo-grid", minzoom: 8.6, maxzoom: 10.6, layout: { visibility: "none", "text-field": ["get", "label"], "text-font": ["Noto Sans Bold"], "text-size": 12, "text-allow-overlap": false, "text-padding": 6 }, paint: labelPaint });
+        map!.addLayer({ id: "meteo-grouping-label", type: "symbol", source: "meteo-grouping", maxzoom: 8.6, layout: { visibility: "none", "text-field": ["get", "label"], "text-font": ["Noto Sans Bold"], "text-size": 14, "text-line-height": 1.25, "text-allow-overlap": true, "text-ignore-placement": true }, paint: labelPaint });
+        map!.addLayer({ id: "meteo-grid-label", type: "symbol", source: "meteo-grid", filter: ["==", ["get", "inside"], true], minzoom: 8.6, maxzoom: 10.6, layout: { visibility: "none", "text-field": ["get", "label"], "text-font": ["Noto Sans Bold"], "text-size": 12, "text-allow-overlap": false, "text-padding": 6 }, paint: labelPaint });
         map!.addLayer({ id: "meteo-commune-label", type: "symbol", source: "meteo-communes", minzoom: 10.6, layout: { visibility: "none", "text-field": ["get", "label"], "text-font": ["Noto Sans Bold"], "text-size": 12, "text-line-height": 1.25, "text-allow-overlap": false, "text-padding": 4, "symbol-sort-key": ["get", "sort"] }, paint: labelPaint });
         // Restrictions drones (IGN) : ajoutée masquée, affichée par le mode drone
         map!.addSource("drone-wms", { type: "raster", tiles: [DRONE_WMS], tileSize: 256, attribution: "Restrictions UAS © IGN" });
@@ -152,22 +159,58 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
     vis("groupements-label", mode !== "meteo");
   }, [mode, ready]);
 
+  // ---- Pluie : pulsation lente de l'opacité tant que le mode météo est actif ------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || mode !== "meteo") return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      if (map.getLayer("meteo-rain")) map.setPaintProperty("meteo-rain", "fill-opacity", 0.18 + 0.22 * (0.5 + 0.5 * Math.sin((now - start) / 900)));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [mode, ready]);
+
   // ---- Données météo → surface de Voronoï et étiquettes (groupements, maillage, communes) ----
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || !live || live.grid.length === 0) return;
     let cancelled = false;
     (async () => {
-      const [{ default: voronoi }, { default: pip }, { default: centroid }, { featureCollection, point }] = await Promise.all([import("@turf/voronoi"), import("@turf/boolean-point-in-polygon"), import("@turf/centroid"), import("@turf/helpers")]);
+      const [{ default: voronoi }, { default: pip }, { default: centroid }, { default: intersect }, { featureCollection, point }] = await Promise.all([import("@turf/voronoi"), import("@turf/boolean-point-in-polygon"), import("@turf/centroid"), import("@turf/intersect"), import("@turf/helpers")]);
       if (cancelled) return;
       const pts = featureCollection(live.grid.map((g) => point([g.lng, g.lat], { color: tempColor(g.temperature) })));
       const cells = voronoi(pts, { bbox: [1.4, 49.9, 3.35, 51.15] });
-      const cellFeatures = cells.features.map((f, i) => (f ? { ...f, properties: { color: tempColor(live.grid[i].temperature) } } : null)).filter((f): f is NonNullable<typeof f> => f !== null);
+      // Cellules rognées sur les groupements : la surface s'arrête à la côte et aux limites du département
+      const groupings = (geoRef.current?.features ?? []) as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon, { name: string }>[];
+      const cellFeatures: GeoJSON.Feature[] = [];
+      cells.features.forEach((f, i) => {
+        if (!f) return;
+        const props = { color: tempColor(live.grid[i].temperature), rain: live.grid[i].precipitation >= 0.2 };
+        if (groupings.length === 0) {
+          cellFeatures.push({ ...f, properties: props });
+          return;
+        }
+        for (const g of groupings) {
+          try {
+            const piece = intersect(featureCollection([f as GeoJSON.Feature<GeoJSON.Polygon>, g as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon>]));
+            if (piece) cellFeatures.push({ ...piece, properties: props });
+          } catch {
+            /* géométrie dégénérée : cellule ignorée */
+          }
+        }
+      });
       const set = (id: string, data: GeoJSON.FeatureCollection) => (map.getSource(id) as maplibregl.GeoJSONSource | undefined)?.setData(data);
       set("meteo-cells", { type: "FeatureCollection", features: cellFeatures } as GeoJSON.FeatureCollection);
-      set("meteo-grid", gridLabels(live.grid) as GeoJSON.FeatureCollection);
+      // Points de maillage marqués « dans le département » : étiquettes et flèches ne débordent pas en mer
+      const gridFc = gridLabels(live.grid);
+      gridFc.features.forEach((f) => {
+        (f.properties as Record<string, unknown>).inside = groupings.length === 0 || groupings.some((g) => pip(f.geometry.coordinates as [number, number], g));
+      });
+      set("meteo-grid", gridFc as GeoJSON.FeatureCollection);
       set("meteo-communes", communeLabels(live.communes, live.grid) as GeoJSON.FeatureCollection);
-      const groupings = (geoRef.current?.features ?? []) as GeoJSON.Feature<GeoJSON.Polygon | GeoJSON.MultiPolygon, { name: string }>[];
       set("meteo-grouping", groupingLabels(live.grid, groupings, (pt, poly) => pip(pt, poly), (poly) => centroid(poly).geometry.coordinates as [number, number]) as GeoJSON.FeatureCollection);
     })();
     return () => {

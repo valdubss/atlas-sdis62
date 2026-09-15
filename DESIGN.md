@@ -371,7 +371,10 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
   couche est active.
 - Menu « Couches » : bouton de verre sous « Autour de moi », feuille haute avec groupes en
   capitales 13 px et interrupteurs.
-- Couche météo : cellules de température à 28 % (bleu `#5b7bd6` −5 °C → vert `#5dbe7a`
+- Couche météo : cellules de température à 40 % (bleu `#5b7bd6` −5 °C → vert `#5dbe7a`
   12 °C → jaune `#e5c93c` 20 °C → orange `#f08a24` 27 °C → rouge `#e4213a` 34 °C), étiquettes
   Noto Sans Bold blanches avec halo sombre : 14 px par groupement (zoom < 8,6), 12 px par point
-  de maillage (8,6–10,6), 12 px sur deux lignes par commune (≥ 10,6).
+  de maillage (8,6–10,6), 12 px sur deux lignes par commune (≥ 10,6). Flèches de vent : triangle
+  blanc bordé sombre (icône canvas 32 px, pixelRatio 2), taille 0,45 → 1,3 selon la vitesse
+  (0 → 60 km/h). Pluie : calque bleu `#4fa3d6` dont l'opacité oscille entre 18 % et 40 %
+  (période ≈ 5,6 s, requestAnimationFrame, actif seulement en mode Météo).

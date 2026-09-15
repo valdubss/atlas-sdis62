@@ -8,7 +8,7 @@ import type { Feature, FeatureCollection, Point, Polygon } from "geojson";
 import { windCardinal } from "./drone";
 import type { GridPoint, CommunePoint } from "./live";
 
-export const METEO_LAYER_IDS = ["meteo-fill", "meteo-grouping-label", "meteo-grid-label", "meteo-commune-label"] as const;
+export const METEO_LAYER_IDS = ["meteo-fill", "meteo-rain", "meteo-wind", "meteo-grouping-label", "meteo-grid-label", "meteo-commune-label"] as const;
 
 /** Flèche « vers où va le vent » à partir de la direction d'origine (météo). */
 export function windArrow(fromDeg: number): string {
@@ -54,16 +54,42 @@ export function tempColor(t: number): string {
 
 type LabelProps = { label: string; sort: number; color: string };
 
-/** Points du maillage → étiquettes « 18° 21 km/h ↗ ». */
-export function gridLabels(grid: GridPoint[]): FeatureCollection<Point, LabelProps> {
+/** Points du maillage → étiquettes « 18° 21 km/h ↗ » + rotation de la flèche (vers où va le vent) et vitesse. */
+export function gridLabels(grid: GridPoint[]): FeatureCollection<Point, LabelProps & { rot: number; wind10: number; rain: boolean }> {
   return {
     type: "FeatureCollection",
     features: grid.map((g) => ({
       type: "Feature",
       geometry: { type: "Point", coordinates: [g.lng, g.lat] },
-      properties: { label: `${Math.round(g.temperature)}°  ${Math.round(g.wind10)} km/h ${windArrow(g.wind_dir)}${g.precipitation >= 0.2 ? "  pluie" : ""}`, sort: 0, color: tempColor(g.temperature) },
+      properties: {
+        label: `${Math.round(g.temperature)}°  ${Math.round(g.wind10)} km/h ${windArrow(g.wind_dir)}${g.precipitation >= 0.2 ? "  pluie" : ""}`,
+        sort: 0,
+        color: tempColor(g.temperature),
+        rot: (g.wind_dir + 180) % 360,
+        wind10: g.wind10,
+        rain: g.precipitation >= 0.2,
+      },
     })),
   };
+}
+
+/** Icône de flèche (triangle blanc pointant vers le haut) pour la couche de vent. */
+export function arrowImage(size = 32): ImageData {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d")!;
+  ctx.fillStyle = "rgba(255,255,255,0.92)";
+  ctx.strokeStyle = "rgba(10,10,12,0.8)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(size / 2, size * 0.08);
+  ctx.lineTo(size * 0.82, size * 0.86);
+  ctx.lineTo(size / 2, size * 0.66);
+  ctx.lineTo(size * 0.18, size * 0.86);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  return ctx.getImageData(0, 0, size, size);
 }
 
 /** Communes → étiquettes détaillées, priorité aux plus peuplées (symbol-sort-key croissant). */
