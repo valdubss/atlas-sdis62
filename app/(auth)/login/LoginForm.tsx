@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { sendMagicLink, signInWithPassword, startSso, type LoginState } from "./actions";
 import type { AuthSettings } from "@/lib/auth/providers";
 import { Button } from "@/components/ui/Button";
@@ -16,11 +17,12 @@ const input = "h-11 w-full rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1
  * passe, puis « première connexion ou mot de passe oublié » (lien e-mail).
  * Un seul bouton rouge : le SSO s'il existe, sinon le bouton du mode courant.
  */
-export function LoginForm({ next, domains, auth }: { next: string; domains: string[]; auth: AuthSettings }) {
+export function LoginForm({ next, auth }: { next: string; domains?: string[]; auth: AuthSettings }) {
   const [mode, setMode] = useState<Mode>(auth.passwordEnabled ? "password" : "link");
   const [pwdState, pwdAction, pwdPending] = useActionState(signInWithPassword, initial);
   const [linkState, linkAction, linkPending] = useActionState(sendMagicLink, initial);
   const [ssoState, ssoAction, ssoPending] = useActionState(startSso, initial);
+  const [showPassword, setShowPassword] = useState(false);
 
   if (linkState.status === "sent") {
     return (
@@ -34,7 +36,7 @@ export function LoginForm({ next, domains, auth }: { next: string; domains: stri
     );
   }
 
-  const placeholder = domains[0] ? `prenom.nom@${domains[0]}` : "Adresse e-mail";
+  const placeholder = "E-mail";
   const error = mode === "password" ? (pwdState.status === "error" ? pwdState.message : null) : linkState.status === "error" ? linkState.message : null;
   const secondaryVariant = auth.ssoEnabled ? "secondary" : "primary";
 
@@ -61,7 +63,26 @@ export function LoginForm({ next, domains, auth }: { next: string; domains: stri
         <form action={pwdAction} className="space-y-3" noValidate>
           <input type="hidden" name="next" value={next} />
           <input name="email" type="email" autoComplete="username" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail" required className={input} />
-          <input name="password" type="password" autoComplete="current-password" placeholder="Mot de passe" aria-label="Mot de passe" required className={cn(input, error && "ring-red")} />
+          <div className="relative">
+            <input
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              placeholder="Mot de passe"
+              aria-label="Mot de passe"
+              required
+              className={cn(input, "pr-12", error && "ring-red")}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+              aria-pressed={showPassword}
+              className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-[8px] text-text-3 hover:text-text-1"
+            >
+              {showPassword ? <EyeOff size={18} strokeWidth={1.75} aria-hidden="true" /> : <Eye size={18} strokeWidth={1.75} aria-hidden="true" />}
+            </button>
+          </div>
           {error && (
             <p className="text-[13px] text-red-text" role="alert">
               {error}
