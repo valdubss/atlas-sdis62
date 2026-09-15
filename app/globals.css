@@ -351,10 +351,57 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
   cursor: pointer;
 }
 .atlas-marker-home {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   background: var(--red);
-  border-color: #fff;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 6px rgba(228, 33, 58, 0.28), 0 1px 8px rgba(0, 0, 0, 0.55);
+}
+/* Étiquette sous un marqueur (météo, air, feu, drone) */
+.atlas-chip {
+  position: relative;
+  transform: translateY(14px);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  background: rgba(20, 20, 24, 0.86);
+  color: #f5f5f7;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+}
+.atlas-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  flex: none;
+}
+.atlas-marker-river,
+.atlas-marker-sea,
+.atlas-marker-traffic {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+.atlas-marker-river {
+  background: #3b82f6;
+}
+.atlas-marker-sea {
+  background: #14b8a6;
+  border-radius: 4px;
+}
+.atlas-marker-traffic {
+  background: #f08a24;
+  transform: rotate(45deg);
+  border-radius: 3px;
 }
 .atlas-marker-me {
   display: block;

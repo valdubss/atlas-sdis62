@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Map as MapIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Logo } from "@/components/brand/Logo";
 import { CreateMenu } from "./CreateMenu";
@@ -49,6 +50,9 @@ export function TopBar({ title, right, leading }: { title?: string; right?: Reac
         )}
         <div className="flex items-center gap-1">
           {right}
+          <Link href="/annuaire/carte" aria-label="Carte" className="pressable flex h-10 w-10 items-center justify-center rounded-full text-text-2 hover:text-text-1">
+            <MapIcon size={22} strokeWidth={1.75} aria-hidden="true" />
+          </Link>
           <BellButton />
           <CreateMenu />
         </div>

@@ -358,3 +358,16 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
   libellé 15 px, détail 13 px `--text-3`, verdict 13 px `--text-2` à droite.
 - Journal : filtres en grille sur `--bg-1`, tableau 13 px, export en pilule `--bg-2`.
 - Bulle en attente : mention « En attente du réseau » 11 px `--text-3`, bulle à 60 %.
+
+## Carte dynamique
+
+- Groupements : remplissage à 12 % et contour 1,5 px dans trois teintes (`#6b8cd6`, `#5dbe7a`,
+  `#e0a72e`), étiquettes 12 px avec halo ; légende en pilules de verre en bas à gauche.
+- Mon centre : point rouge 20 px, bord blanc 3 px, halo rouge à 28 %.
+- Étiquettes sous les centres : pilule sombre 86 %, 11 px semi-gras, point de couleur 8 px
+  (air, feu, verdict de vol). Stations : rond bleu 16 px ; mer : carré arrondi turquoise ;
+  trafic : losange orange.
+- Bandeau de vigilance : point de couleur 12 px + texte 13 px sur `--bg-1`, seulement quand la
+  couche est active.
+- Menu « Couches » : bouton de verre sous « Autour de moi », feuille haute avec groupes en
+  capitales 13 px et interrupteurs.

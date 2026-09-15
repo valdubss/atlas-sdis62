@@ -46,8 +46,29 @@ export function BottomNav() {
 
   const items: { href: string; label: string; icon: keyof typeof ICONS }[] = NAV_ITEMS.map((it) => (canMessage && it.href === "/annuaire" ? { href: "/messages", label: "Messages", icon: "messages" } : it));
 
+  // Clavier ouvert (champ de saisie actif ou fenêtre visuelle réduite) : la barre se cache
+  // au lieu de remonter au-dessus du clavier.
+  const [keyboard, setKeyboard] = useState(false);
+  useEffect(() => {
+    const vv = window.visualViewport;
+    const check = () => {
+      const el = document.activeElement as HTMLElement | null;
+      const typing = Boolean(el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable) && !["checkbox", "radio", "file", "range", "date", "datetime-local"].includes((el as HTMLInputElement).type));
+      const shrunk = vv ? window.innerHeight - vv.height > 140 : false;
+      setKeyboard(typing && (shrunk || "ontouchstart" in window));
+    };
+    check();
+    document.addEventListener("focusin", check);
+    document.addEventListener("focusout", () => setTimeout(check, 50));
+    vv?.addEventListener("resize", check);
+    return () => {
+      document.removeEventListener("focusin", check);
+      vv?.removeEventListener("resize", check);
+    };
+  }, []);
+
   // Écran de conversation : plein écran avec son composeur, sans barre basse
-  if (/^\/messages\/[^/]+$/.test(pathname)) return null;
+  if (/^\/messages\/[^/]+$/.test(pathname) || keyboard) return null;
 
   return (
     <nav aria-label="Navigation principale" className="glass-float fixed inset-x-4 bottom-[max(env(safe-area-inset-bottom),12px)] z-30 mx-auto max-w-[560px] rounded-[28px]">

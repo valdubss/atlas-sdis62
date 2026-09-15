@@ -417,6 +417,26 @@ scripts/extract-colors.mjs extraction des couleurs du logo
 docs/ARCHITECTURE.md       plan d'architecture
 ```
 
+## 7h. Carte dynamique : couches live, groupements, vue télépilote
+
+- **Accès rapide** : icône carte dans la barre haute de tous les écrans (à côté de la cloche).
+- **Groupements territoriaux** : polygones Est / Centre / Ouest tracés par rattachement de chaque
+  commune au CIS le plus proche (`npm run geo:groupements` → `public/geo/groupements.json`,
+  versionné, 62 Ko). Approximation à remplacer par les secteurs officiels du SDIS dès qu'ils
+  sont fournis (même fichier, même format). Le centre de rattachement de l'agent est en rouge.
+- **Couches activables** (menu « Couches », mémoire sur l'appareil) :
+  - Vigilance Météo-France du département (bandeau) : API officielle si `METEOFRANCE_API_KEY`
+    est renseignée, sinon relais open data (Opendatasoft, même source, quelques minutes de retard).
+  - Météo par centre, qualité de l'air et indice feu de végétation (Angström, estimation) :
+    Open-Meteo, un appel groupé pour les 52 points, sans clé.
+  - Cours d'eau : stations Hub'Eau du département, hauteur et tendance sur 6 h.
+  - Mer et marées : houle, mer du vent, niveau et prochaines pleine / basse mer sur quatre points du littoral (Open-Meteo Marine).
+  - Trafic : événements DATEX II d'un abonnement Bison Futé (gratuit, à demander) via `TRAFIC_FEED_URL` ; sans variable, la couche l'indique.
+  - **Vue drone** (équipe de télépilotes) : zones de restriction UAS de l'IGN (WMS Géoplateforme, sans clé) superposées, et pour chaque centre le vent à 10 / 80 / 120 m, les rafales, la visibilité, la pluie, le jour / la nuit → verdict « favorable / prudence / déconseillé » avec les raisons (seuils dans `lib/carte/drone.ts`). Les interdictions temporaires (NOTAM) ne sont pas couvertes.
+- **Technique** : une route `/api/carte/live` agrège les flux (chaque appel amont mis en cache
+  10 min par Next, réponse privée 5 min), tolérante panne par panne ; rafraîchissement toutes les
+  10 min tant qu'une couche live est active. Aucune position d'engin, aucune donnée personnelle.
+
 ## 7g. Fiabilité et confiance (lot 8 v3)
 
 - **Hors ligne étendu** : les 20 dernières publications (texte + vignettes) restent
