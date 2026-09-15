@@ -110,6 +110,7 @@ redirige vers `/login`.
 | `0025_messaging.sql` | messagerie de travail (lot 6 v3) : `channels` (général, un par groupement, un par centre, groupes), `channel_members`, `channel_messages`, `message_reactions`, `channel_reads` ; appartenance calculée `is_channel_member`, RPC `list_conversations` / `channel_messages_page` / `mark_channel_read` / `channel_info` / `message_seen_by` / `search_channel` / `forward_message` / `export_channel` / `set_channel_prefs` / `messaging_directory` ; messages système, notifications (`push_message`, mentions), entretien `messaging_maintenance` (rappel 48 h, archivage, purge 24 mois) ; Realtime |
 | `0026_centres_v2.sql` | Mon centre / annuaire / profil (lot 7 v3) : `center_changes` (propositions de fiche multi-champs, `propose_center_changes`, `decide_center_change`), `profile_history` (centre, service, rôle, statut, trigger), `my_profile_history`, `my_activity` |
 | `0027_reliability.sql` | fiabilité (lot 8 v3) : `incidents` (page /etat), journal d'audit indexé + `studio_audit` / `studio_audit_facets`, `set_reaction` idempotente et `channel_messages.client_id` (envois différés), `health_snapshot` |
+| `0028_messaging_reset.sql` | messagerie vide au départ : suppression des canaux automatiques (général, groupements, centres) et de toutes les conversations |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -469,9 +470,10 @@ docs/ARCHITECTURE.md       plan d'architecture
   un agent n'y accède que s'il est invité dans un groupe. Aucune conversation 1‑à‑1.
   Pour ces ayants droit, « Messages » remplace « Annuaire » dans la barre basse
   (l'annuaire reste accessible depuis la loupe du fil et le profil).
-- **Canaux fixes** : « Général » (com + référents), un canal par groupement (référents
-  du groupement) et un par centre actif (référents du centre), créés par migration et
-  par trigger sur le référentiel. **Groupes** : créés par les éditeurs seulement, en deux
+- **Aucun canal d'office** (décision du 15/09/2026, migration `0028`) : la messagerie
+  est vide au départ ; le modèle garde la notion de canal général / de groupement / de
+  centre (appartenance calculée par rôle) mais rien n'est créé automatiquement.
+  **Groupes** : créés par les éditeurs seulement avec le « + », en deux
   écrans (membres, puis nom ≤ 40, objet ≤ 120 obligatoire, photo carrée, date de fin,
   médias autorisés aux membres). Rappel 48 h avant la fin, puis lecture seule et
   archivage automatiques (`runMaintenance`).

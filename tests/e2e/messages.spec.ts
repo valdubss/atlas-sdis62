@@ -77,7 +77,8 @@ test("messagerie : groupe, message, réaction, accusé et cloisonnement", async 
     // Référent : accès au général, mais création de groupe refusée
     const asReferent = anon();
     await asReferent.auth.signInWithPassword({ email: referent.email, password: referent.password });
-    if (center) expect(((await asReferent.from("channels").select("type")).data ?? []).some((c) => c.type === "general")).toBe(true);
+    // Aucun canal d'office : le référent ne voit rien tant qu'il n'est pas invité dans un groupe
+    expect((await asReferent.from("channels").select("id")).data).toEqual([]);
     const { error: createErr } = await asReferent.from("channels").insert({ type: "group", name: "Interdit", subject: "x", created_by: referent.id });
     expect(createErr).not.toBeNull();
     // Membre invité : ne peut pas ajouter quelqu'un ni retirer un membre
