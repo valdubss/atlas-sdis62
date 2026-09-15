@@ -553,6 +553,36 @@ export type Database = {
         Update: never;
         Relationships: [];
       };
+      channels: {
+        Row: { id: string; type: "general" | "grouping" | "center" | "group"; name: string; subject: string | null; photo_key: string | null; grouping_id: string | null; center_id: string | null; created_by: string | null; ends_at: Timestamp | null; read_only: boolean; archived_at: Timestamp | null; reminded_at: Timestamp | null; members_can_post_media: boolean; last_message_at: Timestamp | null; created_at: Timestamp };
+        Insert: { id?: string; type: "general" | "grouping" | "center" | "group"; name: string; subject?: string | null; photo_key?: string | null; grouping_id?: string | null; center_id?: string | null; created_by?: string | null; ends_at?: Timestamp | null; read_only?: boolean; archived_at?: Timestamp | null; reminded_at?: Timestamp | null; members_can_post_media?: boolean; last_message_at?: Timestamp | null; created_at?: Timestamp };
+        Update: { name?: string; subject?: string | null; photo_key?: string | null; ends_at?: Timestamp | null; read_only?: boolean; archived_at?: Timestamp | null; reminded_at?: Timestamp | null; members_can_post_media?: boolean };
+        Relationships: [];
+      };
+      channel_members: {
+        Row: { channel_id: string; profile_id: string; added_by: string | null; added_at: Timestamp; role: "admin" | "member"; notifications: string; pinned: boolean; muted_until: Timestamp | null; hidden_until: Timestamp | null; left_at: Timestamp | null };
+        Insert: { channel_id: string; profile_id: string; added_by?: string | null; added_at?: Timestamp; role?: "admin" | "member"; notifications?: string; pinned?: boolean; muted_until?: Timestamp | null; hidden_until?: Timestamp | null; left_at?: Timestamp | null };
+        Update: { added_by?: string | null; added_at?: Timestamp; role?: "admin" | "member"; notifications?: string; pinned?: boolean; muted_until?: Timestamp | null; hidden_until?: Timestamp | null; left_at?: Timestamp | null };
+        Relationships: [];
+      };
+      channel_messages: {
+        Row: { id: string; channel_id: string; author_id: string | null; type: "text" | "media" | "system" | "voice"; body: string | null; media: Json | null; reply_to_id: string | null; mentions: string[]; mention_all: boolean; voice: Json | null; pinned_at: Timestamp | null; deleted_at: Timestamp | null; created_at: Timestamp };
+        Insert: { id?: string; channel_id: string; author_id?: string | null; type?: "text" | "media" | "system" | "voice"; body?: string | null; media?: Json | null; reply_to_id?: string | null; mentions?: string[]; mention_all?: boolean; voice?: Json | null; pinned_at?: Timestamp | null; deleted_at?: Timestamp | null; created_at?: Timestamp };
+        Update: { body?: string | null; media?: Json | null; pinned_at?: Timestamp | null; deleted_at?: Timestamp | null };
+        Relationships: [];
+      };
+      message_reactions: {
+        Row: { message_id: string; profile_id: string; emoji: string; created_at: Timestamp };
+        Insert: { message_id: string; profile_id: string; emoji: string; created_at?: Timestamp };
+        Update: { emoji?: string };
+        Relationships: [];
+      };
+      channel_reads: {
+        Row: { channel_id: string; profile_id: string; last_read_at: Timestamp; last_read_message_id: string | null };
+        Insert: { channel_id: string; profile_id: string; last_read_at?: Timestamp; last_read_message_id?: string | null };
+        Update: { last_read_at?: Timestamp; last_read_message_id?: string | null };
+        Relationships: [];
+      };
       story_reactions: {
         Row: { story_id: string; user_id: string; kind: ReactionKindDb; created_at: Timestamp };
         Insert: { story_id: string; user_id: string; kind: ReactionKindDb; created_at?: Timestamp };
@@ -691,6 +721,23 @@ export type Database = {
       get_story_items: { Args: { p_series_id?: string | null; p_highlight_id?: string | null }; Returns: Json[] };
       get_highlight_items: { Args: { p_highlight_id: string }; Returns: Json[] };
       record_story_view: { Args: { p_story_id: string }; Returns: undefined };
+      is_channel_member: { Args: { p_channel: string }; Returns: boolean };
+      can_use_messaging: { Args: Record<string, never>; Returns: boolean };
+      channel_recipients: { Args: { p_channel: string }; Returns: string[] };
+      can_post_in: { Args: { p_channel: string }; Returns: boolean };
+      channel_messages_page: { Args: { p_channel: string; p_before?: string | null; p_limit?: number }; Returns: Json[] };
+      mark_channel_read: { Args: { p_channel: string; p_message_id?: string | null }; Returns: undefined };
+      list_conversations: { Args: Record<string, never>; Returns: Json };
+      messaging_unread_total: { Args: Record<string, never>; Returns: number };
+      channel_info: { Args: { p_channel: string }; Returns: Json };
+      message_seen_by: { Args: { p_message_id: string }; Returns: Json };
+      search_channel: { Args: { p_channel: string; p_q: string; p_limit?: number }; Returns: Json[] };
+      forward_message: { Args: { p_message: string; p_to_channel: string }; Returns: string };
+      export_channel: { Args: { p_channel: string }; Returns: string | null };
+      set_channel_prefs: { Args: { p_channel: string; p_notifications?: string | null; p_pinned?: boolean | null; p_muted_until?: string | null; p_clear_mute?: boolean; p_hidden?: boolean | null }; Returns: undefined };
+      messaging_directory: { Args: { p_q?: string | null }; Returns: Json };
+      messaging_maintenance: { Args: Record<string, never>; Returns: Json };
+      channel_push_targets: { Args: { p_channel: string }; Returns: { user_id: string; notifications: string; muted_until: string | null; push_messages: string; hide_preview: boolean; is_admin: boolean }[] };
       record_story_progress: { Args: { p_story_id: string; p_pct: number; p_advanced?: boolean }; Returns: undefined };
       set_story_reaction: { Args: { p_story_id: string; p_kind?: string | null }; Returns: Json };
       vote_story_poll: { Args: { p_poll_id: string; p_option: number }; Returns: Json };

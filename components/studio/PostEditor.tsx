@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { deletePost, savePost, type PostFormState } from "@/app/(studio)/studio/posts/actions";
-import type { FeedPost } from "@/lib/feed/types";
+import type { FeedPost, MediaItem } from "@/lib/feed/types";
 import { toDatetimeLocal } from "@/lib/format";
 import { LIMITS, FEATURES } from "@/lib/config";
 import type { EditorPostType } from "@/lib/validation/post";
@@ -46,8 +46,11 @@ export function PostEditor({
   defaultType,
   isAdmin = false,
   reviewStatus: initialReviewStatus = "none",
+  initialMedia,
 }: {
   post: FeedPost | null;
+  /** Médias déjà prêts à joindre à une nouvelle publication (bibliothèque) */
+  initialMedia?: MediaItem[];
   /** Type présélectionné pour une nouvelle publication (menu « + ») */
   defaultType?: EditorPostType;
   /** Un administrateur peut publier malgré une relecture en cours */
@@ -83,7 +86,7 @@ export function PostEditor({
   const [pollCloses, setPollCloses] = useState(toDatetimeLocal(post?.poll?.closes_at));
   const pollVotes = post?.poll?.total_votes ?? 0;
   const [media, setMedia] = useState<EditorMedia[]>(() => {
-    const list = post ? (post.type === "article" && post.cover ? [post.cover] : post.media) : [];
+    const list = post ? (post.type === "article" && post.cover ? [post.cover] : post.media) : (initialMedia ?? []);
     return list.map((m) => ({ ...m, status: "ready" as const, progress: 1 }));
   });
 

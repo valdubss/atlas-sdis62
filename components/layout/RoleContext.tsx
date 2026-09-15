@@ -2,10 +2,12 @@
 
 import { createContext, useContext } from "react";
 
-const RoleContext = createContext<{ canEdit: boolean }>({ canEdit: false });
+type Role = { canEdit: boolean; canMessage: boolean; messagesUnread: number };
 
-export function RoleProvider({ canEdit, children }: { canEdit: boolean; children: React.ReactNode }) {
-  return <RoleContext.Provider value={{ canEdit }}>{children}</RoleContext.Provider>;
+const RoleContext = createContext<Role>({ canEdit: false, canMessage: false, messagesUnread: 0 });
+
+export function RoleProvider({ canEdit, canMessage = false, messagesUnread = 0, children }: { canEdit: boolean; canMessage?: boolean; messagesUnread?: number; children: React.ReactNode }) {
+  return <RoleContext.Provider value={{ canEdit, canMessage, messagesUnread }}>{children}</RoleContext.Provider>;
 }
 
 export function useRole() {

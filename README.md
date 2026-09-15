@@ -107,6 +107,7 @@ redirige vers `/login`.
 | `0022_notifications_v2.sql` | notifications (lot 3 v3) : préférences détaillées (`push_agenda`, `push_messages`, plage de silence, aperçu masqué), une seule push par contenu (`dedupe_key`), pushs différées et regroupées (`notification_deferred`), ouvertures (`push_opens`), `studio_notification_stats`, `schedule_hourly_dispatch` (pg_cron + pg_net) |
 | `0023_reading.sql` | fil et articles (lot 4 v3) : légende par photo (`post_media.caption`), aperçu flou (`media.lqip`), lecture qualifiée (`post_views.read` / `interacted`, `record_post_read`, triggers d'interaction, `studio_reading_stats`), recherche globale `search_all` |
 | `0024_stories_v2.sql` | stories (lot 5 v3) : réactions (`story_reactions`, `set_story_reaction`), sondage (`story_polls` / `story_poll_votes`, `vote_story_poll`, `story_poll_counts`), question ouverte (`story_questions` / `story_question_answers`, lecture éditeurs), à-la-une (titre ≤ 16, `reorder_highlights`), vues qualifiées (`story_views.advanced`, `record_story_progress`), `studio_story_stats` |
+| `0025_messaging.sql` | messagerie de travail (lot 6 v3) : `channels` (général, un par groupement, un par centre, groupes), `channel_members`, `channel_messages`, `message_reactions`, `channel_reads` ; appartenance calculée `is_channel_member`, RPC `list_conversations` / `channel_messages_page` / `mark_channel_read` / `channel_info` / `message_seen_by` / `search_channel` / `forward_message` / `export_channel` / `set_channel_prefs` / `messaging_directory` ; messages système, notifications (`push_message`, mentions), entretien `messaging_maintenance` (rappel 48 h, archivage, purge 24 mois) ; Realtime |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -412,6 +413,35 @@ supabase/
 scripts/extract-colors.mjs extraction des couleurs du logo
 docs/ARCHITECTURE.md       plan d'architecture
 ```
+
+## 7e. Messagerie de travail (Messages)
+
+- **Qui** : le service communication (éditeurs, administrateurs) et les référents ;
+  un agent n'y accède que s'il est invité dans un groupe. Aucune conversation 1‑à‑1.
+  Pour ces ayants droit, « Messages » remplace « Annuaire » dans la barre basse
+  (l'annuaire reste accessible depuis la loupe du fil et le profil).
+- **Canaux fixes** : « Général » (com + référents), un canal par groupement (référents
+  du groupement) et un par centre actif (référents du centre), créés par migration et
+  par trigger sur le référentiel. **Groupes** : créés par les éditeurs seulement, en deux
+  écrans (membres, puis nom ≤ 40, objet ≤ 120 obligatoire, photo carrée, date de fin,
+  médias autorisés aux membres). Rappel 48 h avant la fin, puis lecture seule et
+  archivage automatiques (`runMaintenance`).
+- **Conversation** : bulles 18 px (coins réduits entre messages consécutifs), nom
+  coloré, séparateurs de date, pagination vers le haut avec position conservée,
+  réponse citée, transfert, épinglés (3), recherche, « Vu par N », temps réel Supabase.
+  Pièces jointes : jusqu'à 10 photos, une vidéo ≤ 60 s ou un fichier PDF / Word ≤ 25 Mo,
+  messages vocaux (maintenir le micro, glisser vers le haut pour verrouiller ; forme
+  d'onde, vitesse 1× / 1,5× / 2×), six réactions, mentions `@Prénom` et `@tous`.
+  Suppression par l'auteur dans les 15 minutes, par un éditeur à tout moment.
+  « Utiliser dans un post » copie une photo dans la bibliothèque du studio.
+- **Notifications** : une push par conversation et par tranche de 10 minutes
+  (`dedupe_key`), selon la préférence globale (Profil → Notifications → Messagerie) et
+  par conversation (tout / mentions / aucune, silence 8 h), plage de silence respectée,
+  « Masquer l'aperçu » remplace le texte par « Nouveau message ». Mention → notification
+  dans l'app. Pastille de non-lus sur l'onglet Messages.
+- **Conservation** : 24 mois puis purge (messages et fichiers). Export texte d'une
+  conversation réservé aux éditeurs. Pas de chiffrement de bout en bout (bandeau charte
+  dans la fiche du groupe).
 
 ## 7d. Stories : réactions, sondage, question, à la une
 

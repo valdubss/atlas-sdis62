@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, CalendarDays, MessageCircle, Newspaper, Reply } from "lucide-react";
+import { AlertTriangle, CalendarDays, MessageCircle, Newspaper, Reply, MessageSquare, Flame, BookUser, type LucideIcon } from "lucide-react";
 import type { NotificationItem } from "@/lib/notifications/queries";
 import { markAllRead } from "@/app/(app)/notifications/actions";
 import { formatRelative } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 
-const ICONS = { post: Newspaper, flash: AlertTriangle, reply: Reply, event: CalendarDays, story_reply: MessageCircle } as const;
+const ICONS: Record<string, LucideIcon> = { post: Newspaper, flash: AlertTriangle, reply: Reply, event: CalendarDays, story_reply: MessageCircle, message: MessageSquare, center: Flame, directory: BookUser };
 
 /** Liste des notifications ; tout est marqué lu à l'ouverture. */
 export function NotificationsList({ items, unread }: { items: NotificationItem[]; unread: number }) {

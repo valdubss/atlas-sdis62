@@ -19,7 +19,7 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
     .from("notification_queue")
     .select("id")
     .eq("status", "pending")
-    .in("kind", ["push_pinned", "push_category", "push_flash", "push_center", "email_feedback"])
+    .in("kind", ["push_pinned", "push_category", "push_flash", "push_center", "push_message", "email_feedback"])
     .order("created_at")
     .limit(limit);
   if (!candidates || candidates.length === 0) return { processed: 0, sent: 0, removed: 0 };
@@ -67,6 +67,26 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
     }
     const optOut = new Set(prefColumn ? (settings ?? []).filter((s) => s[prefColumn] === false).map((s) => s.user_id) : []);
     let targets = (subs ?? []).filter((s) => !optOut.has(s.user_id));
+    // Messagerie : membres du canal selon leurs préférences (par conversation et globales),
+    // silence, mentions ; l'aperçu est masqué pour ceux qui l'ont demandé.
+    let hidePreview = new Set<string>();
+    if (item.kind === "push_message") {
+      const p = item.payload as unknown as { channel_id: string; author_id?: string | null; mentions?: string[]; mention_all?: boolean; admins_only?: boolean };
+      const { data: members } = await admin.rpc("channel_push_targets", { p_channel: p.channel_id });
+      const now = Date.now();
+      const allowed = new Map<string, boolean>();
+      for (const m of members ?? []) {
+        if (m.user_id === p.author_id) continue;
+        if (p.admins_only && !m.is_admin) continue;
+        if (m.muted_until && new Date(m.muted_until).getTime() > now) continue;
+        const mentioned = Boolean(p.mention_all) || (p.mentions ?? []).includes(m.user_id);
+        const pref = m.push_messages === "none" || m.notifications === "none" ? "none" : m.push_messages === "mentions" || m.notifications === "mentions" ? "mentions" : "all";
+        if (pref === "none" || (pref === "mentions" && !mentioned)) continue;
+        allowed.set(m.user_id, m.hide_preview);
+      }
+      hidePreview = new Set([...allowed.entries()].filter(([, h]) => h).map(([id]) => id));
+      targets = (subs ?? []).filter((s) => allowed.has(s.user_id));
+    }
     if (item.kind === "push_center") {
       // Contenu de centre : agents rattachés au centre (préférence push_center), ou un seul destinataire (refus / validation)
       const p = item.payload as unknown as { center_id?: string; user_id?: string };
@@ -79,7 +99,8 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
       } else targets = [];
     }
 
-    const payload: PushPayload = { title: item.payload.title, body: item.payload.body, url: item.payload.url, tag: item.payload.post_id ?? (item.payload as { flash_id?: string }).flash_id, urgent: item.kind === "push_flash" };
+    const payload: PushPayload = { title: item.payload.title, body: item.payload.body, url: item.payload.url, tag: item.payload.post_id ?? (item.payload as { flash_id?: string; channel_id?: string }).flash_id ?? (item.payload as { channel_id?: string }).channel_id, urgent: item.kind === "push_flash" };
+    const discreet: PushPayload = { ...payload, body: "Nouveau message" };
 
     // Plage de silence (par agent, heure de Paris) : les pushs non urgentes sont
     // mises en attente et regroupées à la fin de la plage. Les flashs passent toujours.
@@ -112,7 +133,7 @@ export async function dispatchNotifications(limit = 20): Promise<{ processed: nu
     for (let i = 0; i < targets.length; i += 50) {
       await Promise.all(
         targets.slice(i, i + 50).map(async (s) => {
-          const r = await sendPush(s, payload);
+          const r = await sendPush(s, hidePreview.has(s.user_id) ? discreet : payload);
           if (r.status === "sent") ok++;
           else if (r.status === "gone") gone.push(s.id);
           else {
@@ -232,8 +253,12 @@ export async function runMaintenance(): Promise<{ requeued: number; orphanMedia:
   }
   // Rappels d'événements de demain (notification dans l'app, pas de push)
   await admin.rpc("notify_events_tomorrow").then(({ error }) => error && console.error("rappels agenda", error.message));
+  // Messagerie : rappel 48 h avant la fin d'un groupe, archivage à l'échéance, purge > 24 mois
+  const { data: messaging, error: messagingError } = await admin.rpc("messaging_maintenance");
+  if (messagingError) console.error("entretien messagerie", messagingError.message);
+  const messagingKeys = ((messaging as { keys?: string[] } | null)?.keys ?? []).filter(Boolean);
   const { data: orphans } = await admin.rpc("purge_orphan_media");
-  const keys = ((orphans ?? []) as { id: string; keys: string[] }[]).flatMap((o) => o.keys ?? []);
+  const keys = [...((orphans ?? []) as { id: string; keys: string[] }[]).flatMap((o) => o.keys ?? []), ...messagingKeys];
   if (keys.length > 0) {
     const { getStorage } = await import("@/lib/storage");
     for (let i = 0; i < keys.length; i += 100) {

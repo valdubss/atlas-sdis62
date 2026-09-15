@@ -88,6 +88,10 @@ export default async function ProfilPage() {
             <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
           </Link>
         )}
+        <Link href="/annuaire" className="pressable flex h-12 items-center justify-between px-5 text-[15px] text-text-1">
+          Annuaire
+          <ChevronRight size={18} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
+        </Link>
         <Link href="/agenda" className="pressable flex h-12 items-center justify-between px-5 text-[15px] text-text-1">
           <span className="flex items-center gap-3">
             <CalendarDays size={20} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />

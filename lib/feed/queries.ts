@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import type { FeedCursor, FeedParams, FeedPost, StoryBar, StoryItem } from "./types";
+import type { FeedCursor, FeedParams, FeedPost, MediaItem, StoryBar, StoryItem } from "./types";
 
 export const FEED_PAGE_SIZE = 10;
 
@@ -97,3 +97,9 @@ export async function fetchStoryById(id: string): Promise<StoryItem | null> {
   return data as unknown as StoryItem;
 }
 
+/** Un média prêt de la bibliothèque (éditeurs), sérialisé comme dans le fil. */
+export async function fetchMediaItem(id: string): Promise<MediaItem | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("media").select("id, kind, variants, poster_key, width, height, alt, mime, original_key, duration_s, lqip").eq("id", id).eq("status", "ready").maybeSingle();
+  return data ? ({ ...data, variants: (data.variants ?? {}) as MediaItem["variants"], duration_s: data.duration_s === null ? null : Number(data.duration_s) } as MediaItem) : null;
+}

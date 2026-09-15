@@ -311,3 +311,27 @@ Dépendances ajoutées : `lucide-react`, `framer-motion`, `@playwright/test` (ca
   glisser), retour automatique dans la zone visible au relâcher.
 - À la une : poignée `GripVertical` `--text-4`, vignette ronde 48 px, flèches monter /
   descendre 32 px, compteur 0/16 sous le champ de titre.
+
+## Messagerie (lot 6 v3)
+
+- Liste : avatar 52 px ou mosaïque (2 côte à côte, 1 + 2, grille 2×2), nom 15 px
+  (semi-gras si non lu), aperçu 13 px `--text-2`, heure 12 px (`--red-text` si non lu),
+  pastille `--red` 20 px, épingle et cloche barrée 14 px `--text-3` ; segments
+  Tous · Non lus · Groupes · Centres en pilules 36 px ; glisser à droite = épingler,
+  à gauche = silence puis masquer.
+- Conversation : plein écran sans barre basse ; bulles rayon 18 px, coin 6 px côté
+  auteur entre bulles consécutives (< 5 min), les miennes sur `--bg-2` à droite, les
+  autres sur `--bg-1` à gauche avec nom 12 px dans l'une des six teintes gris-bleu ;
+  heure 11 px `--text-3` sur la dernière bulle du groupe ; réactions en pilules 22 px
+  chevauchant le bas ; messages système en pilule centrée 12 px ; séparateurs de date
+  en pilule `--bg-1`.
+- Composeur : verre, rayon 22 px, « + » 44 px, champ 16 px sur 5 lignes au plus, micro
+  ou envoi 44 px ; enregistrement : point rouge pulsé, chrono, texte d'aide, verrou par
+  glissement vers le haut (60 px).
+- Vocal : bouton 36 px, 64 barres de 2 px (`--text-1` lues / `--text-4`), durée 12 px,
+  vitesse en pilule 11 px.
+- Feuille d'actions : rangée de six emojis 26 px sur `--bg-1`, puis liste 48 px
+  (Répondre, Transférer, Copier, Épingler, Vu par, Utiliser dans un post, Supprimer en
+  `--red-text`).
+- Fiche : avatar 88 px centré, trois tuiles d'action 68 px, membres 40 px avec
+  pastille « Admin », bandeau charte 13 px `--text-3`.
