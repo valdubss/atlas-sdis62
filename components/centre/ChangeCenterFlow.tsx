@@ -4,8 +4,9 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { attachTo } from "@/app/(app)/centre/actions";
+import { attachTo, cancelMyRequest } from "@/app/(app)/centre/actions";
 import type { Directory } from "@/lib/centres/public";
+import type { PendingRequest } from "@/lib/membership/request";
 import { CenterPicker } from "./CenterPicker";
 import { Sheet } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
@@ -21,7 +22,7 @@ const FIELD_LABELS: Record<string, string> = { center_id: "Centre", service_id: 
  * récapitulatif de ce qui change (onglet Mon centre, notifications « mon centre »,
  * canaux de centre pour les référents), confirmation, puis historique.
  */
-export function ChangeCenterFlow({ home, directory, history, currentCenterId, currentServiceId }: { home: { name: string; href: string } | null; directory: Directory; history: ProfileHistoryEntry[]; currentCenterId: string | null; currentServiceId: string | null }) {
+export function ChangeCenterFlow({ home, directory, history, currentCenterId, currentServiceId, pendingRequest = null }: { home: { name: string; href: string } | null; directory: Directory; history: ProfileHistoryEntry[]; currentCenterId: string | null; currentServiceId: string | null; pendingRequest?: PendingRequest | null }) {
   const [picker, setPicker] = useState(false);
   const [choice, setChoice] = useState<{ center_id: string | null; service_id: string | null; name: string } | null>(null);
   const [pending, start] = useTransition();
@@ -36,8 +37,18 @@ export function ChangeCenterFlow({ home, directory, history, currentCenterId, cu
         toast(r.error);
         return;
       }
-      toast(`Rattachement mis à jour : ${choice.name}`);
+      toast(r.recipient ? `Demande envoyée au responsable de ${choice.name}` : `Demande enregistrée pour ${choice.name}`);
       setChoice(null);
+      router.refresh();
+    });
+  }
+
+  function cancel() {
+    if (!pendingRequest) return;
+    start(async () => {
+      const r = await cancelMyRequest(pendingRequest.id);
+      if (!r.ok) return toast(r.error);
+      toast("Demande retirée");
       router.refresh();
     });
   }
@@ -62,6 +73,19 @@ export function ChangeCenterFlow({ home, directory, history, currentCenterId, cu
             <ChevronRight size={16} strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
+        {pendingRequest && (
+          <div className="mt-3 rounded-[12px] bg-bg-2 px-4 py-3">
+            <p className="text-[15px] text-text-1">
+              Demande envoyée : <span className="font-semibold">{pendingRequest.center?.name ?? pendingRequest.service?.name}</span>
+            </p>
+            <p className="text-[13px] text-text-3">
+              En attente de validation{pendingRequest.recipient_email ? ` (${pendingRequest.recipient_email})` : ""}, jusqu&apos;au {formatDateTime(pendingRequest.expires_at).split(" ")[0]}. Vous serez prévenu de la réponse.
+            </p>
+            <button type="button" onClick={cancel} disabled={pending} className="mt-2 text-[13px] font-medium text-text-2 hover:text-text-1 disabled:opacity-50">
+              Retirer la demande
+            </button>
+          </div>
+        )}
         {history.length > 0 && (
           <div className="mt-4">
             <h3 className="text-[13px] font-semibold uppercase tracking-[0.06em] text-text-3">Historique</h3>
@@ -95,18 +119,18 @@ export function ChangeCenterFlow({ home, directory, history, currentCenterId, cu
         {choice && (
           <div className="space-y-4 px-5 pb-[calc(max(env(safe-area-inset-bottom),12px)+84px)]">
             <p className="text-[15px] text-text-1">
-              Nouveau rattachement : <span className="font-semibold">{choice.name}</span>
+              Demande de rattachement : <span className="font-semibold">{choice.name}</span>
               {home && <span className="text-text-3"> (au lieu de {home.name})</span>}
             </p>
             <ul className="space-y-1.5 text-[13px] text-text-2">
-              <li>• L&apos;onglet « Mon centre » affiche cette page.</li>
-              <li>• Les notifications « Nouveautés de mon centre » suivent ce centre.</li>
-              <li>• Si vous êtes référent, vos canaux de messagerie de centre restent liés à vos désignations.</li>
+              <li>• Le chef de centre (ou le responsable communication) reçoit un e-mail et confirme votre arrivée.</li>
+              <li>• Une fois accepté, l&apos;onglet « Mon centre » affiche cette page et ses notifications vous suivent.</li>
+              <li>• Sans réponse en sept jours, la demande expire ; vous pourrez la renouveler.</li>
               <li>• Le changement est daté dans votre historique et visible du service communication.</li>
             </ul>
             <div className="flex gap-3">
               <Button type="button" loading={pending} onClick={confirm}>
-                Confirmer
+                Envoyer la demande
               </Button>
               <Button type="button" variant="secondary" onClick={() => setChoice(null)}>
                 Annuler

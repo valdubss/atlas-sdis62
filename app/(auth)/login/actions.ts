@@ -7,10 +7,11 @@ import { isAllowedEmail, getAllowedDomains } from "@/lib/auth/domains";
 import { loginSchema, passwordLoginSchema } from "@/lib/validation/auth";
 import { getAuthSettings } from "@/lib/auth/settings";
 import { azureOAuthOptions } from "@/lib/auth/providers";
+import { appMailConfigured, sendLoginEmailFor } from "@/lib/auth/invite";
 
 export type LoginState =
   | { status: "idle" }
-  | { status: "sent"; email: string }
+  | { status: "sent"; email: string; next: string }
   | { status: "error"; message: string };
 
 function safeNext(next: string | null): string {
@@ -49,6 +50,14 @@ export async function sendMagicLink(
     `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
   const next = safeNext(formData.get("next") as string | null);
 
+  // Transport de l'app (Resend / SMTP) : lien + code dans le même e-mail, sans les
+  // limites d'envoi de Supabase. À défaut, l'e-mail standard de Supabase.
+  if (appMailConfigured()) {
+    const r = await sendLoginEmailFor(email);
+    if (!r.ok) return { status: "error", message: r.error };
+    return { status: "sent", email, next };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
@@ -72,7 +81,27 @@ export async function sendMagicLink(
     return { status: "error", message: "Envoi impossible pour le moment. Réessayez." };
   }
 
-  return { status: "sent", email };
+  return { status: "sent", email, next };
+}
+
+/**
+ * Connexion par le code à six chiffres reçu dans le même e-mail que le lien.
+ * Utile quand la messagerie « ouvre » les liens avant l'agent (passerelles de
+ * sécurité) ou quand l'e-mail est lu sur un autre appareil.
+ */
+export async function verifyEmailCode(_prev: LoginState, formData: FormData): Promise<LoginState> {
+  const parsed = loginSchema.safeParse({ email: formData.get("email") });
+  const code = String(formData.get("code") ?? "").replace(/\D/g, "");
+  const next = safeNext(formData.get("next") as string | null);
+  if (!parsed.success) return { status: "error", message: "Adresse invalide." };
+  if (code.length < 6) return { status: "sent", email: parsed.data.email, next };
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({ email: parsed.data.email, token: code, type: "email" });
+  if (error) {
+    if (error.status === 429) return { status: "error", message: "Trop de tentatives. Patientez quelques minutes." };
+    return { status: "error", message: "Code incorrect ou expiré. Demandez un nouvel e-mail." };
+  }
+  redirect(next);
 }
 
 /**

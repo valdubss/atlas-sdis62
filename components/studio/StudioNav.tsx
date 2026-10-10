@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 
-const NAV = [
+const FULL_NAV = [
   { href: "/studio", label: "Tableau de bord", exact: true },
   { href: "/studio/flash", label: "Flash" },
   { href: "/studio/posts", label: "Publications" },
@@ -13,6 +13,7 @@ const NAV = [
   { href: "/studio/stories", label: "Stories" },
   { href: "/studio/agenda", label: "Agenda" },
   { href: "/studio/centres", label: "Centres" },
+  { href: "/studio/centres/demandes", label: "Rattachements", exact: true },
   { href: "/studio/statistiques", label: "Statistiques" },
   { href: "/studio/moderation", label: "Modération" },
   { href: "/studio/retours", label: "Retours" },
@@ -22,16 +23,19 @@ const NAV = [
   ...(process.env.NODE_ENV === "production" ? [] : [{ href: "/studio/dev-ui", label: "Composants" }]),
 ];
 
-export function StudioNav({ compact = false, pendingCenters = 0 }: { compact?: boolean; pendingCenters?: number }) {
+const LIMITED_NAV = [{ href: "/studio/partages", label: "Publications partagées", exact: false }];
+
+export function StudioNav({ compact = false, pendingCenters = 0, limited = false }: { compact?: boolean; pendingCenters?: number; limited?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
+  const NAV = limited ? LIMITED_NAV : FULL_NAV;
 
   if (compact) {
     return (
       <label className="relative flex items-center">
         <select
           aria-label="Navigation du studio"
-          value={NAV.find((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))?.href ?? "/studio"}
+          value={NAV.find((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))?.href ?? NAV[0].href}
           onChange={(e) => router.push(e.target.value)}
           className="h-9 appearance-none rounded-[10px] bg-bg-2 pl-3 pr-8 text-[15px] font-medium text-text-1"
         >

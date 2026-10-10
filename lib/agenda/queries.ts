@@ -13,12 +13,18 @@ export type EventItem = {
   all_day: boolean;
   status: "draft" | "published";
   post: { id: string; slug: string; title: string | null } | null;
+  /** Événement de centre (visible par ses membres) ; null pour tout le SDIS */
+  center?: { name: string } | null;
   created_at: string;
 };
 
 const SELECT = "id, title, description, location, starts_at, ends_at, all_day, status, created_at, post:posts!events_post_id_fkey(id, slug, title)";
+const SELECT_WITH_CENTER = `${SELECT}, center:centers!events_center_id_fkey(name)`;
 
-/** Événements visibles par les agents : à venir (ou en cours) puis passés récents. */
+/**
+ * Événements visibles par l'agent : ceux de tout le SDIS, plus ceux de son
+ * centre (la RLS ne renvoie les événements de centre qu'à ses membres).
+ */
 export async function fetchAgenda(): Promise<{ upcoming: EventItem[]; past: EventItem[] }> {
   const supabase = await createClient();
   const now = new Date();
@@ -26,19 +32,17 @@ export async function fetchAgenda(): Promise<{ upcoming: EventItem[]; past: Even
   const [{ data: upcoming }, { data: past }] = await Promise.all([
     supabase
       .from("events")
-      .select(SELECT)
+      .select(SELECT_WITH_CENTER)
       .eq("status", "published")
       .is("deleted_at", null)
-      .is("center_id", null)
       .or(`ends_at.gte.${now.toISOString()},and(ends_at.is.null,starts_at.gte.${new Date(now.getTime() - 3 * 3600_000).toISOString()})`)
       .order("starts_at", { ascending: true })
       .limit(200),
     supabase
       .from("events")
-      .select(SELECT)
+      .select(SELECT_WITH_CENTER)
       .eq("status", "published")
       .is("deleted_at", null)
-      .is("center_id", null)
       .lt("starts_at", now.toISOString())
       .gte("starts_at", horizonPast)
       .order("starts_at", { ascending: false })

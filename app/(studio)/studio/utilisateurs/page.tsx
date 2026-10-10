@@ -26,7 +26,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const supabase = await createClient();
   let query = supabase
     .from("profiles")
-    .select("id, email, first_name, last_name, role, is_active, created_at, center:centers(name)")
+    .select("id, email, first_name, last_name, role, is_active, created_at, onboarded_at, center_id, service_id, center:centers(name), service:services(name)")
     .order("created_at", { ascending: false })
     .limit(500);
   if (q.trim()) {
@@ -34,7 +34,11 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     const term = `%${q.trim().replace(/[,()"%_\\]/g, "")}%`;
     query = query.or(`email.ilike."${term}",first_name.ilike."${term}",last_name.ilike."${term}"`);
   }
-  const { data } = await query;
+  const [{ data }, { data: centers }, { data: services }] = await Promise.all([
+    query,
+    supabase.from("centers").select("id, name").eq("is_active", true).order("sort_order").order("name"),
+    supabase.from("services").select("id, name").eq("is_active", true).order("sort_order").order("name"),
+  ]);
 
-  return <UsersTable users={(data ?? []) as unknown as UserRow[]} meId={current.user.id} q={q} />;
+  return <UsersTable users={(data ?? []) as unknown as UserRow[]} meId={current.user.id} q={q} centers={centers ?? []} services={services ?? []} />;
 }

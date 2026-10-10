@@ -17,6 +17,9 @@ import { InfiniteFeed } from "@/components/feed/InfiniteFeed";
 import { PullToRefresh } from "@/components/feed/PullToRefresh";
 import { CenterTeam } from "@/components/centre/CenterTeam";
 import { fetchTeam } from "@/lib/centres/directory";
+import { MembershipRequests } from "@/components/centre/MembershipRequests";
+import { CenterContactsAdmin } from "@/components/centre/CenterContactsAdmin";
+import { fetchCenterRequests } from "@/lib/membership/request";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +42,7 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
   const { profile } = current;
   const supabase = await createClient();
 
-  const [week, newcomers, photos, posts, follows, referent, home, team] = await Promise.all([
+  const [week, newcomers, photos, posts, follows, referent, home, team, canManage, fallback] = await Promise.all([
     fetchCenterWeek(center.id),
     fetchNewcomers(center.id),
     fetchCenterPhotos(center.id),
@@ -48,7 +51,11 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
     isReferentOf(profile.id, center.id),
     profile.center_id ? supabase.from("centers").select("id, slug, name, type, city, grouping_id").eq("id", profile.center_id).maybeSingle().then((r) => r.data) : Promise.resolve(null),
     fetchTeam("center", center.id),
+    supabase.rpc("can_manage_center", { p_center: center.id }).then((r) => Boolean(r.data)),
+    supabase.from("app_settings").select("value").eq("key", "membership_fallback_email").maybeSingle().then((r) => (typeof r.data?.value === "string" ? (r.data.value as string) : null)),
   ]);
+  const requests = canManage ? await fetchCenterRequests(center.id) : [];
+  const isAdmin = profile.role === "admin";
   void supabase.rpc("record_page_view", { p_kind: "center", p_target: center.id }).then(() => undefined, () => undefined);
 
   const isHome = profile.center_id === center.id;
@@ -69,6 +76,8 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
             </div>
           )}
           <CenterIdentity center={center} />
+          {isAdmin && <CenterContactsAdmin centerId={center.id} contacts={{ chief_name: center.chief_name, chief_email: center.chief_email, com_name: center.com_name, com_email: center.com_email }} fallbackEmail={fallback} />}
+          {canManage && <MembershipRequests requests={requests} targetName={center.name} />}
           <CenterWeek events={week} />
           <CenterNewcomers people={newcomers} />
           <CenterTeam people={team} />
@@ -86,7 +95,7 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
           <CenterPhotos photos={photos} />
         </div>
       </PullToRefresh>
-      {referent && <ProposeFab centerId={center.id} centerName={center.name} />}
+      {(referent || (canManage && !canModerate)) && <ProposeFab centerId={center.id} centerName={center.name} manager={canManage} />}
     </div>
   );
 }

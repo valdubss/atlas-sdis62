@@ -16,6 +16,7 @@ import { DraftLock, ReviewPanel, VersionHistory } from "@/components/studio/Draf
 import { autosavePost } from "@/app/(studio)/studio/posts/draft-actions";
 import { useRouter } from "next/navigation";
 import { MediaUploader, type EditorMedia } from "./MediaUploader";
+import { CoeditorsPanel } from "./CoeditorsPanel";
 import { cn } from "@/lib/cn";
 
 type Ref = { id: string; name: string; slug: string };
@@ -47,7 +48,10 @@ export function PostEditor({
   isAdmin = false,
   reviewStatus: initialReviewStatus = "none",
   initialMedia,
+  coeditor = false,
 }: {
+  /** L'utilisateur est co-rédacteur (agent ajouté) : contenu seulement, pas de publication */
+  coeditor?: boolean;
   post: FeedPost | null;
   /** Médias déjà prêts à joindre à une nouvelle publication (bibliothèque) */
   initialMedia?: MediaItem[];
@@ -79,6 +83,7 @@ export function PostEditor({
   const [authorDisplay, setAuthorDisplay] = useState<"service_com" | "agent">(post?.author_display ?? "service_com");
   const [pinned, setPinned] = useState(Boolean(post?.pinned_at));
   const [commentsEnabled, setCommentsEnabled] = useState(post?.comments_enabled ?? true);
+  const [reactionsEnabled, setReactionsEnabled] = useState(post?.reactions_enabled ?? true);
   const [schedule, setSchedule] = useState(post?.status === "scheduled");
   const [scheduledAt, setScheduledAt] = useState(toDatetimeLocal(post?.scheduled_at));
   const [previewFull, setPreviewFull] = useState(false);
@@ -127,6 +132,8 @@ export function PostEditor({
       scheduled_at: null,
       pinned_at: pinned ? (post?.pinned_at ?? "1970-01-01T00:00:00.000Z") : null,
       comments_enabled: commentsEnabled,
+      reactions_enabled: reactionsEnabled,
+      author_id: post?.author_id ?? null,
       author_display: authorDisplay,
       category: categories.find((c) => c.id === categoryId) ?? null,
       center: centers.find((c) => c.id === centerId) ?? null,
@@ -152,7 +159,7 @@ export function PostEditor({
       my_reaction: null,
       is_bookmarked: false,
     }),
-    [post, type, title, location, excerpt, body, tags, pinned, commentsEnabled, authorDisplay, categoryId, centerId, categories, centers, authorName, readyMedia, pollOptions, pollCloses],
+    [post, type, title, location, excerpt, body, tags, pinned, commentsEnabled, reactionsEnabled, authorDisplay, categoryId, centerId, categories, centers, authorName, readyMedia, pollOptions, pollCloses],
   );
 
   const status = post?.status ?? "draft";
@@ -179,15 +186,17 @@ export function PostEditor({
         {!FEATURES.categories && <input type="hidden" name="category_id" value={categoryId} />}
         {!FEATURES.centers && <input type="hidden" name="center_id" value={centerId} />}
         {!FEATURES.tags && <input type="hidden" name="tags" value={tags} />}
-        {!FEATURES.authorChoice && <input type="hidden" name="author_display" value={authorDisplay} />}
+        {(!FEATURES.authorChoice || coeditor) && <input type="hidden" name="author_display" value={authorDisplay} />}
+        <input type="hidden" name="reactions_enabled" value={reactionsEnabled ? "on" : "off"} />
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             <h1 className="min-w-0 text-[26px] font-semibold tracking-[-0.02em] text-text-1 sm:text-[28px]">{post ? "Modifier" : "Nouvelle publication"}</h1>
             <Badge tone={badge.tone}>{badge.label}</Badge>
+            {coeditor && <Badge tone="navy">Co-rédaction</Badge>}
           </div>
-          <Link href="/studio/posts" className="pressable hidden text-[15px] font-medium text-text-2 hover:text-text-1 sm:inline">
-            Publications
+          <Link href={coeditor ? "/studio/partages" : "/studio/posts"} className="pressable hidden text-[15px] font-medium text-text-2 hover:text-text-1 sm:inline">
+            {coeditor ? "Publications partagées" : "Publications"}
           </Link>
         </div>
 
@@ -332,7 +341,7 @@ export function PostEditor({
               <Field label="Tags" name="tags" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="jsp, arras, exercice" hint="Séparés par des virgules, 10 maximum." error={fields.tags} />
             </div>
           )}
-          {FEATURES.authorChoice && (
+          {FEATURES.authorChoice && !coeditor && (
             <div className="py-3">
               <SelectField label="Auteur affiché" name="author_display" value={authorDisplay} onChange={(e) => setAuthorDisplay(e.target.value as "service_com" | "agent")}>
                 <option value="service_com">Service Communication</option>
@@ -340,16 +349,23 @@ export function PostEditor({
               </SelectField>
             </div>
           )}
-          <div className="py-2">
-            <CheckboxField label="Épingler en haut du fil" name="pinned" checked={pinned} onChange={(e) => setPinned(e.target.checked)} hint="Trois publications épinglées au maximum" />
-          </div>
+          {!coeditor && (
+            <div className="py-2">
+              <CheckboxField label="Épingler en haut du fil" name="pinned" checked={pinned} onChange={(e) => setPinned(e.target.checked)} hint="Trois publications épinglées au maximum" />
+            </div>
+          )}
           <div className="py-2">
             <CheckboxField label="Autoriser les commentaires" name="comments_enabled" checked={commentsEnabled} onChange={(e) => setCommentsEnabled(e.target.checked)} />
           </div>
           <div className="py-2">
-            <CheckboxField label="Programmer la publication" name="schedule_toggle" checked={schedule} onChange={(e) => setSchedule(e.target.checked)} hint="Elle paraîtra automatiquement à la date choisie" />
+            <CheckboxField label="Autoriser les réactions" name="reactions_toggle" checked={reactionsEnabled} onChange={(e) => setReactionsEnabled(e.target.checked)} hint="Bravo, Au top, J'adore, Courage sous la publication" />
           </div>
-          {schedule && (
+          {!coeditor && (
+            <div className="py-2">
+              <CheckboxField label="Programmer la publication" name="schedule_toggle" checked={schedule} onChange={(e) => setSchedule(e.target.checked)} hint="Elle paraîtra automatiquement à la date choisie" />
+            </div>
+          )}
+          {schedule && !coeditor && (
             <div className="py-3">
               <Field
                 label="Date et heure de publication"
@@ -364,15 +380,20 @@ export function PostEditor({
           )}
         </section>
 
-        {post && <ReviewPanel postId={post.id} isAdmin={isAdmin} onChanged={setReviewStatus} />}
-        {publishBlocked && (
+        {post && !coeditor && <CoeditorsPanel postId={post.id} />}
+        {post && !coeditor && <ReviewPanel postId={post.id} isAdmin={isAdmin} onChanged={setReviewStatus} />}
+        {publishBlocked && !coeditor && (
           <p role="status" className="text-[13px] text-text-2">
             Publication bloquée : une relecture est en cours. Enregistrez le brouillon ; la mise en ligne reviendra après validation.
           </p>
         )}
 
         <div className="flex flex-wrap items-center gap-3">
-          {schedule ? (
+          {coeditor ? (
+            <Button type="submit" name="action" value="draft" loading={pending} disabled={busy}>
+              Enregistrer mes modifications
+            </Button>
+          ) : schedule ? (
             <Button type="submit" name="action" value="schedule" loading={pending} disabled={busy || publishBlocked}>
               Programmer
             </Button>
@@ -381,11 +402,14 @@ export function PostEditor({
               {status === "published" ? "Mettre à jour" : "Publier"}
             </Button>
           )}
-          <Button type="submit" name="action" value="draft" variant="secondary" loading={pending} disabled={busy}>
-            Enregistrer le brouillon
-          </Button>
+          {!coeditor && (
+            <Button type="submit" name="action" value="draft" variant="secondary" loading={pending} disabled={busy}>
+              Enregistrer le brouillon
+            </Button>
+          )}
           {busy && <span className="text-[13px] text-text-3">Envoi des médias en cours</span>}
-          {post && (
+          {coeditor && <span className="text-[13px] text-text-3">{status === "published" ? "Vos modifications sont visibles dès l'enregistrement." : "La mise en ligne reste du ressort du service communication."}</span>}
+          {post && !coeditor && (
             <Button
               type="button"
               variant="danger"

@@ -21,8 +21,9 @@ function generatePassword() {
 }
 
 /** Création d'un compte par l'administrateur (adresse, mot de passe initial, rôle). */
-export function CreateUserForm({ onDone }: { onDone: () => void }) {
+export function CreateUserForm({ onDone, centers = [] }: { onDone: () => void; centers?: { id: string; name: string }[] }) {
   const [state, action, pending] = useActionState(createUser, initial);
+  const [withPassword, setWithPassword] = useState(false);
   const [password, setPassword] = useState(generatePassword);
   const [show, setShow] = useState(true);
   const router = useRouter();
@@ -31,7 +32,7 @@ export function CreateUserForm({ onDone }: { onDone: () => void }) {
 
   useEffect(() => {
     if (state.status === "created") {
-      toast(`Compte créé pour ${state.email}`);
+      toast(state.warning ?? (state.invited ? `Invitation envoyée à ${state.email}` : `Compte créé pour ${state.email}`));
       router.refresh();
       onDone();
     }
@@ -40,13 +41,27 @@ export function CreateUserForm({ onDone }: { onDone: () => void }) {
   return (
     <form action={action} className="space-y-4 px-5 pb-[max(env(safe-area-inset-bottom),20px)]" noValidate>
       <p className="text-[13px] text-text-3">
-        Transmettez l&apos;adresse et le mot de passe à l&apos;agent : il pourra changer ce mot de passe dans son profil. Le compte est actif immédiatement.
+        L&apos;agent reçoit un e-mail avec un lien et un code de connexion. Son rôle et son centre sont posés tout de suite, sans validation par le chef de centre.
       </p>
       <Field label="Adresse e-mail" name="email" type="email" autoComplete="off" inputMode="email" placeholder="prenom.nom@sdis62.fr" error={fields.email} required />
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Prénom" name="first_name" maxLength={60} error={fields.first_name} />
         <Field label="Nom" name="last_name" maxLength={60} error={fields.last_name} />
       </div>
+      <SelectField label="Centre (facultatif)" name="center_id" defaultValue="">
+        <option value="">Aucun pour l&apos;instant</option>
+        {centers.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+      </SelectField>
+      <label className="flex items-center gap-2 text-[15px] text-text-1">
+        <input type="checkbox" checked={withPassword} onChange={(e) => setWithPassword(e.target.checked)} className="h-4 w-4" />
+        Définir un mot de passe initial (cas particulier)
+      </label>
+      {!withPassword && <input type="hidden" name="password" value="" />}
+      {withPassword && (
       <div className="space-y-1.5">
         <label htmlFor="field-password" className="block text-[13px] font-medium text-text-2">
           Mot de passe initial
@@ -72,6 +87,7 @@ export function CreateUserForm({ onDone }: { onDone: () => void }) {
         </div>
         <p className="text-[13px] text-text-3">{fields.password ?? `${LIMITS.passwordMinLength} caractères minimum. Un mot de passe est proposé, vous pouvez le remplacer.`}</p>
       </div>
+      )}
       <SelectField label="Rôle" name="role" defaultValue="reader" hint="Un éditeur publie et modère ; un administrateur gère aussi les comptes.">
         {(["reader", "editor", "admin"] as const).map((r) => (
           <option key={r} value={r}>
@@ -85,7 +101,7 @@ export function CreateUserForm({ onDone }: { onDone: () => void }) {
         </p>
       )}
       <Button type="submit" loading={pending} className="w-full">
-        Créer le compte
+        {withPassword ? "Créer le compte" : "Inviter"}
       </Button>
     </form>
   );

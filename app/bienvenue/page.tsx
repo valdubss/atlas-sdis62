@@ -17,6 +17,8 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
   if (!current) redirect("/auth/deconnexion?raison=profil");
   const { profile } = current;
   if (profile.onboarded_at && mdp !== "1") redirect("/");
+  // Première connexion par lien ou code : le mot de passe est proposé (facultatif)
+  const offerPassword = mdp === "1" || !profile.onboarded_at;
 
   const supabase = await createClient();
   const { data: centers } = await supabase.from("centers").select("id, name").eq("is_active", true).order("sort_order").order("name");
@@ -27,7 +29,7 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
       lastName={profile.last_name}
       centerId={profile.center_id}
       centers={centers ?? []}
-      needPassword={mdp === "1"}
+      needPassword={offerPassword}
       startAtForm={Boolean(profile.onboarded_at)}
       key={profile.onboarded_at ? "reset" : "first"}
     />

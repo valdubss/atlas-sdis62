@@ -286,12 +286,16 @@ export function PostCard({
           )}
 
           <footer className={cn("flex items-center justify-between", variant === "feed" ? "-mx-1 -mt-0.5 [&_button]:h-10" : "mt-1")}>
-            <ReactionBar
-              counts={shown.reaction_counts}
-              mine={shown.my_reaction}
-              onSelect={react}
-              disabled={preview}
-            />
+            {shown.reactions_enabled !== false ? (
+              <ReactionBar
+                counts={shown.reaction_counts}
+                mine={shown.my_reaction}
+                onSelect={react}
+                disabled={preview}
+              />
+            ) : (
+              <span className="px-1 text-[13px] text-text-3">Réactions désactivées</span>
+            )}
             <div className="flex items-center">
               <IconButton
                 label="Commentaires"

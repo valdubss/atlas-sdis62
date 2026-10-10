@@ -154,6 +154,16 @@ par exemple :
 > personnalisé dans **Authentication → SMTP Settings** (Resend, Brevo, ou le
 > serveur de messagerie du SDIS) avant l'ouverture aux agents.
 
+**SMTP personnalisé (indispensable avant l'ouverture à tous)** : sans SMTP personnalisé,
+Supabase plafonne ses e-mails d'authentification à quelques envois par heure et ses modèles
+ne sont pas modifiables. Deux choix :
+1. renseigner `RESEND_API_KEY` et `EMAIL_FROM` sur Vercel : ATLAS envoie lui-même les e-mails de
+   connexion, d'invitation et de mot de passe (lien + code) ;
+2. et/ou configurer Resend comme SMTP de Supabase (Authentication → Emails → SMTP Settings :
+   hôte `smtp.resend.com`, port 465, utilisateur `resend`, mot de passe = clé API, expéditeur
+   `noreply@sdis62.fr`), ce qui débloque aussi l'édition des modèles. Dans les deux cas le
+   domaine `sdis62.fr` doit être vérifié chez Resend (enregistrements DNS SPF et DKIM).
+
 ### 3.4 Domaines e-mail autorisés
 
 Le contrôle est fait à deux niveaux, gardez-les alignés :
@@ -666,6 +676,49 @@ $$);
   ou `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS`.
 - **Préférences** (profil) : notifications sur cet appareil, nouvelles publications,
   publications épinglées, résumé hebdomadaire.
+
+## 7i. Comptes, rattachement validé, co-rédacteurs, événements de centre (v3, lot comptes)
+
+- **Connexion** : l'écran propose d'abord l'e-mail professionnel (@sdis62.fr). L'agent reçoit
+  un e-mail avec un lien **et un code à six chiffres** à saisir dans l'app : le code marche
+  même si la passerelle de messagerie a déjà « ouvert » le lien, ou si l'e-mail est lu sur un
+  autre appareil. Le mot de passe reste une option (facultatif à l'accueil, modifiable dans le
+  profil). Si `RESEND_API_KEY` (ou `SMTP_HOST`) est défini, l'e-mail part par le transport
+  d'ATLAS (`lib/auth/invite.ts`, trois envois par adresse et par dix minutes) ; sinon Supabase
+  envoie son e-mail standard, limité à quelques envois par heure sans SMTP personnalisé.
+- **Rôle** : lecteur (« Agent ») par défaut ; éditeur et administrateur se donnent dans
+  Studio → Utilisateurs. Un changement de rôle prend effet au clic suivant (le middleware
+  rafraîchit le jeton avant de refuser l'accès au Studio).
+- **Rattachement validé** (migration 0030) : à l'accueil ou dans Profil → Mon centre, le choix
+  d'un centre crée une **demande** (`membership_requests`). Un e-mail part au **chef de centre**,
+  à défaut au **responsable communication**, à défaut à l'adresse de repli
+  (`app_settings.membership_fallback_email`, jdubois@sdis62.fr ; toujours elle pour les
+  services). Le lien ouvre `/rattachement/<jeton>` (page publique, jeton de 192 bits haché en
+  base, valable sept jours) : la décision ne part qu'au clic. Les responsables qui ont un compte
+  (chef désigné, adresse saisie ou référent) voient aussi les demandes sur la page du centre ;
+  le service communication les voit dans Studio → Rattachements. Un agent accepté est rattaché
+  (`profiles.center_id`) ; l'agent ne peut plus modifier son rattachement lui-même
+  (garde-fou `profiles_guard`), l'administrateur si, depuis Studio → Utilisateurs.
+- **Contacts de validation** : sur la page d'un centre, un bloc réservé aux administrateurs
+  (« Validation des arrivées ») renseigne chef de centre et responsable com (nom, e-mail).
+  Ces adresses donnent aussi les droits de validation et de création d'événements dans l'app
+  (`is_center_chief`, `is_center_com`, `can_manage_center`).
+- **Gestion des comptes** (Studio → Utilisateurs, administrateurs) : inviter sans mot de passe
+  (e-mail lien + code), poser prénom, nom, rôle et centre, renvoyer un e-mail de connexion,
+  envoyer une réinitialisation de mot de passe, désactiver, exporter, supprimer (anonymisation,
+  migration 0029 pour les commentaires).
+- **Co-rédacteurs** (`post_editors`) : tout éditeur modifie déjà toute publication. Depuis
+  l'éditeur, un éditeur ajoute un agent extérieur au service ; celui-ci ouvre
+  `/studio/partages` et la publication, modifie texte, médias et options, sans publier,
+  épingler ni supprimer (politiques `posts_coeditor_*`, garde-fou dans `posts_center_guard`).
+  Il est prévenu dans l'app et par e-mail.
+- **Réactions** : option « Autoriser les réactions » par publication (`posts.reactions_enabled`),
+  appliquée par `toggle_reaction` / `set_reaction` et dans la carte du fil.
+- **Événements de centre** : le chef de centre ou le responsable com ajoute un événement depuis
+  la page du centre (bouton « Ajouter ») ; il est publié tout de suite et **visible des seuls
+  membres du centre** (politique `events_select`), avec notification dans l'app et rappel la
+  veille. Les événements de tout le SDIS restent créés dans le Studio par le service
+  communication (et la DDSIS) et sont visibles de tous. L'agenda de l'agent mêle les deux.
 
 ## 8. Stockage des médias (Supabase Storage ou bucket S3)
 

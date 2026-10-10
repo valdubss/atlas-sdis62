@@ -10,7 +10,7 @@ import { formatRelative } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 
-const ICONS: Record<string, LucideIcon> = { post: Newspaper, flash: AlertTriangle, reply: Reply, event: CalendarDays, story_reply: MessageCircle, message: MessageSquare, center: Flame, directory: BookUser };
+const ICONS: Record<string, LucideIcon> = { post: Newspaper, flash: AlertTriangle, reply: Reply, event: CalendarDays, story_reply: MessageCircle, message: MessageSquare, center: Flame, directory: BookUser, membership: Flame, coeditor: Newspaper };
 
 /** Liste des notifications ; tout est marqué lu à l'ouverture. */
 export function NotificationsList({ items, unread }: { items: NotificationItem[]; unread: number }) {

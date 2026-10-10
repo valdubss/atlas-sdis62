@@ -94,6 +94,7 @@ type PostRow = {
   published_at: Timestamp | null;
   pinned_at: Timestamp | null;
   comments_enabled: boolean;
+  reactions_enabled: boolean;
   cover_media_id: string | null;
   created_at: Timestamp;
   updated_at: Timestamp;
@@ -236,7 +237,28 @@ type CenterRow = {
   pending_by: string | null;
   pending_at: Timestamp | null;
   updated_at: Timestamp;
+  chief_name: string | null;
+  chief_email: string | null;
+  com_name: string | null;
+  com_email: string | null;
 };
+
+type MembershipRequestRow = {
+  id: string;
+  profile_id: string;
+  center_id: string | null;
+  service_id: string | null;
+  status: "pending" | "accepted" | "declined" | "cancelled" | "expired";
+  recipient_email: string | null;
+  requested_at: Timestamp;
+  expires_at: Timestamp;
+  decided_at: Timestamp | null;
+  decided_by: string | null;
+  decided_via: "email" | "app" | "admin" | "system" | null;
+  note: string | null;
+};
+
+type PostEditorRow = { post_id: string; profile_id: string; added_by: string | null; created_at: Timestamp };
 
 type GroupingRow = { id: string; name: string; sort_order: number; created_at: Timestamp };
 
@@ -322,7 +344,7 @@ export type Database = {
       };
       centers: {
         Row: CenterRow;
-        Insert: Optional<CenterRow, "id" | "sort_order" | "is_active" | "created_at" | "grouping_id" | "type" | "address" | "postal_code" | "city" | "lat" | "lng" | "phone" | "email" | "cover_media_id" | "presentation" | "chief_id" | "displayed_headcount" | "pending_cover_media_id" | "pending_presentation" | "pending_by" | "pending_at" | "updated_at">;
+        Insert: Optional<CenterRow, "id" | "sort_order" | "is_active" | "created_at" | "grouping_id" | "type" | "address" | "postal_code" | "city" | "lat" | "lng" | "phone" | "email" | "cover_media_id" | "presentation" | "chief_id" | "displayed_headcount" | "pending_cover_media_id" | "pending_presentation" | "pending_by" | "pending_at" | "updated_at" | "chief_name" | "chief_email" | "com_name" | "com_email">;
         Update: Partial<CenterRow>;
         Relationships: [];
       };
@@ -336,6 +358,24 @@ export type Database = {
         Row: ServiceRow;
         Insert: Optional<ServiceRow, "id" | "short_description" | "mission" | "contact_reasons" | "manager_id" | "phone" | "email" | "address" | "grouping_id" | "sort_order" | "is_active" | "created_at" | "updated_at">;
         Update: Partial<ServiceRow>;
+        Relationships: [];
+      };
+      rate_limit_events: {
+        Row: { user_id: string; bucket: string; created_at: Timestamp };
+        Insert: { user_id: string; bucket: string; created_at?: Timestamp };
+        Update: Partial<{ user_id: string; bucket: string; created_at: Timestamp }>;
+        Relationships: [];
+      };
+      membership_requests: {
+        Row: MembershipRequestRow;
+        Insert: Optional<MembershipRequestRow, "id" | "center_id" | "service_id" | "status" | "recipient_email" | "requested_at" | "expires_at" | "decided_at" | "decided_by" | "decided_via" | "note">;
+        Update: Partial<MembershipRequestRow>;
+        Relationships: [];
+      };
+      post_editors: {
+        Row: PostEditorRow;
+        Insert: Optional<PostEditorRow, "added_by" | "created_at">;
+        Update: Partial<PostEditorRow>;
         Relationships: [];
       };
       center_referents: {
@@ -433,7 +473,7 @@ export type Database = {
           PostRow,
           | "id" | "slug" | "title" | "location" | "scope" | "submitted_by" | "reviewed_by" | "reviewed_at" | "moderation_message" | "promoted_from_id" | "excerpt" | "body" | "category_id" | "center_id" | "tags"
           | "author_id" | "author_display" | "status" | "scheduled_at" | "published_at"
-          | "pinned_at" | "comments_enabled" | "cover_media_id" | "created_at" | "updated_at" | "deleted_at"
+          | "pinned_at" | "comments_enabled" | "reactions_enabled" | "cover_media_id" | "created_at" | "updated_at" | "deleted_at"
           | "lock_by" | "lock_at" | "autosave_at" | "review_status" | "review_requested_to" | "review_requested_by" | "review_requested_at" | "review_decided_by" | "review_decided_at"
         >;
         Update: Partial<PostRow>;
@@ -717,6 +757,18 @@ export type Database = {
       studio_post_stats: { Args: { p_days?: number }; Returns: Json };
       studio_center_stats: { Args: { p_days?: number }; Returns: Json };
       is_referent_of: { Args: { p_center_id: string }; Returns: boolean };
+      is_member_of_center: { Args: { p_center: string }; Returns: boolean };
+      is_center_chief: { Args: { p_center: string }; Returns: boolean };
+      is_center_com: { Args: { p_center: string }; Returns: boolean };
+      can_manage_center: { Args: { p_center: string }; Returns: boolean };
+      is_post_coeditor: { Args: { p_post: string }; Returns: boolean };
+      request_membership: { Args: { p_center?: string | null; p_service?: string | null }; Returns: Json };
+      decide_membership: { Args: { p_request: string; p_accept: boolean; p_note?: string | null }; Returns: Json };
+      decide_membership_by_token: { Args: { p_token: string; p_accept: boolean; p_note?: string | null }; Returns: Json };
+      peek_membership_by_token: { Args: { p_token: string }; Returns: Json };
+      cancel_membership_request: { Args: { p_request: string }; Returns: undefined };
+      expire_membership_requests: { Args: Record<string, never>; Returns: number };
+      profile_display_name: { Args: { p_id: string }; Returns: string };
       get_center_feed: { Args: { p_center_id: string; p_limit?: number; p_cursor_at?: string | null; p_cursor_id?: string | null }; Returns: Json[] };
       record_page_view: { Args: { p_kind: string; p_target?: string | null }; Returns: undefined };
       search_directory: { Args: { p_q: string; p_limit?: number }; Returns: Json };

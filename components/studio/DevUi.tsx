@@ -33,6 +33,8 @@ const samplePost: FeedPost = {
   scheduled_at: null,
   pinned_at: null,
   comments_enabled: true,
+  reactions_enabled: true,
+  author_id: null,
   author_display: "service_com",
   category: null,
   center: null,

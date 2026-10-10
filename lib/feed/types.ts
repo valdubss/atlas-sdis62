@@ -58,6 +58,8 @@ export type FeedPost = {
   scheduled_at: string | null;
   pinned_at: string | null;
   comments_enabled: boolean;
+  reactions_enabled: boolean;
+  author_id: string | null;
   author_display: AuthorDisplay;
   category: { id: string; name: string; slug: string } | null;
   center: { id: string; name: string; slug: string } | null;

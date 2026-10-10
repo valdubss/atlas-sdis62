@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { setPasswordSchema } from "@/lib/validation/auth";
+import { requestMembership } from "@/lib/membership/request";
 
 export type OnboardingState = { status: "idle" } | { status: "error"; message: string; fields?: Record<string, string> };
 
@@ -20,7 +21,8 @@ const profileSchema = z.object({
 
 /** Termine l'accueil : profil, centre, mot de passe si demandé, puis onboarded_at. */
 export async function completeOnboarding(_prev: OnboardingState, formData: FormData): Promise<OnboardingState> {
-  const needPassword = formData.get("need_password") === "1";
+  // Mot de passe facultatif : proposé à l'arrivée par lien, ignoré si laissé vide
+  const needPassword = formData.get("need_password") === "1" && Boolean(String(formData.get("password") ?? "") || String(formData.get("confirm") ?? ""));
   const parsedProfile = profileSchema.safeParse({
     first_name: formData.get("first_name"),
     last_name: formData.get("last_name"),
@@ -44,11 +46,18 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const { center_id, ...identity } = parsedProfile.data;
   const { error: profileError } = await supabase
     .from("profiles")
-    .update({ ...parsedProfile.data, onboarded_at: new Date().toISOString() })
+    .update({ ...identity, onboarded_at: new Date().toISOString() })
     .eq("id", user.id);
   if (profileError) return { status: "error", message: "Enregistrement du profil impossible." };
+
+  // Le rattachement n'est pas immédiat : demande envoyée au chef de centre
+  if (center_id) {
+    const r = await requestMembership({ center_id });
+    if (!r.ok && !/déjà rattaché/i.test(r.error)) return { status: "error", message: r.error, fields: { center_id: r.error } };
+  }
 
   if (parsedPwd?.success) {
     const { error } = await supabase.auth.updateUser({ password: parsedPwd.data.password });

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 export const maxDuration = 60;
 import { Logo } from "@/components/brand/Logo";
 import { ROLE_LABELS } from "@/lib/config";
-import { getCurrentUser, isEditorRole } from "@/lib/supabase/server";
+import { createClient, getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { StudioNav } from "@/components/studio/StudioNav";
 import { UploadQueue } from "@/components/studio/UploadQueue";
 import { countPendingProposals } from "@/lib/centres/queries";
@@ -19,11 +19,19 @@ import { ThemeApplier } from "@/components/layout/ThemeApplier";
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
   const current = await getCurrentUser();
   if (!current) redirect("/auth/deconnexion?raison=profil");
-  if (!isEditorRole(current.profile.role)) redirect("/?erreur=acces-studio");
+  const editor = isEditorRole(current.profile.role);
+  let limited = false;
+  if (!editor) {
+    // Co-rédacteur : seules ses publications partagées
+    const supabase = await createClient();
+    const { count } = await supabase.from("post_editors").select("post_id", { count: "exact", head: true }).eq("profile_id", current.user.id);
+    if (!count) redirect("/?erreur=acces-studio");
+    limited = true;
+  }
 
   const { profile } = current;
   const name = `${profile.first_name} ${profile.last_name}`.trim() || profile.email;
-  const pendingCenters = await countPendingProposals().catch(() => 0);
+  const pendingCenters = editor ? await countPendingProposals().catch(() => 0) : 0;
 
   return (
     <RoleProvider canEdit>
@@ -34,7 +42,7 @@ export default async function StudioLayout({ children }: { children: React.React
           <Logo height={24} />
           <span className="text-[13px] text-text-3">Studio</span>
         </div>
-        <StudioNav pendingCenters={pendingCenters} />
+        <StudioNav pendingCenters={pendingCenters} limited={limited} />
         <div className="mt-auto px-6 py-5">
           <p className="truncate text-[15px] font-medium text-text-1">{name}</p>
           <p className="text-[13px] text-text-3">{ROLE_LABELS[profile.role]}</p>
@@ -48,7 +56,7 @@ export default async function StudioLayout({ children }: { children: React.React
         >
           <div className="flex h-12 items-center justify-between px-5">
             <Logo height={22} />
-            <StudioNav compact pendingCenters={pendingCenters} />
+            <StudioNav compact pendingCenters={pendingCenters} limited={limited} />
           </div>
         </header>
         <main className="min-w-0 flex-1 overflow-x-clip px-5 pb-28 pt-[calc(48px+env(safe-area-inset-top)+16px)] md:px-8 md:py-8">{children}</main>

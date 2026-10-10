@@ -8,12 +8,13 @@ import { followCenter, updateCenterSettings } from "@/app/(app)/centre/actions";
 import type { CenterSummary, Directory } from "@/lib/centres/public";
 import type { Profile } from "@/lib/supabase/database.types";
 import { ChangeCenterFlow, type ProfileHistoryEntry } from "./ChangeCenterFlow";
+import type { PendingRequest } from "@/lib/membership/request";
 import { Button } from "@/components/ui/Button";
 import { CheckboxField, Field } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
 
 /** Profil → Mon centre : rattachement, centres suivis, présentation et annuaire. */
-export function CenterSettingsForm({ profile, home, follows, directory, history }: { profile: Profile; home: { name: string; href: string } | null; follows: CenterSummary[]; directory: Directory; history: ProfileHistoryEntry[] }) {
+export function CenterSettingsForm({ profile, home, follows, directory, history, pendingRequest = null }: { profile: Profile; home: { name: string; href: string } | null; follows: CenterSummary[]; directory: Directory; history: ProfileHistoryEntry[]; pendingRequest?: PendingRequest | null }) {
   const [presentMe, setPresentMe] = useState(profile.present_me);
   const [visible, setVisible] = useState(profile.directory_visible);
   const [jobTitle, setJobTitle] = useState(profile.job_title ?? "");
@@ -32,7 +33,7 @@ export function CenterSettingsForm({ profile, home, follows, directory, history 
 
   return (
     <div className="space-y-3">
-      <ChangeCenterFlow home={home} directory={directory} history={history} currentCenterId={profile.center_id} currentServiceId={profile.service_id} />
+      <ChangeCenterFlow home={home} directory={directory} history={history} currentCenterId={profile.center_id} currentServiceId={profile.service_id} pendingRequest={pendingRequest} />
 
       <section className="rounded-[16px] bg-bg-1 px-5 py-4">
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">

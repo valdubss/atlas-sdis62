@@ -99,6 +99,7 @@ function EventRow({ event: e, onOpen }: { event: EventItem; onOpen: () => void }
           <span className="block truncate text-[13px] text-text-3">
             {eventShortTime(e)}
             {e.location && ` · ${e.location}`}
+            {e.center && ` · ${e.center.name}`}
           </span>
         </span>
         <span className="sr-only">{eventDayKey(e.starts_at)}</span>

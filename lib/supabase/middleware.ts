@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PREFIXES = ["/login", "/auth/", "/offline"];
+const PUBLIC_PREFIXES = ["/login", "/auth/", "/offline", "/rattachement/"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PREFIXES.some(
@@ -83,7 +83,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (pathname.startsWith("/studio")) {
+  // Co-rédacteurs (agents ajoutés sur une publication) : accès limité, vérifié en base par la page
+  const coeditorPath = /^\/studio\/(partages|posts\/[0-9a-f-]{36})\/?$/.test(pathname);
+  if (pathname.startsWith("/studio") && !coeditorPath) {
     let role = meta.role;
     if (role !== "editor" && role !== "admin") {
       // Le rôle vient d'être relevé par un admin : le jeton en poche est périmé.

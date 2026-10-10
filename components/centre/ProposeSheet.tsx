@@ -26,7 +26,7 @@ const MODES: { key: Mode; label: string }[] = [
  * Chaque envoi crée une proposition en attente, validée par le service
  * communication ; l'auteur est prévenu du résultat.
  */
-export function ProposeFab({ centerId, centerName }: { centerId: string; centerName: string }) {
+export function ProposeFab({ centerId, centerName, manager = false }: { centerId: string; centerName: string; manager?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -34,17 +34,17 @@ export function ProposeFab({ centerId, centerName }: { centerId: string; centerN
         type="button"
         onClick={() => setOpen(true)}
         className="glass-float pressable fixed bottom-[calc(max(env(safe-area-inset-bottom),12px)+72px)] right-4 z-30 flex h-12 items-center gap-2 rounded-full pl-4 pr-5 text-[15px] font-semibold text-text-1"
-        aria-label={`Proposer une actualité pour ${centerName}`}
+        aria-label={`${manager ? "Ajouter" : "Proposer"} pour ${centerName}`}
       >
         <Plus size={20} strokeWidth={2} aria-hidden="true" />
-        Proposer
+        {manager ? "Ajouter" : "Proposer"}
       </button>
-      <ProposeSheet centerId={centerId} open={open} onClose={() => setOpen(false)} />
+      <ProposeSheet centerId={centerId} open={open} onClose={() => setOpen(false)} manager={manager} />
     </>
   );
 }
 
-export function ProposeSheet({ centerId, open, onClose }: { centerId: string; open: boolean; onClose: () => void }) {
+export function ProposeSheet({ centerId, open, onClose, manager = false }: { centerId: string; open: boolean; onClose: () => void; manager?: boolean }) {
   const [mode, setMode] = useState<Mode>("text");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -109,7 +109,7 @@ export function ProposeSheet({ centerId, open, onClose }: { centerId: string; op
         toast(r.error);
         return;
       }
-      toast(mode === "sheet" ? "Mise à jour proposée au service communication" : "Proposition envoyée. Vous serez prévenu de sa validation.");
+      toast(mode === "sheet" ? "Mise à jour proposée au service communication" : mode === "event" && manager ? "Événement ajouté : visible par les membres du centre" : "Proposition envoyée. Vous serez prévenu de sa validation.");
       reset();
       onClose();
       router.refresh();
@@ -117,7 +117,7 @@ export function ProposeSheet({ centerId, open, onClose }: { centerId: string; op
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="Proposer" tall>
+    <Sheet open={open} onClose={onClose} title={manager ? "Ajouter" : "Proposer"} tall>
       <div className="space-y-4 px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
         <div role="tablist" aria-label="Type de proposition" className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5">
           {MODES.map((m) => (
@@ -153,6 +153,7 @@ export function ProposeSheet({ centerId, open, onClose }: { centerId: string; op
             </div>
             <Field label="Lieu (facultatif)" name="location" value={location} onChange={(e) => setLocation(e.target.value)} maxLength={160} error={fields.location} />
             <TextareaField label="Description (facultatif)" name="description" value={body} onChange={(e) => setBody(e.target.value)} rows={4} maxLength={2000} error={fields.description} />
+            <p className="text-[13px] text-text-3">{manager ? "Publié tout de suite, visible par les seuls membres du centre (et le service communication). Les événements de tout le SDIS sont créés par le service communication." : "Proposition relue par le service communication avant publication."}</p>
           </>
         )}
 

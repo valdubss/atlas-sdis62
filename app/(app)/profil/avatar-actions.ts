@@ -18,7 +18,7 @@ const MAX_BYTES = 6 * 1024 * 1024;
 export async function updateAvatar(formData: FormData): Promise<Result> {
   const file = formData.get("avatar");
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Choisissez une image." };
-  if (!file.type.startsWith("image/")) return { ok: false, error: "Le fichier doit être une image." };
+  if (!file.type.startsWith("image/") || /svg/i.test(file.type)) return { ok: false, error: "Le fichier doit être une image (JPEG, PNG, WebP ou HEIC)." };
   if (file.size > MAX_BYTES) return { ok: false, error: "Image trop lourde (6 Mo max)." };
 
   const supabase = await createClient();

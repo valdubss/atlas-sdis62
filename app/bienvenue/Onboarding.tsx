@@ -99,7 +99,7 @@ export function Onboarding({ firstName, lastName, centerId, centers, needPasswor
                 <Field label="Prénom" name="first_name" defaultValue={firstName} autoComplete="given-name" required error={fields.first_name} />
                 <Field label="Nom" name="last_name" defaultValue={lastName} autoComplete="family-name" required error={fields.last_name} />
               </div>
-              <SelectField label="Centre ou service" name="center_id" defaultValue={centerId ?? ""} error={fields.center_id}>
+              <SelectField label="Centre ou service" name="center_id" defaultValue={centerId ?? ""} error={fields.center_id} hint="Votre chef de centre reçoit une demande et confirme votre arrivée. En attendant, vous avez accès au fil.">
                 <option value="">Choisir…</option>
                 {centers.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -109,8 +109,8 @@ export function Onboarding({ firstName, lastName, centerId, centers, needPasswor
               </SelectField>
               {needPassword && (
                 <>
-                  <Field label="Mot de passe" name="password" type="password" autoComplete="new-password" minLength={LIMITS.passwordMinLength} required hint={`${LIMITS.passwordMinLength} caractères minimum.`} error={fields.password} />
-                  <Field label="Confirmer le mot de passe" name="confirm" type="password" autoComplete="new-password" required error={fields.confirm} />
+                  <Field label="Mot de passe (facultatif)" name="password" type="password" autoComplete="new-password" minLength={LIMITS.passwordMinLength} hint={`${LIMITS.passwordMinLength} caractères minimum. Sans mot de passe, vous vous connectez par e-mail (lien ou code).`} error={fields.password} />
+                  <Field label="Confirmer le mot de passe" name="confirm" type="password" autoComplete="new-password" error={fields.confirm} />
                 </>
               )}
 

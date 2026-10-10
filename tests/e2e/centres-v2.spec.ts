@@ -30,8 +30,12 @@ test("centres v2 : changement de centre, vCard, propositions de fiche", async ({
     await page.getByRole("button", { name: "Changer" }).click();
     await page.getByLabel("Rechercher un centre").fill(b.name);
     await page.getByRole("button", { name: new RegExp(b.name) }).first().click();
-    await expect(page.getByText(`Nouveau rattachement : ${b.name}`)).toBeVisible();
-    await page.getByRole("button", { name: "Confirmer" }).click();
+    await expect(page.getByText(`Demande de rattachement : ${b.name}`)).toBeVisible();
+    await page.getByRole("button", { name: "Envoyer la demande" }).click();
+    // Le rattachement n'est plus immédiat : une demande en attente, puis décision (ici par le service com)
+    await expect.poll(async () => (await admin.from("membership_requests").select("id, status").eq("profile_id", agent.id).eq("status", "pending").maybeSingle()).data?.id, { timeout: 15_000 }).toBeTruthy();
+    const { data: req } = await admin.from("membership_requests").select("id").eq("profile_id", agent.id).eq("status", "pending").single();
+    await admin.rpc("apply_membership_decision", { p_request: req!.id, p_accept: true, p_note: null, p_by: null, p_via: "admin" });
     await expect.poll(async () => (await admin.from("profiles").select("center_id").eq("id", agent.id).maybeSingle()).data?.center_id, { timeout: 15_000 }).toBe(b.id);
     const { data: hist } = await admin.from("profile_history").select("field, old_value, new_value").eq("profile_id", agent.id).order("changed_at", { ascending: false }).limit(1);
     expect(hist?.[0]).toMatchObject({ field: "center_id", old_value: a.id, new_value: b.id });

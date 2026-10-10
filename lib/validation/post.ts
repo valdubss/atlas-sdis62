@@ -55,6 +55,7 @@ export const postSchema = z
       ),
     author_display: z.enum(["service_com", "agent"]),
     comments_enabled: z.boolean(),
+    reactions_enabled: z.boolean(),
     pinned: z.boolean(),
     action: z.enum(["draft", "publish", "schedule"]),
     scheduled_at: z

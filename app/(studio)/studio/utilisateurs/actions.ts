@@ -5,9 +5,10 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { friendlyDbError } from "@/lib/validation/comment";
-import type { UserRole } from "@/lib/supabase/database.types";
+import type { Database, UserRole } from "@/lib/supabase/database.types";
 import { LIMITS } from "@/lib/config";
 import { isAllowedEmail } from "@/lib/auth/domains";
+import { sendAccountEmail } from "@/lib/auth/invite";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -85,25 +86,73 @@ export async function deleteUser(userId: string): Promise<Result> {
   return { ok: true };
 }
 
+/** Identité et rattachement, modifiés par un administrateur (sans validation par le chef de centre). */
+const profileSchema = z.object({
+  first_name: z.string().trim().max(60).default(""),
+  last_name: z.string().trim().max(60).default(""),
+  center_id: z.string().trim().transform((s) => s || null).refine((s) => s === null || z.uuid().safeParse(s).success, "Centre invalide."),
+  service_id: z.string().trim().transform((s) => s || null).refine((s) => s === null || z.uuid().safeParse(s).success, "Service invalide."),
+});
+
+export async function updateUserProfile(userId: string, input: unknown): Promise<Result> {
+  if (!z.uuid().safeParse(userId).success) return { ok: false, error: "Identifiant invalide." };
+  const parsed = profileSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Valeur invalide." };
+  const { supabase, user, error } = await requireAdmin();
+  if (!user) return { ok: false, error: error! };
+  const v = parsed.data;
+  const row = { first_name: v.first_name, last_name: v.last_name, center_id: v.service_id ? null : v.center_id, service_id: v.center_id ? null : v.service_id, center_joined_at: v.center_id ? new Date().toISOString().slice(0, 10) : null };
+  const { data: before } = await supabase.from("profiles").select("center_id, center_joined_at").eq("id", userId).maybeSingle();
+  if (before && before.center_id === row.center_id) row.center_joined_at = before.center_joined_at;
+  const { error: dbError } = await supabase.from("profiles").update(row).eq("id", userId);
+  if (dbError) return { ok: false, error: friendlyDbError(dbError.message) };
+  // Un rattachement posé par l'administrateur clôt la demande en attente de l'agent
+  await createAdminClient().from("membership_requests").update({ status: "accepted", decided_at: new Date().toISOString(), decided_by: user.id, decided_via: "admin" }).eq("profile_id", userId).eq("status", "pending");
+  revalidatePath("/studio/utilisateurs");
+  return { ok: true };
+}
+
+/** Renvoie un e-mail de connexion (lien + code) à un agent qui n'arrive pas à se connecter. */
+export async function sendLoginEmail(userId: string): Promise<Result> {
+  if (!z.uuid().safeParse(userId).success) return { ok: false, error: "Identifiant invalide." };
+  const { supabase, user, error } = await requireAdmin();
+  if (!user) return { ok: false, error: error! };
+  const { data: target } = await supabase.from("profiles").select("email, first_name, onboarded_at").eq("id", userId).maybeSingle();
+  if (!target) return { ok: false, error: "Compte introuvable." };
+  return sendAccountEmail(target.onboarded_at ? "magiclink" : "invite", target.email, { firstName: target.first_name, by: `${user.email ?? "un administrateur"}` });
+}
+
+/** Envoie un e-mail de réinitialisation du mot de passe (l'agent le choisit lui-même). */
+export async function sendPasswordReset(userId: string): Promise<Result> {
+  if (!z.uuid().safeParse(userId).success) return { ok: false, error: "Identifiant invalide." };
+  const { supabase, user, error } = await requireAdmin();
+  if (!user) return { ok: false, error: error! };
+  const { data: target } = await supabase.from("profiles").select("email, first_name").eq("id", userId).maybeSingle();
+  if (!target) return { ok: false, error: "Compte introuvable." };
+  return sendAccountEmail("recovery", target.email, { firstName: target.first_name });
+}
+
 const createSchema = z.object({
   email: z.string().trim().toLowerCase().email("Adresse e-mail invalide.").max(160),
-  password: z.string().min(LIMITS.passwordMinLength, `${LIMITS.passwordMinLength} caractères minimum.`).max(200),
+  password: z.string().max(200).refine((p) => p === "" || p.length >= LIMITS.passwordMinLength, `${LIMITS.passwordMinLength} caractères minimum.`),
+  center_id: z.string().trim().transform((s) => s || null).refine((s) => s === null || z.uuid().safeParse(s).success, "Centre invalide."),
   first_name: z.string().trim().max(60).optional().default(""),
   last_name: z.string().trim().max(60).optional().default(""),
   role: z.enum(["reader", "editor", "admin"]).default("reader"),
 });
 
-export type CreateUserState = { status: "idle" } | { status: "created"; email: string } | { status: "error"; message: string; fields?: Record<string, string> };
+export type CreateUserState = { status: "idle" } | { status: "created"; email: string; invited: boolean; warning?: string } | { status: "error"; message: string; fields?: Record<string, string> };
 
 /**
- * Création d'un compte par un administrateur : adresse + mot de passe initial
- * (modifiable ensuite par l'agent dans son profil), prénom, nom et rôle.
- * Le compte est confirmé d'office ; l'agent voit l'accueil au premier accès.
+ * Création d'un compte par un administrateur : par défaut une invitation par
+ * e-mail (lien + code), sans mot de passe. Un mot de passe initial reste possible
+ * pour les cas particuliers. Prénom, nom, rôle et centre sont posés directement.
  */
 export async function createUser(_prev: CreateUserState, formData: FormData): Promise<CreateUserState> {
   const parsed = createSchema.safeParse({
     email: formData.get("email") ?? "",
     password: formData.get("password") ?? "",
+    center_id: formData.get("center_id") ?? "",
     first_name: formData.get("first_name") ?? "",
     last_name: formData.get("last_name") ?? "",
     role: formData.get("role") ?? "reader",
@@ -124,7 +173,7 @@ export async function createUser(_prev: CreateUserState, formData: FormData): Pr
   const admin = createAdminClient();
   const { data, error: createError } = await admin.auth.admin.createUser({
     email: v.email,
-    password: v.password,
+    ...(v.password ? { password: v.password } : {}),
     email_confirm: true,
     user_metadata: { first_name: v.first_name, last_name: v.last_name },
   });
@@ -135,10 +184,21 @@ export async function createUser(_prev: CreateUserState, formData: FormData): Pr
     console.error("createUser", msg);
     return { status: "error", message: "Création impossible : " + msg };
   }
-  if (v.role !== "reader") {
-    const { error: roleError } = await admin.from("profiles").update({ role: v.role }).eq("id", data.user.id);
-    if (roleError) console.error("createUser role", roleError.message);
+  const patch: Database["public"]["Tables"]["profiles"]["Update"] = {};
+  if (v.role !== "reader") patch.role = v.role;
+  if (v.center_id) {
+    patch.center_id = v.center_id;
+    patch.center_joined_at = new Date().toISOString().slice(0, 10);
+  }
+  if (Object.keys(patch).length > 0) {
+    const { error: patchError } = await admin.from("profiles").update(patch).eq("id", data.user.id);
+    if (patchError) console.error("createUser profil", patchError.message);
   }
   revalidatePath("/studio/utilisateurs");
-  return { status: "created", email: v.email };
+  let warning: string | undefined;
+  if (!v.password) {
+    const sent = await sendAccountEmail("invite", v.email, { firstName: v.first_name, by: `${user.email ?? "un administrateur"}` });
+    if (!sent.ok) warning = "Compte créé, mais l'invitation n'a pas pu partir : " + sent.error;
+  }
+  return { status: "created", email: v.email, invited: !v.password, warning };
 }

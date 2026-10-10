@@ -5,9 +5,13 @@ import { useState, useTransition } from "react";
 import {
   deleteUser,
   exportUserData,
+  sendLoginEmail,
+  sendPasswordReset,
   setUserActive,
   setUserRole,
+  updateUserProfile,
 } from "@/app/(studio)/studio/utilisateurs/actions";
+import { Field, SelectField } from "@/components/ui/Field";
 import type { UserRole } from "@/lib/supabase/database.types";
 import { ROLE_LABELS } from "@/lib/config";
 import { formatDateLong } from "@/lib/format";
@@ -27,8 +31,14 @@ export type UserRow = {
   role: UserRole;
   is_active: boolean;
   created_at: string;
+  onboarded_at: string | null;
+  center_id: string | null;
+  service_id: string | null;
   center: { name: string } | null;
+  service: { name: string } | null;
 };
+
+type Ref = { id: string; name: string };
 
 /**
  * Gestion des comptes (administrateur) : rôle, désactivation, export et
@@ -38,10 +48,14 @@ export function UsersTable({
   users,
   meId,
   q,
+  centers = [],
+  services = [],
 }: {
   users: UserRow[];
   meId: string;
   q: string;
+  centers?: Ref[];
+  services?: Ref[];
 }) {
   const router = useRouter();
   const [selected, setSelected] = useState<UserRow | null>(null);
@@ -49,6 +63,22 @@ export function UsersTable({
   const [search, setSearch] = useState(q);
   const [pending, start] = useTransition();
   const toast = useToast();
+  const [identity, setIdentity] = useState({ first_name: "", last_name: "", target: "" });
+
+  function select(u: UserRow | null) {
+    setSelected(u);
+    if (u) setIdentity({ first_name: u.first_name, last_name: u.last_name, target: u.center_id ? `c:${u.center_id}` : u.service_id ? `s:${u.service_id}` : "" });
+  }
+
+  function saveIdentity() {
+    if (!selected) return;
+    const [kind, id] = identity.target.split(":");
+    start(async () => {
+      const r = await updateUserProfile(selected.id, { first_name: identity.first_name, last_name: identity.last_name, center_id: kind === "c" ? id : "", service_id: kind === "s" ? id : "" });
+      toast(r.ok ? "Profil enregistré" : r.error);
+      if (r.ok) router.refresh();
+    });
+  }
 
   function run(
     fn: () => Promise<{ ok: boolean; error?: string }>,
@@ -131,9 +161,7 @@ export function UsersTable({
       </div>
 
       <p className="text-[13px] text-text-3">
-        Un compte est créé automatiquement à la première connexion d&apos;une
-        adresse autorisée, avec le rôle Agent. Vous pouvez aussi créer un compte
-        vous-même, avec un mot de passe initial.
+        Toute adresse @sdis62.fr crée son compte à la première connexion (lien ou code reçu par e-mail), avec le rôle Agent et un rattachement validé par le chef de centre. Vous pouvez aussi inviter un agent : il reçoit l&apos;e-mail de connexion, et vous posez son rôle et son centre directement.
       </p>
 
       <Sheet
@@ -141,7 +169,7 @@ export function UsersTable({
         onClose={() => setCreating(false)}
         title="Créer un compte"
       >
-        {creating && <CreateUserForm onDone={() => setCreating(false)} />}
+        {creating && <CreateUserForm onDone={() => setCreating(false)} centers={centers} />}
       </Sheet>
 
       <div className="hairline rounded-[16px] bg-bg-1">
@@ -156,7 +184,7 @@ export function UsersTable({
               <button
                 key={u.id}
                 type="button"
-                onClick={() => setSelected(u)}
+                onClick={() => select(u)}
                 className={cn(
                   "flex w-full items-center gap-4 px-5 py-3 text-left",
                   !u.is_active && "opacity-50",
@@ -169,7 +197,8 @@ export function UsersTable({
                   </span>
                   <span className="block truncate text-[13px] text-text-3">
                     {u.email}
-                    {u.center && `, ${u.center.name}`}
+                    {u.center ? `, ${u.center.name}` : u.service ? `, ${u.service.name}` : ""}
+                    {!u.onboarded_at && " · jamais connecté"}
                   </span>
                 </span>
                 <span className="hidden text-[13px] text-text-3 sm:block">
@@ -186,7 +215,7 @@ export function UsersTable({
 
       <Sheet
         open={selected !== null}
-        onClose={() => setSelected(null)}
+        onClose={() => select(null)}
         title={
           selected
             ? `${selected.first_name} ${selected.last_name}`.trim() ||
@@ -199,10 +228,47 @@ export function UsersTable({
             <div className="text-[13px] text-text-3">
               <p>{selected.email}</p>
               <p>
-                {selected.center?.name ?? "Centre non renseigné"}, compte créé
-                le {formatDateLong(selected.created_at)}
+                Compte créé le {formatDateLong(selected.created_at)}
+                {selected.onboarded_at ? "" : ", jamais connecté"}
               </p>
             </div>
+
+            <section className="space-y-3">
+              <p className="text-[13px] font-medium text-text-2">Identité et rattachement</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label="Prénom" name="first_name" value={identity.first_name} onChange={(e) => setIdentity((v) => ({ ...v, first_name: e.target.value }))} maxLength={60} />
+                <Field label="Nom" name="last_name" value={identity.last_name} onChange={(e) => setIdentity((v) => ({ ...v, last_name: e.target.value }))} maxLength={60} />
+              </div>
+              <SelectField label="Centre ou service" name="target" value={identity.target} onChange={(e) => setIdentity((v) => ({ ...v, target: e.target.value }))} hint="Posé directement, sans validation par le chef de centre.">
+                <option value="">Aucun</option>
+                {centers.map((c) => (
+                  <option key={c.id} value={`c:${c.id}`}>
+                    {c.name}
+                  </option>
+                ))}
+                {services.map((s) => (
+                  <option key={s.id} value={`s:${s.id}`}>
+                    {s.name}
+                  </option>
+                ))}
+              </SelectField>
+              <Button variant="secondary" size="md" loading={pending} onClick={saveIdentity}>
+                Enregistrer
+              </Button>
+            </section>
+
+            <section className="space-y-2">
+              <p className="text-[13px] font-medium text-text-2">Connexion</p>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="secondary" size="md" disabled={pending} onClick={() => run(() => sendLoginEmail(selected.id), `E-mail de connexion envoyé à ${selected.email}`)}>
+                  {selected.onboarded_at ? "Renvoyer un e-mail de connexion" : "Renvoyer l'invitation"}
+                </Button>
+                <Button variant="secondary" size="md" disabled={pending} onClick={() => run(() => sendPasswordReset(selected.id), `E-mail de mot de passe envoyé à ${selected.email}`)}>
+                  Réinitialiser le mot de passe
+                </Button>
+              </div>
+              <p className="text-[13px] text-text-3">L&apos;agent reçoit un lien et un code valables une heure ; le mot de passe, s&apos;il en veut un, se choisit dans son profil.</p>
+            </section>
 
             <section className="space-y-2">
               <p className="text-[13px] font-medium text-text-2">Rôle</p>

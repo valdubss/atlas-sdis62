@@ -24,12 +24,11 @@ test("référent → validation → page du centre, push en file, fil intact", a
     // Référent : rattachement puis proposition
     const rctx = await browser.newContext();
     const r = await rctx.newPage();
+    // Le rattachement passe désormais par une demande validée : le référent est rattaché directement (service_role)
+    await admin.from("profiles").update({ center_id: center!.id }).eq("id", referent.id);
     await loginWithPassword(r, referent.email, referent.password);
-    await r.goto("/centre");
-    await r.getByLabel("Rechercher un centre").fill(stamp);
-    await r.getByRole("button", { name: new RegExp(`CIS Test ${stamp}`) }).click();
-    await r.waitForURL(`**/centre/${center!.slug}`);
-    await r.getByRole("button", { name: /Proposer/ }).click();
+    await r.goto(`/centre/${center!.slug}`, { waitUntil: "networkidle" });
+    await r.getByRole("button", { name: /Proposer|Ajouter/ }).click();
     await r.getByLabel("Titre (facultatif)").fill(`Actu test ${stamp}`);
     await r.getByLabel("Votre actu").fill("Manœuvre du samedi matin.");
     await r.getByRole("button", { name: "Envoyer la proposition" }).click();

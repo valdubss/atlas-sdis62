@@ -251,6 +251,8 @@ export async function runMaintenance(): Promise<{ requeued: number; orphanMedia:
     const { getVideoProvider } = await import("@/lib/video/provider");
     await (await getVideoProvider()).run(pendingVideo[0].id, 40_000).catch((e) => console.error("transcodage", e));
   }
+  // Demandes de rattachement sans réponse depuis sept jours
+  await admin.rpc("expire_membership_requests").then(({ error }) => error && console.error("expiration rattachements", error.message));
   // Rappels d'événements de demain (notification dans l'app, pas de push)
   await admin.rpc("notify_events_tomorrow").then(({ error }) => error && console.error("rappels agenda", error.message));
   // Messagerie : rappel 48 h avant la fin d'un groupe, archivage à l'échéance, purge > 24 mois

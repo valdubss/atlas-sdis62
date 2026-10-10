@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { sendMagicLink, signInWithPassword, startSso, type LoginState } from "./actions";
+import { sendMagicLink, signInWithPassword, startSso, verifyEmailCode, type LoginState } from "./actions";
 import type { AuthSettings } from "@/lib/auth/providers";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -13,25 +13,53 @@ type Mode = "password" | "link";
 const input = "h-11 w-full rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge";
 
 /**
- * Connexion : SSO Microsoft en premier s'il est configuré, puis e-mail + mot de
- * passe, puis « première connexion ou mot de passe oublié » (lien e-mail).
- * Un seul bouton rouge : le SSO s'il existe, sinon le bouton du mode courant.
+ * Connexion : SSO Microsoft en premier s'il est configuré, sinon l'e-mail
+ * professionnel (lien magique + code à six chiffres dans le même e-mail).
+ * Le mot de passe reste une option pour ceux qui en ont défini un.
  */
 export function LoginForm({ next, auth }: { next: string; domains?: string[]; auth: AuthSettings }) {
-  const [mode, setMode] = useState<Mode>(auth.passwordEnabled ? "password" : "link");
+  const [mode, setMode] = useState<Mode>(auth.magicLinkEnabled ? "link" : "password");
   const [pwdState, pwdAction, pwdPending] = useActionState(signInWithPassword, initial);
   const [linkState, linkAction, linkPending] = useActionState(sendMagicLink, initial);
   const [ssoState, ssoAction, ssoPending] = useActionState(startSso, initial);
+  const [codeState, codeAction, codePending] = useActionState(verifyEmailCode, initial);
   const [showPassword, setShowPassword] = useState(false);
 
-  if (linkState.status === "sent") {
+  const sent = linkState.status === "sent" ? linkState : codeState.status === "sent" ? codeState : null;
+  if (sent) {
     return (
-      <div className="space-y-2" role="status" aria-live="polite">
-        <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">Lien envoyé</p>
-        <p className="text-[15px] text-text-2">
-          Ouvrez l&apos;e-mail reçu sur <span className="text-text-1">{linkState.email}</span> et touchez le lien : vous choisirez ensuite votre mot de passe. Le lien est valable une heure.
-        </p>
-        <p className="text-[13px] text-text-3">Rien reçu ? Vérifiez vos indésirables, puis réessayez dans quelques minutes.</p>
+      <div className="space-y-4" role="status" aria-live="polite">
+        <div className="space-y-1">
+          <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">E-mail envoyé</p>
+          <p className="text-[15px] text-text-2">
+            Sur <span className="text-text-1">{sent.email}</span> : touchez le lien, ou saisissez ici le code à six chiffres qui figure dans l&apos;e-mail. Valable une heure.
+          </p>
+        </div>
+        <form action={codeAction} className="space-y-3" noValidate>
+          <input type="hidden" name="email" value={sent.email} />
+          <input type="hidden" name="next" value={sent.next} />
+          <input
+            name="code"
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="one-time-code"
+            maxLength={6}
+            placeholder="Code à 6 chiffres"
+            aria-label="Code reçu par e-mail"
+            autoFocus
+            className={cn(input, "text-center text-[22px] tracking-[0.3em]", codeState.status === "error" && "ring-red")}
+          />
+          {codeState.status === "error" && (
+            <p className="text-[13px] text-red-text" role="alert">
+              {codeState.message}
+            </p>
+          )}
+          <Button type="submit" className="w-full" loading={codePending}>
+            Valider le code
+          </Button>
+        </form>
+        <p className="text-[13px] text-text-3">Rien reçu ? Vérifiez vos indésirables. Le code et le lien arrivent dans le même e-mail ; si la messagerie du SDIS a déjà « ouvert » le lien, le code fonctionne quand même.</p>
       </div>
     );
   }
@@ -42,7 +70,7 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
 
   return (
     <div className="space-y-4">
-      <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">{auth.ssoForced ? "Connexion" : mode === "password" || auth.ssoEnabled ? "Connexion" : "Première connexion"}</p>
+      <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">Connexion</p>
 
       {auth.ssoEnabled && (
         <form action={ssoAction} className="space-y-3">
@@ -96,8 +124,8 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
 
       {!auth.ssoForced && mode === "link" && auth.magicLinkEnabled && (
         <form action={linkAction} className="space-y-3" noValidate>
-          <input type="hidden" name="next" value={next && next !== "/" ? next : "/bienvenue?mdp=1"} />
-          <p className="text-[15px] text-text-2">Saisissez votre adresse : vous recevrez un lien pour créer votre mot de passe.</p>
+          <input type="hidden" name="next" value={next && next !== "/" ? next : "/"} />
+          <p className="text-[15px] text-text-2">Votre adresse @sdis62.fr : vous recevez un e-mail avec un lien et un code de connexion. Aucun mot de passe à retenir.</p>
           <input name="email" type="email" autoComplete="email" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail" required className={cn(input, error && "ring-red")} />
           {error && (
             <p className="text-[13px] text-red-text" role="alert">
@@ -105,7 +133,7 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
             </p>
           )}
           <Button type="submit" variant={secondaryVariant} className="w-full" loading={linkPending}>
-            Recevoir mon lien
+            Recevoir mon e-mail de connexion
           </Button>
         </form>
       )}
@@ -116,7 +144,7 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
           onClick={() => setMode((m) => (m === "password" ? "link" : "password"))}
           className="block w-full text-center text-[15px] font-medium text-text-2 hover:text-text-1"
         >
-          {mode === "password" ? "Première connexion ou mot de passe oublié" : "J'ai déjà un mot de passe"}
+          {mode === "password" ? "Me connecter par e-mail (sans mot de passe)" : "J'ai un mot de passe"}
         </button>
       )}
     </div>

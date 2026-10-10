@@ -48,6 +48,9 @@ export async function createTestUser(admin: SupabaseClient, label: string) {
 
 export async function loginWithPassword(page: Page, email: string, password: string) {
   await page.goto("/login", { waitUntil: "networkidle" });
+  // L'écran propose d'abord l'e-mail (lien + code) : on bascule vers le mot de passe
+  const toggle = page.getByRole("button", { name: "J'ai un mot de passe" });
+  if (await toggle.isVisible().catch(() => false)) await toggle.click();
   await page.getByLabel("Adresse e-mail").first().fill(email);
   await page.getByRole("textbox", { name: "Mot de passe" }).fill(password);
   await page.getByRole("button", { name: "Se connecter" }).click();

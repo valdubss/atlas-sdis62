@@ -52,7 +52,7 @@ export function CenterPicker({ directory, mode, currentCenterId, currentServiceI
         toast(r.error);
         return;
       }
-      toast("Rattachement enregistré");
+      toast(r.recipient ? "Demande envoyée à votre chef de centre" : "Demande enregistrée");
       router.push(r.href);
       router.refresh();
     });
