@@ -20,6 +20,9 @@ import { fetchTeam } from "@/lib/centres/directory";
 import { MembershipRequests } from "@/components/centre/MembershipRequests";
 import { CenterContactsAdmin } from "@/components/centre/CenterContactsAdmin";
 import { fetchCenterRequests } from "@/lib/membership/request";
+import { NOTE_ROLE_LABELS, type NoteAuthorRole } from "@/lib/centres/notes";
+import { fetchCenterNotes } from "@/lib/centres/notes-server";
+import { CenterFeeds } from "@/components/centre/CenterNotes";
 
 export const dynamic = "force-dynamic";
 
@@ -34,15 +37,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
  * du centre, photos. Les contenus restent ici : ils n'entrent jamais dans le
  * fil départemental.
  */
-export default async function CenterPage({ params }: { params: Promise<{ slug: string }> }) {
-  const [{ slug }, current] = await Promise.all([params, getCurrentUser()]);
+export default async function CenterPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ onglet?: string }> }) {
+  const [{ slug }, { onglet }, current] = await Promise.all([params, searchParams, getCurrentUser()]);
   if (!current) redirect("/auth/deconnexion?raison=profil");
   const center = await fetchCenterBySlug(slug);
   if (!center) notFound();
   const { profile } = current;
   const supabase = await createClient();
 
-  const [week, newcomers, photos, posts, follows, referent, home, team, canManage, fallback, requests] = await Promise.all([
+  const [week, newcomers, photos, posts, follows, referent, home, team, canManage, fallback, requests, notes, myRole] = await Promise.all([
     fetchCenterWeek(center.id),
     fetchNewcomers(center.id),
     fetchCenterPhotos(center.id),
@@ -55,6 +58,9 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
     supabase.from("app_settings").select("value").eq("key", "membership_fallback_email").maybeSingle().then((r) => (typeof r.data?.value === "string" ? (r.data.value as string) : null)),
     // Demandes en attente : chargées en même temps que le reste (vides si l'agent n'est pas responsable)
     supabase.rpc("can_manage_center", { p_center: center.id }).then((r) => (r.data ? fetchCenterRequests(center.id) : [])),
+    // Notes de service : vides si l'agent n'est ni membre ni responsable (RLS)
+    fetchCenterNotes(center.id),
+    supabase.rpc("center_author_role", { p_center: center.id, p_profile: profile.id }).then((r) => (r.data ?? null) as NoteAuthorRole),
   ]);
   const isAdmin = profile.role === "admin";
   void supabase.rpc("record_page_view", { p_kind: "center", p_target: center.id }).then(() => undefined, () => undefined);
@@ -62,6 +68,8 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
   const isHome = profile.center_id === center.id;
   const following = follows.some((f) => f.id === center.id);
   const canModerate = isEditorRole(profile.role);
+  const canSeeNotes = isHome || canManage;
+  const roleLabel = myRole && myRole !== "service_com" && canManage ? NOTE_ROLE_LABELS[myRole] : null;
 
   return (
     <div className="space-y-3">
@@ -77,13 +85,17 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
             </div>
           )}
           <CenterIdentity center={center} />
+          {roleLabel && (
+            <p className="rounded-[12px] bg-bg-1 px-4 py-2.5 text-[13px] text-text-2">
+              <span className="font-semibold text-text-1">{roleLabel}</span> · vous publiez les notes de service du centre, visibles de ses seuls membres.
+            </p>
+          )}
           {isAdmin && <CenterContactsAdmin centerId={center.id} contacts={{ chief_name: center.chief_name, chief_email: center.chief_email, com_name: center.com_name, com_email: center.com_email }} fallbackEmail={fallback} />}
           {canManage && <MembershipRequests requests={requests} targetName={center.name} />}
           <CenterWeek events={week} />
           <CenterNewcomers people={newcomers} />
           <CenterTeam people={team} />
-          <section className="space-y-2">
-            <h2 className="px-1 text-[17px] font-semibold tracking-[-0.02em] text-text-1">Actus du centre</h2>
+          <CenterFeeds centerId={center.id} centerName={center.name} notes={notes} canSeeNotes={canSeeNotes} canManage={canManage} initialTab={onglet === "notes" ? "notes" : "actus"}>
             <InfiniteFeed
               initial={posts}
               hasMore={posts.length >= FEED_PAGE_SIZE}
@@ -92,7 +104,7 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
               emptyTitle="Pas encore d'actu"
               emptyDescription={referent ? "Proposez la première : elle sera publiée ici après validation." : "Les actus proposées par les référents du centre apparaîtront ici."}
             />
-          </section>
+          </CenterFeeds>
           <CenterPhotos photos={photos} />
         </div>
       </PullToRefresh>

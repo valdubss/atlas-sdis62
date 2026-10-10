@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-motion";
-import { AlertTriangle, CalendarDays, MessageCircle, Newspaper, Reply, MessageSquare, Flame, BookUser, Trash2, type LucideIcon } from "lucide-react";
+import { AlertTriangle, FileText, CalendarDays, MessageCircle, Newspaper, Reply, MessageSquare, Flame, BookUser, Trash2, type LucideIcon } from "lucide-react";
 import type { NotificationItem } from "@/lib/notifications/queries";
 import { deleteNotification, markAllRead } from "@/app/(app)/notifications/actions";
 import { useToast } from "@/components/ui/Toast";
@@ -12,7 +12,7 @@ import { formatRelative } from "@/lib/format";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 
-const ICONS: Record<string, LucideIcon> = { post: Newspaper, flash: AlertTriangle, reply: Reply, event: CalendarDays, story_reply: MessageCircle, message: MessageSquare, center: Flame, directory: BookUser, membership: Flame, coeditor: Newspaper };
+const ICONS: Record<string, LucideIcon> = { post: Newspaper, flash: AlertTriangle, reply: Reply, event: CalendarDays, story_reply: MessageCircle, message: MessageSquare, center: Flame, directory: BookUser, membership: Flame, coeditor: Newspaper, note: FileText };
 
 /** Seuil de balayage (px) au-delà duquel la notification est supprimée. */
 const SWIPE_DELETE = 96;

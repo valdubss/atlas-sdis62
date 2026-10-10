@@ -118,6 +118,7 @@ redirige vers `/login`.
 | `0033_profiles_email_privacy.sql` | `profiles.email` réservé aux éditeurs (privilèges de colonne, vue `profiles_editor`) |
 | `0034_messaging_v2.sql` | messagerie v2 : `edited_at` (modification 15 min), `message_by_id`, `channel_messages_since` (rattrapage après coupure), `channel_reads_state` (coches « lu »), `channel_reads` publié en temps réel, identité de réplication complète, membres implicites signalés dans `channel_info`, pushs : une par minute et par conversation, une mention passe toujours |
 | `0035_storage_mime_fix.sql` | correctif du bucket `media` (régression 0032) : familles `image/*`, `video/*`, `audio/*` en joker, HLS, sous-titres, PDF / Word ; sans lui, transcodage vidéo, messages vocaux et fichiers de la messagerie étaient refusés (415) |
+| `0036_center_notes.sql` | notes de service (fil interne du centre) : table `center_notes` (PDF ou image, épinglage), lecture réservée aux membres du centre et aux responsables, écriture par le chef de centre, le responsable com et le service communication (`can_manage_center`), `center_notes_list`, `center_author_role`, notification `note` (cloche + push « mon centre ») |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -585,6 +586,13 @@ docs/ARCHITECTURE.md       plan d'architecture
 
 ## 7c. Fil, carrousel, articles, recherche
 
+- **Commentaires** (refonte d'octobre 2026) : feuille à hauteur fixe avec composeur épinglé
+  (suit le clavier), fils à un niveau repliés sous « Voir les N réponses », réponse à une
+  réponse préfixée par le prénom, envoi optimiste (« Envoi… »), compteur dans le titre,
+  signalement en place, modération (masquer / rétablir) pour le service communication. Les
+  feuilles et visionneuses sont rendues sous `<body>` (`components/ui/Portal.tsx`) : un
+  ancêtre transformé ou en `content-visibility` ne peut plus les figer dans la page.
+
 - **Carrousel** : points de position, légende par photo (13 px, repliable, saisie
   dans le studio sous chaque photo), double-tap = ❤️ avec animation, aperçu flou
   20 px (LQIP généré avec les variantes) sous chaque image, photo suivante et
@@ -704,6 +712,28 @@ $$);
   ou `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS`.
 - **Préférences** (profil) : notifications sur cet appareil, nouvelles publications,
   publications épinglées, résumé hebdomadaire.
+
+## 7j. Notes de service : le fil interne du centre
+
+- **Deux fils sur la page d'un centre** : « Actus » (propositions des référents validées
+  par le service communication, visibles de tous) et « Notes de service », fil interne
+  réservé aux membres du centre (et au service communication). Un agent d'un autre centre
+  ne voit pas l'onglet. Lien profond : `/centre/<slug>?onglet=notes`.
+- **Qui publie** : le chef de centre et le responsable communication du centre (contacts
+  saisis par un administrateur sur la page du centre, ou référent désigné), directement et
+  sans relecture, mais seulement dans leur centre ; le service communication publie dans
+  le fil départemental et peut aussi publier une note dans n'importe quel centre. Le rôle
+  est rappelé au responsable en haut de la page (« Chef de centre · vous publiez les notes
+  de service du centre »).
+- **Une note** = un document PDF (≤ 25 Mo) ou une image (réduite sur l'appareil), un titre,
+  un texte facultatif, épinglage en tête. Ni réactions ni commentaires. Les fichiers sont
+  envoyés directement au stockage sous `notes/<centre>/…`. Menu « ⋯ » (épingler, retirer).
+- **Membres prévenus** : notification dans la cloche (« Note de service · CIS X ») et push
+  « Nouveautés de mon centre » (préférence existante), une seule push par note. Pastille
+  « N nouvelles » sur l'onglet et point rouge sur les notes non encore vues sur l'appareil.
+- Fichiers : `supabase/migrations/0036_center_notes.sql`, `lib/centres/notes.ts`,
+  `app/(app)/centre/notes-actions.ts`, `components/centre/CenterNotes.tsx` (onglets + liste),
+  `components/centre/NoteComposer.tsx`. Test : `tests/e2e/centre-notes.spec.ts`.
 
 ## 7i. Comptes, rattachement validé, co-rédacteurs, événements de centre (v3, lot comptes)
 

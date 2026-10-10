@@ -243,6 +243,23 @@ type CenterRow = {
   com_email: string | null;
 };
 
+type CenterNoteRow = {
+  id: string;
+  center_id: string;
+  author_id: string | null;
+  title: string;
+  body: string | null;
+  kind: "pdf" | "image";
+  file_key: string;
+  file_name: string | null;
+  file_size: number;
+  width: number | null;
+  height: number | null;
+  pinned: boolean;
+  published_at: Timestamp;
+  deleted_at: Timestamp | null;
+  created_at: Timestamp;
+};
 type MembershipRequestRow = {
   id: string;
   profile_id: string;
@@ -364,6 +381,12 @@ export type Database = {
         Row: { user_id: string; bucket: string; created_at: Timestamp };
         Insert: { user_id: string; bucket: string; created_at?: Timestamp };
         Update: Partial<{ user_id: string; bucket: string; created_at: Timestamp }>;
+        Relationships: [];
+      };
+      center_notes: {
+        Row: CenterNoteRow;
+        Insert: Optional<CenterNoteRow, "id" | "author_id" | "body" | "file_name" | "file_size" | "width" | "height" | "pinned" | "published_at" | "deleted_at" | "created_at">;
+        Update: Partial<CenterNoteRow>;
         Relationships: [];
       };
       membership_requests: {
@@ -763,6 +786,8 @@ export type Database = {
       is_center_chief: { Args: { p_center: string }; Returns: boolean };
       is_center_com: { Args: { p_center: string }; Returns: boolean };
       can_manage_center: { Args: { p_center: string }; Returns: boolean };
+      center_notes_list: { Args: { p_center: string; p_limit?: number }; Returns: Json[] };
+      center_author_role: { Args: { p_center: string; p_profile: string }; Returns: string | null };
       is_post_coeditor: { Args: { p_post: string }; Returns: boolean };
       request_membership: { Args: { p_center?: string | null; p_service?: string | null }; Returns: Json };
       decide_membership: { Args: { p_request: string; p_accept: boolean; p_note?: string | null }; Returns: Json };
