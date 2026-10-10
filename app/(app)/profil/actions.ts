@@ -71,13 +71,14 @@ export async function setPassword(
 
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {
-    const weak = /weak|pwned|leaked|compromised/i.test(error.message);
-    return {
-      status: "error",
-      message: weak
-        ? "Ce mot de passe est trop faible ou connu dans des fuites de données. Choisissez-en un autre."
-        : "Modification impossible. Reconnectez-vous puis réessayez.",
-    };
+    const m = error.message;
+    // Raisons renvoyées par Supabase Auth, traduites pour l'agent
+    if (/different from the old|same password|same_password/i.test(m)) return { status: "error", message: "C'est déjà votre mot de passe actuel : choisissez-en un différent." };
+    if (/weak|pwned|leaked|compromised/i.test(m)) return { status: "error", message: "Ce mot de passe est trop faible ou connu dans des fuites de données. Choisissez-en un autre." };
+    if (/should contain|at least|characters|requirements/i.test(m)) return { status: "error", message: "Mot de passe refusé : " + m };
+    if (/reauthent|nonce/i.test(m)) return { status: "error", message: "Par sécurité, reconnectez-vous avec le lien e-mail puis enregistrez le mot de passe dans la foulée." };
+    if (/session|jwt|token|expired/i.test(m)) return { status: "error", message: "Votre session a expiré : reconnectez-vous avec le lien e-mail puis réessayez." };
+    return { status: "error", message: "Modification impossible (" + m + "). Reconnectez-vous puis réessayez." };
   }
 
   return { status: "saved" };
