@@ -599,6 +599,11 @@ docs/ARCHITECTURE.md       plan d'architecture
   suppression définitive par un administrateur (politique `comments_delete_admin`). Les
   feuilles et visionneuses sont rendues sous `<body>` (`components/ui/Portal.tsx`) : un
   ancêtre transformé ou en `content-visibility` ne peut plus les figer dans la page.
+- **Visionneuse** : pincement autour du point pincé, double-tap vers le point touché (×2,5),
+  déplacement au doigt borné aux bords de la photo, zoom ×4 au plus ; gestes écoutés en
+  natif (non passifs) pour que la galerie ne défile pas pendant un pincement ; zoom remis à 1
+  au changement de photo. Test du parcours comptes : `tests/e2e/parcours-comptes.spec.ts`
+  (nouvel agent par lien et code, accueil, fil ; administrateur : rôle et création).
 
 - **Carrousel** : points de position, légende par photo (13 px, repliable, saisie
   dans le studio sous chaque photo), double-tap = ❤️ avec animation, aperçu flou
