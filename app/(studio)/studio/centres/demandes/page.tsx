@@ -16,7 +16,7 @@ export default async function MembershipRequestsPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("membership_requests")
-    .select("id, status, requested_at, expires_at, decided_at, decided_via, note, recipient_email, profile:profiles!membership_requests_profile_id_fkey(id, first_name, last_name, email, avatar_key, job_title), center:centers!membership_requests_center_id_fkey(name), service:services!membership_requests_service_id_fkey(name)")
+    .select("id, status, requested_at, expires_at, decided_at, decided_via, note, recipient_email, profile:profiles!membership_requests_profile_id_fkey(id, first_name, last_name, avatar_key, job_title), center:centers!membership_requests_center_id_fkey(name), service:services!membership_requests_service_id_fkey(name)")
     .order("requested_at", { ascending: false })
     .limit(200);
   const rows = (data ?? []) as unknown as Row[];
@@ -49,7 +49,7 @@ export default async function MembershipRequestsPage() {
             {done.map((r) => (
               <li key={r.id} className="flex items-center gap-3 px-5 py-3 text-[13px]">
                 <span className="min-w-0 flex-1 truncate text-text-1">
-                  {r.profile ? `${r.profile.first_name} ${r.profile.last_name}`.trim() || r.profile.email : "Agent"} → {r.center?.name ?? r.service?.name ?? "—"}
+                  {r.profile ? `${r.profile.first_name} ${r.profile.last_name}`.trim() || "Agent" : "Agent"} → {r.center?.name ?? r.service?.name ?? "—"}
                 </span>
                 <span className="text-text-3">
                   {STATUS[r.status] ?? r.status}

@@ -37,7 +37,7 @@ export const fetchCenterById = cache(async (id: string): Promise<CenterWithRefs 
   const { data } = await supabase
     .from("centers")
     .select(
-      `*, grouping:groupings!centers_grouping_id_fkey(*), chief:profiles!centers_chief_id_fkey(${PERSON}), cover:media!centers_cover_media_id_fkey(id, variants), referents:center_referents(id, since, ended_at, is_active, profile:profiles!center_referents_profile_id_fkey(${PERSON}, email)), changes:center_changes(id, field, old_value, new_value, proposed_at, decided_at, decision, note, proposer:profiles!center_changes_proposed_by_fkey(${PERSON}))`,
+      `*, grouping:groupings!centers_grouping_id_fkey(*), chief:profiles!centers_chief_id_fkey(${PERSON}), cover:media!centers_cover_media_id_fkey(id, variants), referents:center_referents(id, since, ended_at, is_active, profile:profiles!center_referents_profile_id_fkey(${PERSON})), changes:center_changes(id, field, old_value, new_value, proposed_at, decided_at, decision, note, proposer:profiles!center_changes_proposed_by_fkey(${PERSON}))`,
     )
     .eq("id", id)
     .maybeSingle();

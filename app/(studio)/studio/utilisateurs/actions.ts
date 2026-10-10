@@ -117,7 +117,7 @@ export async function sendLoginEmail(userId: string): Promise<Result> {
   if (!z.uuid().safeParse(userId).success) return { ok: false, error: "Identifiant invalide." };
   const { supabase, user, error } = await requireAdmin();
   if (!user) return { ok: false, error: error! };
-  const { data: target } = await supabase.from("profiles").select("email, first_name, onboarded_at").eq("id", userId).maybeSingle();
+  const { data: target } = await supabase.from("profiles_editor").select("email, first_name, onboarded_at").eq("id", userId).maybeSingle();
   if (!target) return { ok: false, error: "Compte introuvable." };
   return sendAccountEmail(target.onboarded_at ? "magiclink" : "invite", target.email, { firstName: target.first_name, by: `${user.email ?? "un administrateur"}` });
 }
@@ -147,7 +147,7 @@ export async function sendPasswordReset(userId: string): Promise<Result> {
   if (!z.uuid().safeParse(userId).success) return { ok: false, error: "Identifiant invalide." };
   const { supabase, user, error } = await requireAdmin();
   if (!user) return { ok: false, error: error! };
-  const { data: target } = await supabase.from("profiles").select("email, first_name").eq("id", userId).maybeSingle();
+  const { data: target } = await supabase.from("profiles_editor").select("email, first_name").eq("id", userId).maybeSingle();
   if (!target) return { ok: false, error: "Compte introuvable." };
   return sendAccountEmail("recovery", target.email, { firstName: target.first_name });
 }

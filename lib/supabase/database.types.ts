@@ -723,7 +723,9 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      profiles_editor: { Row: ProfileRow; Relationships: [] };
+    };
     Functions: {
       auth_role: { Args: Record<string, never>; Returns: UserRole | null };
       is_admin: { Args: Record<string, never>; Returns: boolean };

@@ -48,11 +48,14 @@ export const getCurrentUser = cache(async () => {
   const user = session ? decodeJwtUser(session.access_token) : null;
   if (!user) return null;
 
+  // La colonne email n'est plus accordée au rôle authenticated (migration 0033) :
+  // on lit les autres colonnes en base et l'adresse dans le jeton de session.
   let { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    .select(PROFILE_COLUMNS)
     .eq("id", user.id)
-    .maybeSingle();
+    .maybeSingle()
+    .then((r) => ({ data: r.data ? ({ ...r.data, email: user.email ?? "" } as Profile) : null }));
 
   if (!profile) {
     // Compte sans profil (créé avant la migration, ou via le dashboard) :
@@ -65,6 +68,9 @@ export const getCurrentUser = cache(async () => {
 
   return { user, profile: profile as Profile };
 });
+
+/** Colonnes de profiles lisibles par tout agent connecté (tout sauf email). */
+export const PROFILE_COLUMNS = "id, first_name, last_name, center_id, service_id, job_title, directory_visible, work_phone, present_me, center_joined_at, role, avatar_key, is_active, onboarded_at, created_at, updated_at";
 
 /** Identité minimale lue dans le jeton (sub, email), sans aller-retour réseau. */
 function decodeJwtUser(token: string): { id: string; email: string | null } | null {

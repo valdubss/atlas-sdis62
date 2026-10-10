@@ -284,7 +284,7 @@ Points clés :
   que refléter ce que la base permet. Les helpers SQL `is_editor()` / `is_admin()`
   lisent la table `profiles`.
 - Le rôle et l'état actif sont **copiés dans le JWT** (`app_metadata`) par trigger,
-  ce qui permet au middleware de protéger `/studio` sans requête ; la page studio
+  ce qui permet au proxy (`proxy.ts`, ex-middleware, Next 16) de protéger `/studio` sans requête ; la page studio
   revérifie en base.
 - Un `reader` ne peut jamais modifier `role`, `is_active` ni `email` (trigger
   `profiles_guard`).
@@ -714,6 +714,15 @@ $$);
   rattachement, notifications, consultations, appareils ; `anonymize_user_data` traite chaque
   table liée avant de retirer le profil. Bucket `media` : envoi direct accepté seulement pour un
   média déclaré par l'agent (`media_tus_insert`), 60 Mo par objet, types bornés.
+- **E-mails des agents** (migration 0033) : la colonne `profiles.email` n'est plus accordée au
+  rôle `authenticated` ; les éditeurs et administrateurs lisent les adresses via la vue
+  `profiles_editor` (vide pour les autres), l'agent lit la sienne dans son jeton. Les jointures
+  côté app ne demandent plus l'adresse (demandes de rattachement, référents).
+- **Next 16** : `middleware.ts` est devenu `proxy.ts` (même contenu), ESLint en configuration
+  plate `eslint-config-next/core-web-vitals` + `typescript` ; les règles du compilateur React
+  sont en avertissement (voir `eslint.config.mjs`). React 19.2, MapLibre 6.
+- **Notifications** : balayer une notification vers la gauche la supprime (retrait immédiat,
+  rétabli si la suppression échoue) ; bouton « Supprimer » accessible au clavier.
 - **Co-rédacteurs** (`post_editors`) : tout éditeur modifie déjà toute publication. Depuis
   l'éditeur, un éditeur ajoute un agent extérieur au service ; celui-ci ouvre
   `/studio/partages` et la publication, modifie texte, médias et options, sans publier,

@@ -44,7 +44,7 @@ export function MembershipRequests({ requests, title = "Demandes de rattachement
       <ul className="space-y-3">
         {requests.map((r) => {
           const p = r.profile;
-          const name = p ? `${p.first_name} ${p.last_name}`.trim() || p.email : "Agent";
+          const name = p ? `${p.first_name} ${p.last_name}`.trim() || "Agent" : "Agent";
           return (
             <li key={r.id} className="space-y-2 rounded-[12px] bg-bg-2 px-4 py-3">
               <div className="flex items-center gap-3">
@@ -52,9 +52,8 @@ export function MembershipRequests({ requests, title = "Demandes de rattachement
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[15px] font-medium text-text-1">{name}</span>
                   <span className="block truncate text-[13px] text-text-3">
-                    {p?.email}
-                    {p?.job_title ? ` · ${p.job_title}` : ""}
-                    {r.target ? ` · ${r.target}` : ""} · demande du {formatDateLong(r.requested_at)}
+                    {p?.job_title ? `${p.job_title} · ` : ""}
+                    {r.target ? `${r.target} · ` : ""}demande du {formatDateLong(r.requested_at)}
                   </span>
                 </span>
               </div>

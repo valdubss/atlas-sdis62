@@ -43,14 +43,14 @@ export async function fetchMyPendingRequest(profileId: string): Promise<PendingR
   return (data as unknown as PendingRequest | null) ?? null;
 }
 
-export type CenterRequest = { id: string; requested_at: string; expires_at: string; profile: { id: string; first_name: string; last_name: string; email: string; avatar_key: string | null; job_title: string | null } | null };
+export type CenterRequest = { id: string; requested_at: string; expires_at: string; profile: { id: string; first_name: string; last_name: string; avatar_key: string | null; job_title: string | null } | null };
 
 /** Demandes en attente pour un centre (chef, responsable com, service communication). */
 export async function fetchCenterRequests(centerId: string): Promise<CenterRequest[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("membership_requests")
-    .select("id, requested_at, expires_at, profile:profiles!membership_requests_profile_id_fkey(id, first_name, last_name, email, avatar_key, job_title)")
+    .select("id, requested_at, expires_at, profile:profiles!membership_requests_profile_id_fkey(id, first_name, last_name, avatar_key, job_title)")
     .eq("center_id", centerId)
     .eq("status", "pending")
     .order("requested_at");

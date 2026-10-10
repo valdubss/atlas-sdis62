@@ -190,7 +190,7 @@ export async function searchAgents(q: string): Promise<{ id: string; first_name:
   if (!user) return [];
   const like = `%${term}%`;
   const { data } = await supabase
-    .from("profiles")
+    .from("profiles_editor")
     .select("id, first_name, last_name, email, avatar_key, role")
     .eq("is_active", true)
     .or(`email.ilike."${like}",first_name.ilike."${like}",last_name.ilike."${like}"`)

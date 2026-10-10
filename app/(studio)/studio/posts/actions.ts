@@ -216,7 +216,7 @@ export async function searchCoeditorCandidates(q: string): Promise<Coeditor[]> {
   if (!current || !isEditorRole(current.profile.role)) return [];
   const supabase = await createClient();
   const like = `%${term}%`;
-  const { data } = await supabase.from("profiles").select("id, first_name, last_name, email, avatar_key, role").eq("is_active", true).or(`email.ilike."${like}",first_name.ilike."${like}",last_name.ilike."${like}"`).order("last_name").limit(8);
+  const { data } = await supabase.from("profiles_editor").select("id, first_name, last_name, email, avatar_key, role").eq("is_active", true).or(`email.ilike."${like}",first_name.ilike."${like}",last_name.ilike."${like}"`).order("last_name").limit(8);
   return (data ?? []) as Coeditor[];
 }
 

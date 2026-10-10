@@ -24,9 +24,10 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   }
 
   const supabase = await createClient();
+  // Vue réservée aux éditeurs (adresse e-mail comprise) ; les centres et services sont résolus à part
   let query = supabase
-    .from("profiles")
-    .select("id, email, first_name, last_name, role, is_active, created_at, onboarded_at, center_id, service_id, center:centers!profiles_center_id_fkey(name), service:services!profiles_service_id_fkey(name)")
+    .from("profiles_editor")
+    .select("id, email, first_name, last_name, role, is_active, created_at, onboarded_at, center_id, service_id")
     .order("created_at", { ascending: false })
     .limit(500);
   if (q.trim()) {
@@ -36,9 +37,16 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   }
   const [{ data }, { data: centers }, { data: services }] = await Promise.all([
     query,
-    supabase.from("centers").select("id, name").eq("is_active", true).order("sort_order").order("name"),
-    supabase.from("services").select("id, name").eq("is_active", true).order("sort_order").order("name"),
+    supabase.from("centers").select("id, name").order("sort_order").order("name"),
+    supabase.from("services").select("id, name").order("sort_order").order("name"),
   ]);
+  const centerName = new Map((centers ?? []).map((c) => [c.id, c.name]));
+  const serviceName = new Map((services ?? []).map((s) => [s.id, s.name]));
+  const users = ((data ?? []) as unknown as Omit<UserRow, "center" | "service">[]).map((u) => ({
+    ...u,
+    center: u.center_id && centerName.has(u.center_id) ? { name: centerName.get(u.center_id)! } : null,
+    service: u.service_id && serviceName.has(u.service_id) ? { name: serviceName.get(u.service_id)! } : null,
+  }));
 
-  return <UsersTable users={(data ?? []) as unknown as UserRow[]} meId={current.user.id} q={q} centers={centers ?? []} services={services ?? []} />;
+  return <UsersTable users={users} meId={current.user.id} q={q} centers={centers ?? []} services={services ?? []} />;
 }

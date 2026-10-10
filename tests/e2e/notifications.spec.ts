@@ -36,7 +36,9 @@ test("notifications : plage de silence, regroupement, une push par contenu", asy
     // Distribution (cron) : l'agent est en plage de silence → push différée, pas envoyée
     const res = await request.get("/api/cron/dispatch", { headers: { Authorization: `Bearer ${env.CRON_SECRET}` } });
     expect(res.ok()).toBe(true);
-    const { data: deferred } = await admin.from("notification_deferred").select("id, payload, deliver_after").eq("user_id", agent.id);
+    // D'autres suites peuvent avoir laissé des publications en file : on ne regarde que la nôtre
+    const { data: allDeferred } = await admin.from("notification_deferred").select("id, payload, deliver_after").eq("user_id", agent.id);
+    const deferred = (allDeferred ?? []).filter((d) => ((d.payload as { body?: string }).body ?? "").includes(stamp));
     expect(deferred).toHaveLength(1);
     expect((deferred![0].payload as { title: string }).title).toBe("Nouvelle publication");
     expect(new Date(deferred![0].deliver_after).getTime()).toBeGreaterThan(Date.now());
