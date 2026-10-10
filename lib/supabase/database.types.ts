@@ -771,6 +771,9 @@ export type Database = {
       cancel_membership_request: { Args: { p_request: string }; Returns: undefined };
       expire_membership_requests: { Args: Record<string, never>; Returns: number };
       profile_display_name: { Args: { p_id: string }; Returns: string };
+      message_by_id: { Args: { p_id: string }; Returns: Json };
+      channel_messages_since: { Args: { p_channel: string; p_after: string; p_limit?: number }; Returns: Json[] };
+      channel_reads_state: { Args: { p_channel: string }; Returns: Json };
       get_center_feed: { Args: { p_center_id: string; p_limit?: number; p_cursor_at?: string | null; p_cursor_id?: string | null }; Returns: Json[] };
       record_page_view: { Args: { p_kind: string; p_target?: string | null }; Returns: undefined };
       search_directory: { Args: { p_q: string; p_limit?: number }; Returns: Json };

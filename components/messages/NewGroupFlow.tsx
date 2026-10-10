@@ -157,7 +157,7 @@ export function NewGroupFlow({ initialPeople }: { initialPeople: DirectoryPerson
         <input ref={fileInput} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && onPhoto(e.target.files[0])} />
         <div className="min-w-0 flex-1">
           <Field label="Nom du groupe" name="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={MESSAGE_LIMITS.groupNameMax} placeholder="Journée portes ouvertes 2026" required />
-          <p className="mt-1 text-right text-[12px] tabular-nums text-text-4">
+          <p className="mt-1 text-right text-[12px] tabular-nums text-text-3">
             {name.length}/{MESSAGE_LIMITS.groupNameMax}
           </p>
         </div>

@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { friendlyDbError } from "@/lib/validation/comment";
 import { dispatchNotifications } from "@/lib/notifications/dispatch";
 import { MESSAGE_LIMITS } from "@/lib/messages/helpers";
-import { MESSAGE_EMOJIS, type ChannelInfo, type Conversation, type DirectoryPerson, type Message, type MessageMedia, type MessageVoice, type SeenBy } from "@/lib/messages/types";
+import { MESSAGE_EMOJIS, type ChannelInfo, type Conversation, type DirectoryPerson, type Message, type MessageMedia, type MessageVoice, type ReadState, type SeenBy } from "@/lib/messages/types";
 import { after } from "next/server";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -41,6 +41,43 @@ export async function fetchMessages(channelId: string, before: string | null = n
   const { data, error } = await supabase.rpc("channel_messages_page", { p_channel: channelId, p_before: before, p_limit: 40 });
   if (error) return [];
   return ((data ?? []) as unknown as Message[]).reverse();
+}
+
+/** Un message par identifiant (temps réel incrémental). */
+export async function fetchMessage(messageId: string): Promise<Message | null> {
+  if (!uuid.safeParse(messageId).success) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("message_by_id", { p_id: messageId });
+  return (data as unknown as Message | null) ?? null;
+}
+
+/** Rattrapage après une coupure : créés, modifiés ou supprimés depuis `after`. */
+export async function fetchMessagesSince(channelId: string, after: string): Promise<Message[]> {
+  if (!uuid.safeParse(channelId).success) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("channel_messages_since", { p_channel: channelId, p_after: after, p_limit: 200 });
+  return (data ?? []) as unknown as Message[];
+}
+
+/** Dernière lecture de chaque membre (coches « lu »). */
+export async function fetchReadsState(channelId: string): Promise<ReadState> {
+  if (!uuid.safeParse(channelId).success) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("channel_reads_state", { p_channel: channelId });
+  return ((data ?? []) as unknown as ReadState) ?? [];
+}
+
+/** L'auteur corrige son texte (15 min) ; un éditeur à tout moment. */
+export async function editMessage(messageId: string, body: string): Promise<Result<{ message: Message }>> {
+  if (!uuid.safeParse(messageId).success) return { ok: false, error: "Identifiant invalide." };
+  const text = body.trim();
+  if (!text || text.length > MESSAGE_LIMITS.bodyMax) return { ok: false, error: "Message vide ou trop long." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("channel_messages").update({ body: text }).eq("id", messageId);
+  if (error) return { ok: false, error: error.message.includes("DELAI_DEPASSE") ? "Un message ne peut être modifié que dans les 15 minutes." : friendly(error.message) };
+  const message = await fetchMessage(messageId);
+  if (!message) return { ok: false, error: "Message introuvable." };
+  return { ok: true, message };
 }
 
 export async function fetchChannelInfo(channelId: string): Promise<ChannelInfo | null> {
@@ -112,10 +149,9 @@ export async function sendMessage(input: { channel_id: string; body?: string; me
   if (v.client_id) {
     // Rejeu d'un envoi différé déjà passé : on renvoie l'existant sans réinsérer
     const supabase0 = await createClient();
-    const { data: existing } = await supabase0.from("channel_messages").select("id, channel_id").eq("client_id", v.client_id).maybeSingle();
+    const { data: existing } = await supabase0.from("channel_messages").select("id").eq("client_id", v.client_id).maybeSingle();
     if (existing) {
-      const { data: page } = await supabase0.rpc("channel_messages_page", { p_channel: existing.channel_id, p_before: null, p_limit: 50 });
-      const found = ((page ?? []) as unknown as Message[]).find((m) => m.id === existing.id);
+      const found = await fetchMessage(existing.id);
       if (found) return { ok: true, message: found };
     }
   }
@@ -141,8 +177,8 @@ export async function sendMessage(input: { channel_id: string; body?: string; me
     console.error("[messages] envoi refusé", error?.message, JSON.stringify({ mentions: v.mentions, mention_all: v.mention_all }));
     return { ok: false, error: friendly(error?.message) };
   }
-  const { data: full } = await supabase.rpc("channel_messages_page", { p_channel: v.channel_id, p_before: null, p_limit: 1 });
-  const message = ((full ?? []) as unknown as Message[]).find((m) => m.id === data.id) ?? ((full ?? []) as unknown as Message[])[0];
+  const { data: full } = await supabase.rpc("message_by_id", { p_id: data.id });
+  const message = full as unknown as Message;
   await supabase.rpc("mark_channel_read", { p_channel: v.channel_id, p_message_id: data.id });
   after(async () => {
     await dispatchNotifications(5).catch((e) => console.error("push messagerie", e));

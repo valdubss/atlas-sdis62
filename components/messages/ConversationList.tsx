@@ -7,6 +7,7 @@ import { BellOff, EyeOff, Pin, Plus, Search } from "lucide-react";
 import type { Conversation } from "@/lib/messages/types";
 import { conversationPreview, shortTime } from "@/lib/messages/helpers";
 import { listConversations, setChannelPrefs } from "@/app/(app)/messages/actions";
+import { createClient } from "@/lib/supabase/client";
 import { AvatarMosaic } from "./AvatarMosaic";
 import { useToast } from "@/components/ui/Toast";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -33,17 +34,36 @@ export function ConversationList({ initial, canCreate }: { initial: Conversation
   const [pending, start] = useTransition();
   const toast = useToast();
 
-  // Rafraîchissement au retour sur l'onglet et toutes les 30 s
+  // Temps réel : un nouveau message ou une lecture dans l'une de mes conversations
+  // rafraîchit la liste (regroupé sur 400 ms) ; filet toutes les 90 s et au retour sur l'app.
   useEffect(() => {
     let alive = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     const refresh = () => listConversations().then((l) => alive && setList(l)).catch(() => {});
-    const t = setInterval(refresh, 30_000);
+    const schedule = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(refresh, 400);
+    };
+    const supabase = createClient();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!alive) return;
+      if (data.session) supabase.realtime.setAuth(data.session.access_token);
+      channel = supabase
+        .channel("conversations:list")
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "channel_messages" }, schedule)
+        .on("postgres_changes", { event: "*", schema: "public", table: "channel_reads" }, schedule)
+        .subscribe();
+    });
+    const t = setInterval(refresh, 90_000);
     const onVisible = () => document.visibilityState === "visible" && refresh();
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       alive = false;
+      if (timer) clearTimeout(timer);
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVisible);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 

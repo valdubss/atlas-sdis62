@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText, Pause, Play, Pin } from "lucide-react";
+import { motion, useReducedMotion, type PanInfo } from "framer-motion";
+import { Check, CheckCheck, CornerUpLeft, FileText, Pause, Play, Pin, RotateCcw } from "lucide-react";
+import { haptic } from "@/lib/motion";
 import type { Message, MessageMedia, MessageVoice } from "@/lib/messages/types";
 import { authorColor, formatDuration, mediaGrid, type BubblePosition } from "@/lib/messages/helpers";
 import { mediaUrl } from "@/lib/media/url";
@@ -31,6 +33,8 @@ export function MessageBubble({
   onLongPress,
   onOpenMedia,
   onJumpTo,
+  onReply,
+  onRetry,
   receipt,
 }: {
   m: Message;
@@ -40,11 +44,26 @@ export function MessageBubble({
   onLongPress: (m: Message, anchor: DOMRect) => void;
   onOpenMedia: (m: Message, index: number) => void;
   onJumpTo?: (id: string) => void;
-  receipt?: React.ReactNode;
+  /** Glisser la bulle vers la droite : répondre */
+  onReply?: (m: Message) => void;
+  /** Message en échec : renvoyer */
+  onRetry?: (m: Message) => void;
+  /** Coches d'un message envoyé : null = rien, sinon envoyé / lu par certains / lu par tous */
+  receipt?: "sent" | "some" | "all" | null;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const moved = useRef(false);
+  const reduced = useReducedMotion();
+  const swiped = useRef(false);
+
+  function onDragEnd(_: unknown, info: PanInfo) {
+    if (onReply && !m.deleted_at && (info.offset.x > 56 || info.velocity.x > 500)) {
+      haptic();
+      onReply(m);
+    }
+    swiped.current = false;
+  }
 
   function down() {
     moved.current = false;
@@ -66,9 +85,28 @@ export function MessageBubble({
 
   const name = m.author ? `${m.author.first_name} ${m.author.last_name}`.trim() : "Agent supprimé";
   const deleted = Boolean(m.deleted_at);
+  const canSwipe = Boolean(onReply) && !reduced && !deleted && !m.pending && !m.failed;
 
   return (
-    <div className={cn("flex items-end gap-2 px-3", mine ? "justify-end" : "justify-start", pos === "first" || pos === "single" ? "mt-2" : "mt-0.5")} id={`msg-${m.id}`}>
+    <motion.div
+      className={cn("relative flex items-end gap-2 px-3", mine ? "justify-end" : "justify-start", pos === "first" || pos === "single" ? "mt-2" : "mt-0.5")}
+      id={`msg-${m.id}`}
+      drag={canSwipe ? "x" : false}
+      dragConstraints={{ left: 0, right: 72 }}
+      dragElastic={{ left: 0, right: 0.15 }}
+      dragSnapToOrigin
+      dragDirectionLock
+      onDragStart={() => {
+        swiped.current = true;
+        cancel();
+      }}
+      onDragEnd={onDragEnd}
+    >
+      {canSwipe && (
+        <span className="pointer-events-none absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-bg-1 text-text-3" aria-hidden="true">
+          <CornerUpLeft size={16} strokeWidth={1.75} />
+        </span>
+      )}
       {!mine && <span className="w-8 shrink-0">{(pos === "last" || pos === "single") && <Avatar name={name} avatarKey={m.author?.avatar_key} size="sm" />}</span>}
       <div
         ref={ref}
@@ -111,7 +149,21 @@ export function MessageBubble({
           </>
         )}
         <span className="mt-0.5 flex items-center justify-end gap-1 text-[11px] text-text-3">
-          {m.failed ? <span className="text-red-text">Échec · réessayer</span> : m.queued ? "En attente du réseau" : m.pending ? "Envoi…" : (pos === "last" || pos === "single") && time(m.created_at)}
+          {m.edited_at && !deleted && <span>modifié</span>}
+          {m.failed ? (
+            <button type="button" onClick={() => onRetry?.(m)} className="flex items-center gap-1 text-red-text">
+              <RotateCcw size={12} strokeWidth={2} aria-hidden="true" /> Échec · réessayer
+            </button>
+          ) : m.queued ? (
+            "En attente du réseau"
+          ) : m.pending ? (
+            "Envoi…"
+          ) : (
+            (pos === "last" || pos === "single") && time(m.created_at)
+          )}
+          {receipt === "sent" && <Check size={14} strokeWidth={2} aria-label="Envoyé" className="text-text-3" />}
+          {receipt === "some" && <CheckCheck size={14} strokeWidth={2} aria-label="Lu par certains" className="text-text-3" />}
+          {receipt === "all" && <CheckCheck size={14} strokeWidth={2} aria-label="Lu par tous" className="text-navy-link" />}
         </span>
         {m.reactions.length > 0 && (
           <span className={cn("absolute -bottom-3 flex gap-1", mine ? "left-2" : "right-2")}>
@@ -124,8 +176,7 @@ export function MessageBubble({
           </span>
         )}
       </div>
-      {mine && receipt}
-    </div>
+    </motion.div>
   );
 }
 

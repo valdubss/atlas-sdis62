@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FileText, Image as ImageIcon, Mic, Plus, Send, Square, Video, X } from "lucide-react";
+import { Check, FileText, Image as ImageIcon, Mic, Pencil, Plus, Send, Square, Video, X } from "lucide-react";
 import type { DirectoryPerson, Message, MessageMedia, MessageVoice } from "@/lib/messages/types";
 import { FILE_MIMES, MESSAGE_LIMITS, mentionQuery, normalizeWaveform, parseMentions, formatDuration } from "@/lib/messages/helpers";
 import { signMessageUpload } from "@/app/(app)/messages/media-actions";
@@ -11,6 +11,10 @@ import { haptic } from "@/lib/motion";
 import { cn } from "@/lib/cn";
 
 type Draft = { id: string; kind: "image" | "video" | "file"; name: string; preview?: string; progress: number; media?: MessageMedia; error?: string };
+
+export type SendPayload = { body?: string; media?: MessageMedia[]; voice?: MessageVoice; mentions: string[]; mention_all: boolean };
+
+const draftKey = (channelId: string) => `atlas:msg:brouillon:${channelId}`;
 
 /**
  * Composeur en verre : « + » (photos, vidéo, fichier), champ multi-lignes
@@ -22,7 +26,11 @@ export function Composer({
   people,
   replyTo,
   onCancelReply,
+  editing = null,
+  onCancelEdit,
+  onEdit,
   onSend,
+  onTyping,
   disabled,
   mediaAllowed,
 }: {
@@ -30,11 +38,46 @@ export function Composer({
   people: DirectoryPerson[];
   replyTo: Message | null;
   onCancelReply: () => void;
-  onSend: (payload: { body?: string; media?: MessageMedia[]; voice?: MessageVoice; mentions: string[]; mention_all: boolean }) => Promise<boolean>;
+  /** Message en cours de modification (texte repris dans le champ) */
+  editing?: Message | null;
+  onCancelEdit?: () => void;
+  onEdit?: (body: string) => Promise<boolean>;
+  onSend: (payload: SendPayload) => Promise<boolean>;
+  /** Appelé à chaque frappe (diffusion « écrit… », déjà limitée par l'appelant) */
+  onTyping?: () => void;
   disabled?: boolean;
   mediaAllowed: boolean;
 }) {
-  const [text, setText] = useState("");
+  // Brouillon gardé par conversation sur l'appareil
+  const [text, setText] = useState(() => {
+    try {
+      return localStorage.getItem(draftKey(channelId)) ?? "";
+    } catch {
+      return "";
+    }
+  });
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        if (text.trim() && !editing) localStorage.setItem(draftKey(channelId), text);
+        else localStorage.removeItem(draftKey(channelId));
+      } catch {}
+    }, 400);
+    return () => clearTimeout(t);
+  }, [text, channelId, editing]);
+  // Édition : le texte du message remplace le champ, puis le brouillon revient
+  const savedDraft = useRef("");
+  useEffect(() => {
+    if (editing) {
+      savedDraft.current = text;
+      setText(editing.body ?? "");
+      setTimeout(() => textarea.current?.focus(), 0);
+    } else if (savedDraft.current) {
+      setText(savedDraft.current);
+      savedDraft.current = "";
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bascule d'édition seulement
+  }, [editing?.id]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [menu, setMenu] = useState(false);
   const [sending, setSending] = useState(false);
@@ -46,6 +89,10 @@ export function Composer({
   const [recording, setRecording] = useState(false);
   const [locked, setLocked] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const secondsRef = useRef(0);
+  useEffect(() => {
+    secondsRef.current = seconds;
+  }, [seconds]);
   const recorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
   const startY = useRef(0);
@@ -123,6 +170,14 @@ export function Composer({
 
   async function submit() {
     const body = text.trim();
+    if (editing && onEdit) {
+      if (!body) return;
+      setSending(true);
+      const ok = await onEdit(body);
+      setSending(false);
+      if (ok) setText("");
+      return;
+    }
     const media = drafts.filter((d) => d.media).map((d) => d.media!);
     if (!body && media.length === 0) return;
     if (drafts.some((d) => !d.media && !d.error)) {
@@ -137,6 +192,9 @@ export function Composer({
       setText("");
       setDrafts([]);
       onCancelReply();
+      try {
+        localStorage.removeItem(draftKey(channelId));
+      } catch {}
     }
   }
 
@@ -192,7 +250,8 @@ export function Composer({
     stopRecording(seconds < 1);
   }
   async function finishVoice(blob: Blob) {
-    const duration = seconds;
+    // Lu dans une référence : la fermeture de `onstop` ne voit pas l'état courant
+    const duration = secondsRef.current;
     if (duration < 1 || blob.size === 0) return;
     setSending(true);
     try {
@@ -221,7 +280,19 @@ export function Composer({
 
   return (
     <div className="glass rounded-[22px] px-2 pb-2 pt-1.5">
-      {replyTo && (
+      {editing && (
+        <div className="mb-1.5 flex items-center gap-2 rounded-[12px] bg-bg-1 px-3 py-1.5">
+          <Pencil size={14} strokeWidth={1.75} className="shrink-0 text-navy-link" aria-hidden="true" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[12px] font-semibold text-navy-link">Modifier le message</span>
+            <span className="block truncate text-[13px] text-text-2">{editing.body}</span>
+          </span>
+          <button type="button" onClick={onCancelEdit} aria-label="Annuler la modification" className="flex h-8 w-8 items-center justify-center text-text-3">
+            <X size={16} strokeWidth={1.75} />
+          </button>
+        </div>
+      )}
+      {replyTo && !editing && (
         <div className="mb-1.5 flex items-center gap-2 rounded-[12px] bg-bg-1 px-3 py-1.5">
           <span className="min-w-0 flex-1">
             <span className="block text-[12px] font-semibold text-navy-link">Répondre à {replyTo.author ? replyTo.author.first_name : "Agent"}</span>
@@ -309,6 +380,7 @@ export function Composer({
             onChange={(e) => {
               setText(e.target.value);
               setCaret(e.target.selectionStart ?? e.target.value.length);
+              if (e.target.value.trim()) onTyping?.();
             }}
             onSelect={(e) => setCaret(e.currentTarget.selectionStart ?? 0)}
             onKeyDown={(e) => {
@@ -324,7 +396,11 @@ export function Composer({
             enterKeyHint="send"
             className="min-h-11 flex-1 resize-none bg-transparent px-2 py-[11px] text-[16px] leading-[22px] text-text-1 outline-none placeholder:text-text-3"
           />
-          {canSend ? (
+          {editing ? (
+            <button type="button" onClick={() => void submit()} disabled={!text.trim() || sending} aria-label="Enregistrer la modification" className="flex h-11 w-11 items-center justify-center rounded-full text-text-1 disabled:opacity-40">
+              <Check size={22} strokeWidth={2} />
+            </button>
+          ) : canSend ? (
             <button type="button" onClick={() => void submit()} aria-label="Envoyer" className="flex h-11 w-11 items-center justify-center rounded-full text-text-1">
               <Send size={22} strokeWidth={1.75} />
             </button>

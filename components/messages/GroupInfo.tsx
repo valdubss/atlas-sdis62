@@ -16,6 +16,7 @@ import { CheckboxField, Field } from "@/components/ui/Field";
 import { Sheet } from "@/components/ui/Sheet";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
+import { useConfirm } from "@/components/ui/Confirm";
 
 /**
  * Fiche d'une conversation : photo, nom, objet, compte à rebours ; actions
@@ -25,6 +26,7 @@ import { cn } from "@/lib/cn";
 export function GroupInfo({ info, me, isEditor }: { info: ChannelInfo; me: string; isEditor: boolean }) {
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const [pending, start] = useTransition();
   const [sheet, setSheet] = useState<null | "notifications" | "search" | "media" | "add" | "edit">(null);
   const isGroup = info.type === "group";
@@ -94,7 +96,7 @@ export function GroupInfo({ info, me, isEditor }: { info: ChannelInfo; me: strin
               </span>
               {m.role === "admin" && <span className="rounded-full bg-bg-2 px-2 py-0.5 text-[11px] font-medium text-text-2">Admin</span>}
               {isGroup && canManage && m.id !== me && !info.archived_at && (
-                <button type="button" disabled={pending} onClick={() => window.confirm(`Retirer ${m.first_name} du groupe ?`) && run(() => removeMember(info.id, m.id), "Membre retiré")} aria-label={`Retirer ${m.first_name}`} className="flex h-8 w-8 items-center justify-center text-text-3 hover:text-text-1">
+                <button type="button" disabled={pending} onClick={() => void confirm({ title: `Retirer ${m.first_name} du groupe ?`, confirmLabel: "Retirer", danger: true }).then((ok) => ok && run(() => removeMember(info.id, m.id), "Membre retiré"))} aria-label={`Retirer ${m.first_name}`} className="flex h-8 w-8 items-center justify-center text-text-3 hover:text-text-1">
                   <X size={16} strokeWidth={1.75} />
                 </button>
               )}
@@ -111,7 +113,7 @@ export function GroupInfo({ info, me, isEditor }: { info: ChannelInfo; me: strin
             </button>
           )}
           {isEditor && (
-            <button type="button" disabled={pending} onClick={() => window.confirm(info.archived_at ? "Réactiver ce groupe ?" : "Archiver ce groupe ? Il passera en lecture seule.") && run(() => archiveGroup(info.id, !info.archived_at), info.archived_at ? "Groupe réactivé" : "Groupe archivé")} className="pressable flex h-12 w-full items-center px-4 text-left text-[15px] text-text-1">
+            <button type="button" disabled={pending} onClick={() => void confirm({ title: info.archived_at ? "Réactiver ce groupe ?" : "Archiver ce groupe ?", message: info.archived_at ? undefined : "Il passera en lecture seule.", confirmLabel: info.archived_at ? "Réactiver" : "Archiver" }).then((ok) => ok && run(() => archiveGroup(info.id, !info.archived_at), info.archived_at ? "Groupe réactivé" : "Groupe archivé"))} className="pressable flex h-12 w-full items-center px-4 text-left text-[15px] text-text-1">
               {info.archived_at ? "Réactiver le groupe" : "Archiver le groupe"}
             </button>
           )}
@@ -136,7 +138,7 @@ export function GroupInfo({ info, me, isEditor }: { info: ChannelInfo; me: strin
             </button>
           )}
           {!isEditor && myRole !== "admin" && !info.archived_at && (
-            <button type="button" disabled={pending} onClick={() => window.confirm("Quitter ce groupe ?") && run(() => leaveGroup(info.id), "Vous avez quitté le groupe", () => router.replace("/messages"))} className="pressable flex h-12 w-full items-center gap-2 px-4 text-left text-[15px] text-red-text">
+            <button type="button" disabled={pending} onClick={() => void confirm({ title: "Quitter ce groupe ?", confirmLabel: "Quitter", danger: true }).then((ok) => ok && run(() => leaveGroup(info.id), "Vous avez quitté le groupe", () => router.replace("/messages")))} className="pressable flex h-12 w-full items-center gap-2 px-4 text-left text-[15px] text-red-text">
               <LogOut size={18} strokeWidth={1.75} /> Quitter le groupe
             </button>
           )}

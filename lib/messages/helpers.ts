@@ -1,4 +1,4 @@
-import type { Conversation, DirectoryPerson, Message, MessageMedia } from "./types";
+import type { Conversation, DirectoryPerson, Message, MessageMedia, ReadState } from "./types";
 
 /** Limites de la messagerie (brief lot 6). */
 export const MESSAGE_LIMITS = {
@@ -166,6 +166,21 @@ export function pushGroupKey(channelId: string, at: Date): string {
 }
 
 /** Peut-on encore supprimer son propre message (15 min) ? */
+/** Coches d'un message envoyé : « lu » quand un autre membre a lu après sa création, « lu par tous » quand tous. */
+export function readReceipt(m: Pick<Message, "created_at" | "author">, reads: ReadState, memberIds: string[], me: string): "sent" | "some" | "all" {
+  const others = memberIds.filter((id) => id !== me);
+  if (others.length === 0) return "sent";
+  const t = new Date(m.created_at).getTime();
+  const readers = new Set(reads.filter((r) => r.profile_id !== me && new Date(r.last_read_at).getTime() >= t).map((r) => r.profile_id));
+  const n = others.filter((id) => readers.has(id)).length;
+  return n === 0 ? "sent" : n >= others.length ? "all" : "some";
+}
+
+/** Auteur d'un message texte : modifiable dans les 15 minutes. */
+export function canEditOwn(m: Pick<Message, "created_at" | "type" | "deleted_at">, now = Date.now()): boolean {
+  return m.type === "text" && !m.deleted_at && now - new Date(m.created_at).getTime() < 15 * 60_000;
+}
+
 export function canDeleteOwn(createdAt: string, now = Date.now()): boolean {
   return now - new Date(createdAt).getTime() < MESSAGE_LIMITS.deleteWindowMs;
 }

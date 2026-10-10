@@ -44,7 +44,7 @@ test("messagerie : groupe, message, réaction, accusé et cloisonnement", async 
     await e.getByRole("textbox", { name: "Message" }).fill(`Bonjour @Test invite-msg, on part sur ${stamp} ?`);
     await e.getByRole("button", { name: "Envoyer" }).click();
     await expect(e.locator("p").filter({ hasText: `on part sur ${stamp} ?` })).toBeVisible({ timeout: 15_000 });
-    await expect(e.getByText("Envoyé")).toBeVisible({ timeout: 15_000 });
+    await expect(e.getByLabel(/^(Envoyé|Lu par certains|Lu par tous)$/).last()).toBeVisible({ timeout: 15_000 });
 
     // --- Invité : lit, répond, réagit --------------------------------------
     const g = await (await browser.newContext()).newPage();
@@ -62,9 +62,9 @@ test("messagerie : groupe, message, réaction, accusé et cloisonnement", async 
     await g.getByRole("button", { name: "Réagir 👍" }).click();
     await expect.poll(async () => (await admin.from("message_reactions").select("emoji").eq("profile_id", guest.id)).data?.length ?? 0, { timeout: 15_000 }).toBe(1);
 
-    // --- Éditeur : accusé « Vu par 1 » et réponse reçue en temps réel -------
+    // --- Éditeur : double coche « Lu par tous » et réponse reçue en temps réel ---
     await expect(e.locator("p").filter({ hasText: "Oui, partant !" })).toBeVisible({ timeout: 20_000 });
-    await expect(e.getByRole("button", { name: /Vu par 1/ })).toBeVisible({ timeout: 30_000 });
+    await expect(e.getByLabel("Lu par tous").first()).toBeVisible({ timeout: 30_000 });
 
     // --- RLS ---------------------------------------------------------------------
     const anon = () => createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } });

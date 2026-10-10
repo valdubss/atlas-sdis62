@@ -38,6 +38,9 @@ export type Message = {
   pinned_at: string | null;
   deleted_at: string | null;
   created_at: string;
+  edited_at?: string | null;
+  /** Identifiant posé par l'appareil à l'envoi : rejeu idempotent, rapprochement de l'optimiste */
+  client_id?: string | null;
   author: MessageAuthor | null;
   reply_to: { id: string; type: MessageType; body: string | null; author: string; has_media: boolean } | null;
   reactions: MessageReaction[];
@@ -79,6 +82,8 @@ export type ChannelMember = {
   job_title: string | null;
   center: string | null;
   role: "admin" | "member";
+  /** Groupe : éditeur ou admin qui voit tout sans avoir été invité. */
+  implicit?: boolean;
 };
 
 export type ChannelInfo = {
@@ -112,3 +117,6 @@ export type DirectoryPerson = {
 };
 
 export type SeenBy = { id: string; name: string; avatar_key: string | null; at: string }[];
+
+/** Dernière lecture de chaque membre d'un canal (coches « lu »). */
+export type ReadState = { profile_id: string; last_read_at: string }[];

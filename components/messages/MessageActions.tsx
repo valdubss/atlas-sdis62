@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Copy, CornerUpLeft, Eye, Forward, ImagePlus, Pin, Trash2 } from "lucide-react";
+import { Copy, CornerUpLeft, Eye, Forward, ImagePlus, Pencil, Pin, Trash2 } from "lucide-react";
 import type { Conversation, Message, SeenBy } from "@/lib/messages/types";
 import { MESSAGE_EMOJIS } from "@/lib/messages/types";
-import { canDeleteOwn } from "@/lib/messages/helpers";
+import { canDeleteOwn, canEditOwn } from "@/lib/messages/helpers";
 import { deleteMessage, forwardMessage, listConversations, messageSeenBy, pinMessage, setMessageReaction } from "@/app/(app)/messages/actions";
 import { importMessageMedia } from "@/app/(app)/messages/media-actions";
 import { Sheet } from "@/components/ui/Sheet";
@@ -12,6 +12,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { useToast } from "@/components/ui/Toast";
 import { haptic } from "@/lib/motion";
 import { cn } from "@/lib/cn";
+import { useConfirm } from "@/components/ui/Confirm";
 
 /**
  * Feuille d'actions d'un message (appui long) : six emojis puis Répondre,
@@ -23,6 +24,7 @@ export function MessageActions({
   isEditor,
   onClose,
   onReply,
+  onEdit,
   onChanged,
 }: {
   m: Message | null;
@@ -30,6 +32,7 @@ export function MessageActions({
   isEditor: boolean;
   onClose: () => void;
   onReply: (m: Message) => void;
+  onEdit?: (m: Message) => void;
   onChanged: () => void;
 }) {
   const [pending, start] = useTransition();
@@ -37,6 +40,7 @@ export function MessageActions({
   const [targets, setTargets] = useState<Conversation[]>([]);
   const [seen, setSeen] = useState<SeenBy | null>(null);
   const toast = useToast();
+  const confirm = useConfirm();
 
   useEffect(() => {
     if (!m) setView("actions");
@@ -86,6 +90,9 @@ export function MessageActions({
           <ul className="hairline overflow-hidden rounded-[16px] bg-bg-1">
             {!m.deleted_at && (
               <Item icon={CornerUpLeft} label="Répondre" onClick={() => { onReply(m); onClose(); }} />
+            )}
+            {onEdit && m.body && (isEditor || (mine && canEditOwn(m))) && (
+              <Item icon={Pencil} label={mine && !isEditor ? "Modifier (15 min)" : "Modifier"} onClick={() => { onEdit(m); onClose(); }} />
             )}
             {!m.deleted_at && (
               <Item
@@ -139,8 +146,8 @@ export function MessageActions({
                 icon={Trash2}
                 label={mine && !isEditor ? "Supprimer (15 min)" : "Supprimer"}
                 danger
-                onClick={() => {
-                  if (window.confirm("Supprimer ce message pour tout le monde ?")) run(() => deleteMessage(m.id), "Message supprimé");
+                onClick={async () => {
+                  if (await confirm({ title: "Supprimer ce message ?", message: "Il sera retiré pour tout le monde.", confirmLabel: "Supprimer", danger: true })) run(() => deleteMessage(m.id), "Message supprimé");
                 }}
               />
             )}
