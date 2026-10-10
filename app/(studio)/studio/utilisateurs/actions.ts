@@ -122,6 +122,26 @@ export async function sendLoginEmail(userId: string): Promise<Result> {
   return sendAccountEmail(target.onboarded_at ? "magiclink" : "invite", target.email, { firstName: target.first_name, by: `${user.email ?? "un administrateur"}` });
 }
 
+/** Un administrateur pose lui-même un mot de passe (dépannage) ; l'agent peut le changer ensuite dans son profil. */
+export async function setUserPassword(userId: string, password: string): Promise<Result> {
+  if (!z.uuid().safeParse(userId).success) return { ok: false, error: "Identifiant invalide." };
+  const parsed = z.string().min(LIMITS.passwordMinLength, `${LIMITS.passwordMinLength} caractères minimum.`).max(200).safeParse(password);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Mot de passe invalide." };
+  const { supabase, user, error } = await requireAdmin();
+  if (!user) return { ok: false, error: error! };
+  const admin = createAdminClient();
+  const { error: authError } = await admin.auth.admin.updateUserById(userId, { password: parsed.data });
+  if (authError) {
+    const m = authError.message;
+    if (/weak|pwned|leaked|compromised/i.test(m)) return { ok: false, error: "Mot de passe trop faible ou connu dans des fuites de données." };
+    if (/should contain|at least|characters|requirements/i.test(m)) return { ok: false, error: "Mot de passe refusé : " + m };
+    return { ok: false, error: "Modification impossible : " + m };
+  }
+  // Journal : aucune écriture directe par les utilisateurs (RLS), on passe par la clé service_role
+  await admin.from("audit_log").insert({ actor_id: user.id, action: "password_set", entity_type: "profiles", entity_id: userId }).then(() => undefined, () => undefined);
+  return { ok: true };
+}
+
 /** Envoie un e-mail de réinitialisation du mot de passe (l'agent le choisit lui-même). */
 export async function sendPasswordReset(userId: string): Promise<Result> {
   if (!z.uuid().safeParse(userId).success) return { ok: false, error: "Identifiant invalide." };

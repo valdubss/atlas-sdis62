@@ -7,6 +7,7 @@ import {
   exportUserData,
   sendLoginEmail,
   sendPasswordReset,
+  setUserPassword,
   setUserActive,
   setUserRole,
   updateUserProfile,
@@ -20,7 +21,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Sheet } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
 import { CreateUserForm } from "./CreateUserForm";
-import { UserPlus } from "lucide-react";
+import { Eye, EyeOff, RefreshCw, UserPlus } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export type UserRow = {
@@ -64,9 +65,30 @@ export function UsersTable({
   const [pending, start] = useTransition();
   const toast = useToast();
   const [identity, setIdentity] = useState({ first_name: "", last_name: "", target: "" });
+  const [pwd, setPwd] = useState("");
+  const [showPwd, setShowPwd] = useState(true);
+
+  /** Mot de passe lisible : lettres et chiffres sans caractères ambigus, 12 signes. */
+  function generatePassword() {
+    const alphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const bytes = new Uint32Array(12);
+    crypto.getRandomValues(bytes);
+    const core = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+    setPwd(`${core.slice(0, 4)}-${core.slice(4, 8)}-${core.slice(8, 12)}`);
+  }
+
+  function applyPassword() {
+    if (!selected) return;
+    start(async () => {
+      const r = await setUserPassword(selected.id, pwd);
+      toast(r.ok ? `Mot de passe défini pour ${selected.email}` : r.error);
+      if (r.ok) setPwd("");
+    });
+  }
 
   function select(u: UserRow | null) {
     setSelected(u);
+    setPwd("");
     if (u) setIdentity({ first_name: u.first_name, last_name: u.last_name, target: u.center_id ? `c:${u.center_id}` : u.service_id ? `s:${u.service_id}` : "" });
   }
 
@@ -268,6 +290,33 @@ export function UsersTable({
                 </Button>
               </div>
               <p className="text-[13px] text-text-3">L&apos;agent reçoit un lien et un code valables quinze minutes ; le mot de passe, s&apos;il en veut un, se choisit dans son profil.</p>
+            </section>
+
+            <section className="space-y-2">
+              <p className="text-[13px] font-medium text-text-2">Mot de passe (dépannage)</p>
+              <div className="flex gap-2">
+                <input
+                  type={showPwd ? "text" : "password"}
+                  value={pwd}
+                  onChange={(e) => setPwd(e.target.value)}
+                  autoComplete="new-password"
+                  placeholder="Nouveau mot de passe"
+                  aria-label="Nouveau mot de passe"
+                  className="block h-11 w-full min-w-0 flex-1 rounded-[10px] bg-bg-2 px-3.5 font-mono text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
+                />
+                <button type="button" onClick={() => setShowPwd((v) => !v)} aria-label={showPwd ? "Masquer" : "Afficher"} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-bg-2 text-text-2">
+                  {showPwd ? <EyeOff size={18} strokeWidth={1.75} /> : <Eye size={18} strokeWidth={1.75} />}
+                </button>
+                <button type="button" onClick={generatePassword} aria-label="Proposer un mot de passe" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-bg-2 text-text-2">
+                  <RefreshCw size={18} strokeWidth={1.75} />
+                </button>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button variant="secondary" size="md" loading={pending} disabled={pwd.length < 10} onClick={applyPassword}>
+                  Définir le mot de passe
+                </Button>
+                <span className="text-[13px] text-text-3">10 caractères minimum. Transmettez-le à l&apos;agent ; il pourra le changer dans son profil.</span>
+              </div>
             </section>
 
             <section className="space-y-2">

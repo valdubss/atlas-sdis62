@@ -718,7 +718,7 @@ export type Database = {
           after: Json | null;
           created_at: Timestamp;
         };
-        Insert: never;
+        Insert: { actor_id?: string | null; action: string; entity_type: string; entity_id?: string | null; before?: Json | null; after?: Json | null; created_at?: Timestamp };
         Update: never;
         Relationships: [];
       };
