@@ -17,6 +17,11 @@ const profileSchema = z.object({
     .trim()
     .transform((v) => (v === "" ? null : v))
     .pipe(z.uuid("Centre invalide.").nullable()),
+  service_id: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .pipe(z.uuid("Service invalide.").nullable()),
 });
 
 /** Termine l'accueil : profil, centre, mot de passe si demandé, puis onboarded_at. */
@@ -27,6 +32,7 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
     first_name: formData.get("first_name"),
     last_name: formData.get("last_name"),
     center_id: formData.get("center_id") ?? "",
+    service_id: formData.get("service_id") ?? "",
   });
   const parsedPwd = needPassword ? setPasswordSchema.safeParse({ password: formData.get("password"), confirm: formData.get("confirm") }) : null;
 
@@ -46,7 +52,7 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { center_id, ...identity } = parsedProfile.data;
+  const { center_id, service_id, ...identity } = parsedProfile.data;
   const { error: profileError } = await supabase
     .from("profiles")
     .update({ ...identity, onboarded_at: new Date().toISOString() })
@@ -54,8 +60,8 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
   if (profileError) return { status: "error", message: "Enregistrement du profil impossible." };
 
   // Le rattachement n'est pas immédiat : demande envoyée au chef de centre
-  if (center_id) {
-    const r = await requestMembership({ center_id });
+  if (center_id || service_id) {
+    const r = await requestMembership(center_id ? { center_id } : { service_id });
     if (!r.ok && !/déjà rattaché/i.test(r.error)) return { status: "error", message: r.error, fields: { center_id: r.error } };
   }
 

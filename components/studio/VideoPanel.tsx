@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
+import { useConfirm } from "@/components/ui/Confirm";
 
 const STATUS: Record<string, { label: string; tone: "neutral" | "red" | "success" | "navy" }> = {
   uploaded: { label: "Envoyée, en attente", tone: "neutral" },
@@ -41,6 +42,7 @@ export function VideoPanel({ mediaId }: { mediaId: string }) {
   const [timecode, setTimecode] = useState("1");
   const [pending, start] = useTransition();
   const toast = useToast();
+  const confirm = useConfirm();
   const fileRef = useRef<HTMLInputElement>(null);
   const triggered = useRef(false);
 
@@ -241,7 +243,7 @@ export function VideoPanel({ mediaId }: { mediaId: string }) {
               <Button type="button" variant="secondary" size="md" disabled={pending} onClick={() => start(async () => { const r = await saveSubtitles(mediaId, cues, false); toast(r.ok ? "Brouillon enregistré" : r.error); setDirty(false); await refresh(); })}>
                 Enregistrer le brouillon
               </Button>
-              <Button type="button" variant="danger" size="md" disabled={pending} onClick={() => confirm("Supprimer les sous-titres ?") && start(async () => { await removeSubtitles(mediaId); setCues([]); setDirty(false); await refresh(); })}>
+              <Button type="button" variant="danger" size="md" disabled={pending} onClick={() => void confirm({ title: "Supprimer les sous-titres ?", confirmLabel: "Supprimer", danger: true }).then((ok) => ok && start(async () => { await removeSubtitles(mediaId); setCues([]); setDirty(false); await refresh(); }))}>
                 Supprimer
               </Button>
             </div>

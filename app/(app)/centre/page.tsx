@@ -4,8 +4,8 @@ import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { fetchDirectory } from "@/lib/centres/public";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { CenterPicker } from "@/components/centre/CenterPicker";
+import { PendingRequestCard } from "@/components/centre/PendingRequestCard";
 import { fetchMyPendingRequest } from "@/lib/membership/request";
-import { formatDateLong } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Mon centre" };
 export const dynamic = "force-dynamic";
@@ -30,16 +30,13 @@ export default async function MyCenterPage() {
     <div className="space-y-3">
       <PageHeader title="Mon centre" />
       {pending ? (
-        <section className="rounded-[16px] bg-bg-1 px-5 py-4">
-          <p className="text-[15px] text-text-1">
-            Demande envoyée : <span className="font-semibold">{pending.center?.name ?? pending.service?.name}</span>
-          </p>
-          <p className="mt-1 text-[13px] text-text-3">Votre chef de centre (ou le service communication) confirme votre arrivée. Valable jusqu&apos;au {formatDateLong(pending.expires_at)}. Vous pouvez la retirer depuis Profil → Mon centre.</p>
-        </section>
+        <PendingRequestCard pending={pending} directory={directory} />
       ) : (
-        <p className="px-1 text-[15px] text-text-2">Choisissez votre centre ou votre service : votre chef de centre confirme votre arrivée, puis sa page devient votre onglet « Mon centre ».</p>
+        <>
+          <p className="px-1 text-[15px] text-text-2">Choisissez votre centre ou votre service : votre chef de centre confirme votre arrivée, puis sa page devient votre onglet « Mon centre ».</p>
+          <CenterPicker directory={directory} mode="attach" />
+        </>
       )}
-      <CenterPicker directory={directory} mode="attach" />
     </div>
   );
 }

@@ -24,6 +24,9 @@ export function NotificationsList({ items: initialItems, unread }: { items: Noti
   const reduced = useReducedMotion();
   const [items, setItems] = useState(initialItems);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  // Non-lues à l'ouverture : restent mises en avant (et filtrables) pendant la visite,
+  // même une fois marquées lues en base
+  const [freshIds] = useState(() => new Set(initialItems.filter((n) => !n.read_at).map((n) => n.id)));
   useEffect(() => setItems(initialItems), [initialItems]);
 
   function remove(n: NotificationItem) {
@@ -44,14 +47,14 @@ export function NotificationsList({ items: initialItems, unread }: { items: Noti
   }, [unread, router]);
 
   if (items.length === 0) return <EmptyState title="Aucune notification" description="Les nouvelles publications, flashs, rappels d'événements et réponses à vos commentaires des 90 derniers jours apparaîtront ici." />;
-  const shown = filter === "unread" ? items.filter((n) => !n.read_at) : items;
+  const shown = filter === "unread" ? items.filter((n) => freshIds.has(n.id)) : items;
 
   return (
     <div className="space-y-3">
       <div role="tablist" aria-label="Filtre" className="flex w-fit rounded-full bg-bg-1 p-1">
         {(["all", "unread"] as const).map((f) => (
           <button key={f} type="button" role="tab" aria-selected={filter === f} onClick={() => setFilter(f)} className={cn("h-8 rounded-full px-4 text-[13px] font-medium", filter === f ? "bg-bg-2 text-text-1" : "text-text-2")}>
-            {f === "all" ? "Toutes" : `Non lues${unread ? ` (${unread})` : ""}`}
+            {f === "all" ? "Toutes" : `Non lues${freshIds.size ? ` (${freshIds.size})` : ""}`}
           </button>
         ))}
       </div>
@@ -60,7 +63,7 @@ export function NotificationsList({ items: initialItems, unread }: { items: Noti
       <AnimatePresence initial={false}>
       {shown.map((n) => {
         const Icon = ICONS[n.kind] ?? Newspaper;
-        const fresh = !n.read_at;
+        const fresh = freshIds.has(n.id);
         const inner = (
           <>
             <span className={cn("mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full", n.kind === "flash" ? "bg-red-soft text-red-text" : "bg-bg-2 text-text-2")}>

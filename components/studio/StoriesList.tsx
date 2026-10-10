@@ -10,6 +10,7 @@ import { imageSrc, posterSrc } from "@/lib/media/url";
 import { formatDateTime } from "@/lib/format";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
+import { useConfirm } from "@/components/ui/Confirm";
 
 export type StoryRow = {
   id: string;
@@ -52,6 +53,7 @@ export function StoriesList({ stories, highlights, notice }: { stories: StoryRow
   const [pending, start] = useTransition();
   const [newTitle, setNewTitle] = useState("");
   const toast = useToast();
+  const confirm = useConfirm();
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, okMessage: string) {
     start(async () => {
@@ -127,8 +129,8 @@ export function StoriesList({ stories, highlights, notice }: { stories: StoryRow
             )}
             <TextButton
               disabled={pending}
-              onClick={() => {
-                if (window.confirm("Supprimer cette story ?")) run(() => deleteStory(s.id), "Story supprimée");
+              onClick={async () => {
+                if (await confirm({ title: "Supprimer cette story ?", confirmLabel: "Supprimer", danger: true })) run(() => deleteStory(s.id), "Story supprimée");
               }}
             >
               Supprimer

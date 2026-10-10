@@ -168,7 +168,7 @@ export function ProposeSheet({ centerId, open, onClose, manager = false }: { cen
               <Field label="Adresse" name="sheet_address" value={sheetAddress} onChange={(e) => setSheetAddress(e.target.value)} maxLength={160} placeholder="Laisser vide : inchangé" />
               <Field label="Effectif affiché" name="sheet_headcount" value={sheetHeadcount} onChange={(e) => setSheetHeadcount(e.target.value)} inputMode="numeric" placeholder="Laisser vide : inchangé" />
             </div>
-            <p className="text-[12px] text-text-4">Chaque champ modifié devient une proposition datée ; le service communication accepte ou écarte champ par champ. L&apos;historique reste consultable sur la fiche du studio.</p>
+            <p className="text-[12px] text-text-3">Chaque champ modifié devient une proposition datée ; le service communication accepte ou écarte champ par champ. L&apos;historique reste consultable sur la fiche du studio.</p>
           </>
         )}
 

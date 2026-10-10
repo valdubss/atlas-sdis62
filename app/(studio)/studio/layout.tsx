@@ -31,10 +31,13 @@ export default async function StudioLayout({ children }: { children: React.React
 
   const { profile } = current;
   const name = `${profile.first_name} ${profile.last_name}`.trim() || profile.email;
-  const pendingCenters = editor ? await countPendingProposals().catch(() => 0) : 0;
+  const supabaseForNav = await createClient();
+  const [pendingCenters, unreadRpc] = await Promise.all([editor ? countPendingProposals().catch(() => 0) : Promise.resolve(0), editor ? supabaseForNav.rpc("messaging_unread_total") : Promise.resolve({ data: 0 })]);
+  const messagesUnread = (unreadRpc.data as number | null) ?? 0;
+  const isAdmin = current.profile.role === "admin";
 
   return (
-    <RoleProvider canEdit>
+    <RoleProvider canEdit canMessage={editor} messagesUnread={messagesUnread}>
     <ThemeApplier theme="system" />
     <div className="flex min-h-dvh bg-bg-0">
       <aside className="hidden w-[280px] shrink-0 flex-col bg-bg-1 md:flex">
@@ -42,7 +45,7 @@ export default async function StudioLayout({ children }: { children: React.React
           <Logo height={24} />
           <span className="text-[13px] text-text-3">Studio</span>
         </div>
-        <StudioNav pendingCenters={pendingCenters} limited={limited} />
+        <StudioNav pendingCenters={pendingCenters} limited={limited} isAdmin={isAdmin} />
         <div className="mt-auto px-6 py-5">
           <p className="truncate text-[15px] font-medium text-text-1">{name}</p>
           <p className="text-[13px] text-text-3">{ROLE_LABELS[profile.role]}</p>
@@ -56,7 +59,7 @@ export default async function StudioLayout({ children }: { children: React.React
         >
           <div className="flex h-12 items-center justify-between px-5">
             <Logo height={22} />
-            <StudioNav compact pendingCenters={pendingCenters} limited={limited} />
+            <StudioNav compact pendingCenters={pendingCenters} limited={limited} isAdmin={isAdmin} />
           </div>
         </header>
         <main className="min-w-0 flex-1 overflow-x-clip px-5 pb-28 pt-[calc(48px+env(safe-area-inset-top)+16px)] md:px-8 md:py-8">{children}</main>

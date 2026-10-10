@@ -91,7 +91,7 @@ export function DevUi() {
           <p className="text-[15px] text-text-1">text-1 · texte principal</p>
           <p className="text-[15px] text-text-2">text-2 · texte secondaire</p>
           <p className="text-[13px] text-text-3">text-3 · méta-données</p>
-          <p className="text-[13px] text-text-4">text-4 · placeholder</p>
+          <p className="text-[13px] text-text-3">text-4 · placeholder</p>
           <p className="text-[15px] text-red-text">red-text · compte actif</p>
           <p className="text-[15px] text-navy-link">navy-link · lien secondaire</p>
         </div>

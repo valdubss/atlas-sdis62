@@ -45,13 +45,28 @@ export function FeedbackForm({ from }: { from: string }) {
       <input type="hidden" name="ctx_ua" value={ctx.ua} />
       <input type="hidden" name="ctx_viewport" value={ctx.viewport} />
 
-      <div className="hairline rounded-[16px] bg-bg-1" role="radiogroup" aria-label="Catégorie">
+      <div
+        className="hairline rounded-[16px] bg-bg-1"
+        role="radiogroup"
+        aria-label="Catégorie"
+        onKeyDown={(e) => {
+          // Navigation aux flèches entre les catégories, comme des boutons radio natifs
+          if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+          e.preventDefault();
+          const ids: string[] = FEEDBACK_CATEGORIES.map((c) => c.id as string);
+          const i = ids.indexOf(category);
+          const next = ids[(i + (e.key === "ArrowDown" ? 1 : ids.length - 1)) % ids.length];
+          setCategory(next);
+          (e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="radio"]')[ids.indexOf(next)])?.focus();
+        }}
+      >
         {FEEDBACK_CATEGORIES.map((c) => (
           <button
             key={c.id}
             type="button"
             role="radio"
             aria-checked={category === c.id}
+            tabIndex={category === c.id ? 0 : -1}
             onClick={() => setCategory(c.id)}
             className={cn("flex w-full items-center justify-between px-5 py-3 text-left", category === c.id ? "text-text-1" : "text-text-2")}
           >
@@ -59,7 +74,7 @@ export function FeedbackForm({ from }: { from: string }) {
               <span className="block text-[15px]">{c.label}</span>
               <span className="block text-[13px] text-text-3">{c.hint}</span>
             </span>
-            <span className={cn("ml-4 h-5 w-5 shrink-0 rounded-full border", category === c.id ? "border-[6px] border-text-1" : "border-white/20")} aria-hidden="true" />
+            <span className={cn("ml-4 h-5 w-5 shrink-0 rounded-full border", category === c.id ? "border-[6px] border-text-1" : "border-glass-edge")} aria-hidden="true" />
           </button>
         ))}
       </div>

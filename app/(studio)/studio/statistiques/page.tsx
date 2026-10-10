@@ -94,7 +94,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
             {hours.map((v, h) => (
               <div key={h} className="flex h-full flex-1 flex-col items-center justify-end gap-1" title={`${h} h : ${v}`}>
                 <div className="w-full rounded-t-[3px] bg-navy-link" style={{ height: `${Math.max(2, (v / maxHour) * 100)}%`, opacity: v ? 1 : 0.25 }} />
-                {h % 6 === 0 && <span className="text-[10px] text-text-4">{h}h</span>}
+                {h % 6 === 0 && <span className="text-[10px] text-text-3">{h}h</span>}
               </div>
             ))}
           </div>
@@ -106,7 +106,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
             {dows.map((v, i) => (
               <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1" title={`${DAYS[i]} : ${v}`}>
                 <div className="w-full rounded-t-[4px] bg-navy-link" style={{ height: `${Math.max(2, (v / maxDow) * 100)}%`, opacity: v ? 1 : 0.25 }} />
-                <span className="text-[10px] text-text-4">{DAYS[i]}</span>
+                <span className="text-[10px] text-text-3">{DAYS[i]}</span>
               </div>
             ))}
           </div>
@@ -163,7 +163,7 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
             </tbody>
           </table>
         </div>
-        <p className="text-[12px] text-text-4">Vues : une par agent et par publication. Depuis le {formatDateTime(s.since)}.</p>
+        <p className="text-[12px] text-text-3">Vues : une par agent et par publication. Depuis le {formatDateTime(s.since)}.</p>
       </section>
     </div>
   );

@@ -9,11 +9,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const current = await getCurrentUser();
   if (!current) redirect("/auth/deconnexion?raison=profil");
   const canEdit = isEditorRole(current.profile.role);
-  // Messagerie : éditeurs, référents et invités d'un groupe actif (RPC), non-lus pour la pastille
+  // Messagerie : éditeurs, référents et invités d'un groupe actif (RPC), non-lus pour la pastille.
+  // Les trois lectures partent ensemble : une seule attente réseau par navigation.
   const supabase = await createClient();
-  const canMessage = canEdit || Boolean((await supabase.rpc("can_use_messaging")).data);
-  const messagesUnread = canMessage ? ((await supabase.rpc("messaging_unread_total")).data ?? 0) : 0;
-  const theme = ((await supabase.from("user_settings").select("theme").eq("user_id", current.profile.id).maybeSingle()).data?.theme ?? "system") as Theme;
+  const [messagingRpc, unreadRpc, themeRow] = await Promise.all([
+    canEdit ? Promise.resolve({ data: true }) : supabase.rpc("can_use_messaging"),
+    supabase.rpc("messaging_unread_total"),
+    supabase.from("user_settings").select("theme").eq("user_id", current.profile.id).maybeSingle(),
+  ]);
+  const canMessage = canEdit || Boolean(messagingRpc.data);
+  const messagesUnread = canMessage ? ((unreadRpc.data as number | null) ?? 0) : 0;
+  const theme = (themeRow.data?.theme ?? "system") as Theme;
 
   return (
     <RoleProvider canEdit={canEdit} canMessage={canMessage} messagesUnread={messagesUnread}>

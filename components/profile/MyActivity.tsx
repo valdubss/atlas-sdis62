@@ -18,7 +18,7 @@ export function MyActivity({ a, canMessage, isReferent }: { a: MyActivityData; c
   const emoji = (kind: string) => REACTIONS.find((r) => r.kind === kind)?.emoji ?? "👏";
   const tiles: [string, number, string][] = [
     ["Réactions", a.reactions + a.story_reactions, "/favoris"],
-    ["Commentaires", a.comments, "/"],
+    ["Commentaires", a.comments, "#commentaires"],
     ["Favoris", a.bookmarks, "/favoris"],
     ...(isReferent ? ([["Propositions", a.proposals, "/profil/propositions"]] as [string, number, string][]) : []),
     ...(canMessage ? ([["Messages", a.messages, "/messages"]] as [string, number, string][]) : []),
@@ -50,7 +50,7 @@ export function MyActivity({ a, canMessage, isReferent }: { a: MyActivityData; c
           ))}
         </ul>
       </section>
-      <section className="space-y-2">
+      <section id="commentaires" className="space-y-2 scroll-mt-16">
         <h2 className="px-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-text-3">Derniers commentaires</h2>
         <ul className="hairline overflow-hidden rounded-[16px] bg-bg-1">
           {a.recent_comments.length === 0 && <li className="px-4 py-5 text-center text-[15px] text-text-2">Aucun commentaire pour le moment.</li>}
@@ -66,7 +66,7 @@ export function MyActivity({ a, canMessage, isReferent }: { a: MyActivityData; c
           ))}
         </ul>
       </section>
-      <p className="px-1 text-[12px] text-text-4">Ces données vous concernent seulement ; le service communication ne voit que des totaux anonymes dans ses statistiques.</p>
+      <p className="px-1 text-[12px] text-text-3">Ces données vous concernent seulement ; le service communication ne voit que des totaux anonymes dans ses statistiques.</p>
     </div>
   );
 }

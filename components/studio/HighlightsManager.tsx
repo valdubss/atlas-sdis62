@@ -8,6 +8,7 @@ import { imageSrc, posterSrc } from "@/lib/media/url";
 import { HIGHLIGHT_TITLE_MAX_LENGTH } from "@/lib/stories/overlay";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { useConfirm } from "@/components/ui/Confirm";
 
 export type HighlightRow = {
   id: string;
@@ -87,7 +88,7 @@ export function HighlightsManager({ highlights, pending, run }: { highlights: Hi
             maxLength={HIGHLIGHT_TITLE_MAX_LENGTH}
             className="h-10 flex-1 rounded-[10px] bg-bg-2 px-3 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
           />
-          <span className="self-center text-[12px] tabular-nums text-text-4">
+          <span className="self-center text-[12px] tabular-nums text-text-3">
             {newTitle.length}/{HIGHLIGHT_TITLE_MAX_LENGTH}
           </span>
           <Button type="submit" variant="secondary" size="md" disabled={pending || !newTitle.trim()}>
@@ -122,6 +123,7 @@ function HighlightItem({
   onDragEnd: () => void;
   onMove: (delta: 1 | -1) => void;
 }) {
+  const confirm = useConfirm();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(h.title);
   const [pickingCover, setPickingCover] = useState(false);
@@ -209,8 +211,8 @@ function HighlightItem({
           </TextButton>
           <TextButton
             disabled={pending}
-            onClick={() => {
-              if (window.confirm(`Supprimer l'à-la-une « ${h.title} » ? Les stories restent dans l'archive.`)) run(() => deleteHighlight(h.id), "À-la-une supprimé");
+            onClick={async () => {
+              if (await confirm({ title: `Supprimer l'à-la-une « ${h.title} » ?`, message: "Les stories restent dans l'archive.", confirmLabel: "Supprimer", danger: true })) run(() => deleteHighlight(h.id), "À-la-une supprimé");
             }}
           >
             Supprimer

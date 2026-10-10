@@ -16,7 +16,7 @@ export default async function CartePage() {
     <div className="space-y-3">
       <TopBar title="Carte" />
       <DirectoryMap centers={data.centers} homeCenterId={current.profile.center_id} />
-      <p className="px-1 text-[12px] text-text-4">Fond de carte © OpenFreeMap, OpenMapTiles, contributeurs OpenStreetMap ; restrictions drones © IGN. Sans clé ni traçage. Votre position n&apos;est demandée qu&apos;au toucher de « Autour de moi » et n&apos;est jamais enregistrée.</p>
+      <p className="px-1 text-[12px] text-text-3">Fond de carte © OpenFreeMap, OpenMapTiles, contributeurs OpenStreetMap ; restrictions drones © IGN. Sans clé ni traçage. Votre position n&apos;est demandée qu&apos;au toucher de « Autour de moi » et n&apos;est jamais enregistrée.</p>
     </div>
   );
 }

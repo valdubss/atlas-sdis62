@@ -55,6 +55,7 @@ export function SettingsPanel({
     <div className="mx-auto max-w-[960px] space-y-8">
       <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">Paramètres</h1>
 
+      {!isAdmin && <p className="rounded-[12px] bg-bg-1 px-4 py-3 text-[13px] text-text-2">Lecture seule : ces réglages sont modifiables par les administrateurs. Vous pouvez consulter les valeurs en vigueur.</p>}
       <section className="space-y-3">
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Notifications push</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -128,7 +129,7 @@ export function SettingsPanel({
           <label htmlFor="feedback_email" className="w-full text-[13px] font-medium text-text-2">
             Adresse qui reçoit les signalements
           </label>
-          <input id="feedback_email" type="email" value={feedbackEmail} onChange={(e) => setFeedbackEmail(e.target.value)} disabled={!isAdmin} className="h-10 w-72 rounded-[10px] bg-bg-2 px-3 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge" />
+          <input id="feedback_email" type="email" value={feedbackEmail} onChange={(e) => setFeedbackEmail(e.target.value)} disabled={!isAdmin} className="h-10 w-full rounded-[10px] sm:w-72 bg-bg-2 px-3 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge" />
           <Button type="submit" variant="secondary" size="md" disabled={pending || !isAdmin}>
             Enregistrer
           </Button>
@@ -176,7 +177,7 @@ export function SettingsPanel({
                 placeholder="Adresse de test"
                 aria-label="Adresse de test"
                 required
-                className="h-10 w-72 rounded-[10px] bg-bg-2 px-3 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
+                className="h-10 w-full rounded-[10px] sm:w-72 bg-bg-2 px-3 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
               />
               <Button type="submit" variant="secondary" size="md" disabled={pending || !emailConfigured}>
                 Envoyer un test

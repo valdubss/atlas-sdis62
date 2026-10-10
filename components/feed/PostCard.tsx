@@ -18,14 +18,18 @@ import { useToast } from "@/components/ui/Toast";
 import { ReactionBar } from "./ReactionBar";
 import { IconButton } from "./IconButton";
 import { ShareButton } from "./ShareButton";
-import { Comments } from "./Comments";
+import dynamic from "next/dynamic";
 import { Markdown } from "./Markdown";
 import { PhotoCarousel } from "./PhotoCarousel";
-import { VideoPlayer } from "./VideoPlayer";
 import { PollCard } from "./PollCard";
 import { PostOverlay } from "./PostOverlay";
 import { ReadTracker } from "./ReadTracker";
-import { ArticleReader } from "./ArticleReader";
+
+// Composants lourds (temps réel, lecteur vidéo, article) chargés à la demande : le fil
+// n'embarque que ce qu'il affiche au premier rendu.
+const Comments = dynamic(() => import("./Comments").then((m) => m.Comments), { ssr: false });
+const VideoPlayer = dynamic(() => import("./VideoPlayer").then((m) => m.VideoPlayer));
+const ArticleReader = dynamic(() => import("./ArticleReader").then((m) => m.ArticleReader));
 import { readingTimeMinutes } from "@/lib/feed/reading";
 import { AnimatePresence } from "framer-motion";
 
@@ -41,11 +45,14 @@ export function PostCard({
   variant = "feed",
   canModerate = false,
   preview = false,
+  priority = false,
 }: {
   post: FeedPost;
   variant?: "feed" | "full";
   canModerate?: boolean;
   preview?: boolean;
+  /** Première carte visible : médias chargés en priorité */
+  priority?: boolean;
 }) {
   const [post, setPost] = useState(initial);
   const [expanded, setExpanded] = useState(variant === "full");
@@ -142,6 +149,7 @@ export function PostCard({
             onTap={variant === "feed" ? openPost : undefined}
             interactive={!preview}
             rounded={false}
+            priority={priority || variant === "full"}
           />
         )}
         {shown.type === "video" && video && (
@@ -217,8 +225,11 @@ export function PostCard({
           {(shown.title || body) && (
             <div
               className={cn(variant === "feed" ? "mt-1" : "mt-3", variant === "feed" && !preview && "cursor-pointer")}
-              // Fil : le texte ouvre la publication, comme la photo
+              // Fil : le texte ouvre la publication, comme la photo (souris, toucher et clavier)
               onClick={variant === "feed" && !preview ? openPost : undefined}
+              role={variant === "feed" && !preview ? "button" : undefined}
+              tabIndex={variant === "feed" && !preview ? 0 : undefined}
+              onKeyDown={variant === "feed" && !preview ? (e) => { if (e.key === "Enter") openPost(); } : undefined}
             >
               {shown.title && (
                 <h2 className={cn("mb-0.5 font-semibold tracking-[-0.02em] leading-[1.2] text-text-1", variant === "feed" ? "text-[17px]" : "text-[22px]")}>
@@ -294,7 +305,7 @@ export function PostCard({
                 disabled={preview}
               />
             ) : (
-              <span className="px-1 text-[13px] text-text-3">Réactions désactivées</span>
+              <span aria-hidden="true" />
             )}
             <div className="flex items-center">
               <IconButton

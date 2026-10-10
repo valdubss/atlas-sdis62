@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { APP_NAME, APP_TAGLINE } from "@/lib/config";
 import { ToastProvider } from "@/components/ui/Toast";
+import { ConfirmProvider } from "@/components/ui/Confirm";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import "./globals.css";
 
@@ -26,16 +27,25 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0c",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={inter.variable}>
+    <html lang="fr" className={inter.variable} suppressHydrationWarning>
+      <head>
+        {/* Thème mémorisé sur l'appareil appliqué avant le premier rendu : pas de flash sombre → clair */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "try{var t=localStorage.getItem('atlas:theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}",
+          }}
+        />
+      </head>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>
+          <ConfirmProvider>{children}</ConfirmProvider>
+        </ToastProvider>
         <PwaRegister />
       </body>
     </html>

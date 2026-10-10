@@ -111,6 +111,13 @@ redirige vers `/login`.
 | `0026_centres_v2.sql` | Mon centre / annuaire / profil (lot 7 v3) : `center_changes` (propositions de fiche multi-champs, `propose_center_changes`, `decide_center_change`), `profile_history` (centre, service, rôle, statut, trigger), `my_profile_history`, `my_activity` |
 | `0027_reliability.sql` | fiabilité (lot 8 v3) : `incidents` (page /etat), journal d'audit indexé + `studio_audit` / `studio_audit_facets`, `set_reaction` idempotente et `channel_messages.client_id` (envois différés), `health_snapshot` |
 | `0028_messaging_reset.sql` | messagerie vide au départ : suppression des canaux automatiques (général, groupements, centres) et de toutes les conversations |
+| `0029_comments_anonymize_guard.sql` | suppression d'un compte : les commentaires sont anonymisés au lieu de bloquer la suppression |
+| `0030_user_management.sql` | comptes (lot comptes) : domaines autorisés, code à 6 chiffres, `membership_requests` / `membership_tokens` (rattachement validé par le chef de centre), co-rédacteurs, réactions désactivables, événements de centre réservés aux membres |
+| `0031_abuse_guards.sql` | garde-fous : `rate_limit_events`, limites d'envoi des demandes et des codes |
+| `0032_rgpd_storage.sql` | RGPD complet (`export_user_data`, suppression), stockage lié aux médias déclarés |
+| `0033_profiles_email_privacy.sql` | `profiles.email` réservé aux éditeurs (privilèges de colonne, vue `profiles_editor`) |
+| `0034_messaging_v2.sql` | messagerie v2 : `edited_at` (modification 15 min), `message_by_id`, `channel_messages_since` (rattrapage après coupure), `channel_reads_state` (coches « lu »), `channel_reads` publié en temps réel, identité de réplication complète, membres implicites signalés dans `channel_info`, pushs : une par minute et par conversation, une mention passe toujours |
+| `0035_storage_mime_fix.sql` | correctif du bucket `media` (régression 0032) : familles `image/*`, `video/*`, `audio/*` en joker, HLS, sous-titres, PDF / Word ; sans lui, transcodage vidéo, messages vocaux et fichiers de la messagerie étaient refusés (415) |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -521,14 +528,35 @@ docs/ARCHITECTURE.md       plan d'architecture
   archivage automatiques (`runMaintenance`).
 - **Conversation** : bulles 18 px (coins réduits entre messages consécutifs), nom
   coloré, séparateurs de date, pagination vers le haut avec position conservée,
-  réponse citée, transfert, épinglés (3), recherche, « Vu par N », temps réel Supabase.
+  réponse citée (ou glisser une bulle vers la droite), transfert, épinglés (3), recherche,
+  « Vu par… » dans le menu du message.
   Pièces jointes : jusqu'à 10 photos, une vidéo ≤ 60 s ou un fichier PDF / Word ≤ 25 Mo,
   messages vocaux (maintenir le micro, glisser vers le haut pour verrouiller ; forme
   d'onde, vitesse 1× / 1,5× / 2×), six réactions, mentions `@Prénom` et `@tous`.
-  Suppression par l'auteur dans les 15 minutes, par un éditeur à tout moment.
+  Modification et suppression par l'auteur dans les 15 minutes (mention « modifié »),
+  suppression par un éditeur à tout moment.
   « Utiliser dans un post » copie une photo dans la bibliothèque du studio.
-- **Notifications** : une push par conversation et par tranche de 10 minutes
-  (`dedupe_key`), selon la préférence globale (Profil → Notifications → Messagerie) et
+- **Fiabilité et fluidité (v2, migration `0034`)** :
+  - temps réel incrémental : chaque événement Supabase (nouveau message, modification,
+    suppression, réaction, lecture) met à jour la liste sans rechargement ; frappe en cours
+    (« X écrit… ») diffusée par broadcast, étranglée à 2 s ;
+  - rattrapage automatique (`channel_messages_since`) à chaque reconnexion, au retour sur
+    l'app et au retour du réseau ; sondage toutes les 30 s seulement quand le temps réel
+    est coupé, bandeau « Reconnexion… » le cas échéant ;
+  - envoi optimiste : la bulle apparaît immédiatement, réconciliée par `client_id` ;
+    hors ligne, le message est mis en file et envoyé au retour du réseau ; en cas d'échec,
+    nouvelle tentative automatique après 3 s puis bouton « Réessayer » (même `client_id`,
+    jamais de doublon) ;
+  - coches à la WhatsApp sur ses propres messages : une coche « Envoyé », double coche
+    grise « Lu par certains », double coche bleue « Lu par tous » (membres invités du
+    groupe ; les éditeurs qui voient tout sans être invités ne comptent pas) ;
+  - séparateur « Nouveaux messages » à l'ouverture, bouton « ↓ N » quand on n'est pas en
+    bas et que des messages arrivent, retour en bas animé ;
+  - brouillon conservé par conversation sur l'appareil, composeur qui suit le clavier
+    (`visualViewport`), retour haptique à l'envoi ;
+  - liste des conversations mise à jour en temps réel (nouveau message, lecture).
+- **Notifications** : une push par conversation et par minute (`dedupe_key`), une
+  mention passe toujours ; selon la préférence globale (Profil → Notifications → Messagerie) et
   par conversation (tout / mentions / aucune, silence 8 h), plage de silence respectée,
   « Masquer l'aperçu » remplace le texte par « Nouveau message ». Mention → notification
   dans l'app. Pastille de non-lus sur l'onglet Messages.

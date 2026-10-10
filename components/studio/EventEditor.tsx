@@ -10,6 +10,7 @@ import { Field, TextareaField, SelectField, CheckboxField } from "@/components/u
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/components/ui/Confirm";
 
 const initial: EventFormState = { status: "idle" };
 type PostRef = { id: string; slug: string; title: string | null };
@@ -20,6 +21,7 @@ export function EventEditor({ event, posts }: { event: EventItem | null; posts: 
   const [deleting, startDelete] = useTransition();
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   const fields = state.status === "error" ? state.fields ?? {} : {};
 
   const [allDay, setAllDay] = useState(event?.all_day ?? false);
@@ -95,8 +97,8 @@ export function EventEditor({ event, posts }: { event: EventItem | null; posts: 
               type="button"
               variant="danger"
               disabled={deleting}
-              onClick={() => {
-                if (!confirm("Supprimer cet événement ?")) return;
+              onClick={async () => {
+                if (!(await confirm({ title: "Supprimer cet événement ?", confirmLabel: "Supprimer", danger: true }))) return;
                 startDelete(async () => {
                   const r = await deleteEvent(event.id);
                   if (!r.ok) {

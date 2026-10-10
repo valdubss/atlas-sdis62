@@ -41,7 +41,7 @@ export function TopBar({ title, right, leading }: { title?: string; right?: Reac
         {title && (
           <span
             className={cn(
-              "pointer-events-none absolute inset-x-24 truncate text-center text-[17px] font-semibold tracking-[-0.02em] text-text-1 transition-opacity duration-200",
+              "pointer-events-none absolute inset-x-[132px] truncate sm:inset-x-24 text-center text-[17px] font-semibold tracking-[-0.02em] text-text-1 transition-opacity duration-200",
               collapsed ? "opacity-100" : "opacity-0",
             )}
           >

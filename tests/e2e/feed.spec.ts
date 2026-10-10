@@ -57,7 +57,7 @@ test("fil : position restaurée, recherche globale, lecture qualifiée", async (
     // Historique local des recherches
     await page.goto("/");
     await page.getByRole("button", { name: "Rechercher" }).click();
-    await expect(page.getByRole("button", { name: "wimereu" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "wimereu", exact: true })).toBeVisible({ timeout: 15_000 });
   } finally {
     await admin.from("posts").delete().in("id", [postId, ...fillerIds]);
     await admin.from("notifications").delete().ilike("body", `%${stamp}%`);

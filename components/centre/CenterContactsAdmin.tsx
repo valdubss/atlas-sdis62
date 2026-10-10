@@ -17,7 +17,7 @@ type Contacts = { chief_name: string | null; chief_email: string | null; com_nam
  * droits de validation et de création d'événements dans l'app.
  */
 export function CenterContactsAdmin({ centerId, contacts, fallbackEmail }: { centerId: string; contacts: Contacts; fallbackEmail: string | null }) {
-  const [open, setOpen] = useState(!contacts.chief_email && !contacts.com_email);
+  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ chief_name: contacts.chief_name ?? "", chief_email: contacts.chief_email ?? "", com_name: contacts.com_name ?? "", com_email: contacts.com_email ?? "" });
   const [pending, start] = useTransition();
   const router = useRouter();

@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/Button";
 import { CreateUserForm } from "./CreateUserForm";
 import { Eye, EyeOff, RefreshCw, UserPlus } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { useConfirm } from "@/components/ui/Confirm";
 
 export type UserRow = {
   id: string;
@@ -64,6 +65,7 @@ export function UsersTable({
   const [search, setSearch] = useState(q);
   const [pending, start] = useTransition();
   const toast = useToast();
+  const confirm = useConfirm();
   const [identity, setIdentity] = useState({ first_name: "", last_name: "", target: "" });
   const [pwd, setPwd] = useState("");
   const [showPwd, setShowPwd] = useState(true);
@@ -106,13 +108,33 @@ export function UsersTable({
     fn: () => Promise<{ ok: boolean; error?: string }>,
     okMessage: string,
     close = false,
+    onFail?: () => void,
   ) {
     start(async () => {
       const res = await fn();
       toast(res.ok ? okMessage : (res.error ?? "Erreur"));
       if (res.ok && close) setSelected(null);
+      if (!res.ok) onFail?.();
     });
   }
+
+  type Filter = "all" | "admin" | "editor" | "reader" | "inactive" | "never";
+  const [filter, setFilter] = useState<Filter>("all");
+  const FILTERS: { id: Filter; label: string }[] = [
+    { id: "all", label: "Tous" },
+    { id: "admin", label: "Administrateurs" },
+    { id: "editor", label: "Éditeurs" },
+    { id: "reader", label: "Agents" },
+    { id: "never", label: "Jamais connectés" },
+    { id: "inactive", label: "Désactivés" },
+  ];
+  const visible = users.filter((u) => {
+    if (filter === "all") return true;
+    if (filter === "inactive") return !u.is_active;
+    if (filter === "never") return !u.onboarded_at;
+    if (filter === "reader") return u.role === "reader" || u.role === "referent";
+    return u.role === filter;
+  });
 
   function exportJson(u: UserRow) {
     start(async () => {
@@ -194,13 +216,21 @@ export function UsersTable({
         {creating && <CreateUserForm onDone={() => setCreating(false)} centers={centers} />}
       </Sheet>
 
+      <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1" role="tablist" aria-label="Filtrer les comptes">
+        {FILTERS.map((f) => (
+          <button key={f.id} type="button" role="tab" aria-selected={filter === f.id} onClick={() => setFilter(f.id)} className={cn("h-9 shrink-0 whitespace-nowrap rounded-full px-4 text-[13px] font-medium", filter === f.id ? "bg-bg-2 text-text-1 ring-1 ring-glass-edge" : "bg-bg-1 text-text-2")}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       <div className="hairline rounded-[16px] bg-bg-1">
-        {users.length === 0 ? (
+        {visible.length === 0 ? (
           <p className="px-5 py-8 text-center text-[15px] text-text-2">
             Aucun compte ne correspond.
           </p>
         ) : (
-          users.map((u) => {
+          visible.map((u) => {
             const fullName = `${u.first_name} ${u.last_name}`.trim();
             return (
               <button
@@ -246,7 +276,7 @@ export function UsersTable({
         }
       >
         {selected && (
-          <div className="space-y-6 px-5 pb-8">
+          <div className="space-y-6 px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
             <div className="text-[13px] text-text-3">
               <p>{selected.email}</p>
               <p>
@@ -330,10 +360,13 @@ export function UsersTable({
                       pending || (selected.id === meId && r !== "admin")
                     }
                     onClick={() => {
+                      const before = selected;
                       setSelected({ ...selected, role: r });
                       run(
                         () => setUserRole(selected.id, r),
                         `Rôle : ${ROLE_LABELS[r]}`,
+                        false,
+                        () => setSelected(before),
                       );
                     }}
                     className={cn(
@@ -361,10 +394,13 @@ export function UsersTable({
                 disabled={pending || selected.id === meId}
                 onClick={() => {
                   const next = !selected.is_active;
+                  const before = selected;
                   setSelected({ ...selected, is_active: next });
                   run(
                     () => setUserActive(selected.id, next),
                     next ? "Compte réactivé" : "Compte désactivé",
+                    false,
+                    () => setSelected(before),
                   );
                 }}
               >
@@ -395,11 +431,14 @@ export function UsersTable({
                   variant="danger"
                   size="md"
                   disabled={pending || selected.id === meId}
-                  onClick={() => {
+                  onClick={async () => {
                     if (
-                      window.confirm(
-                        `Supprimer définitivement le compte de ${selected.email} ? Ses commentaires seront anonymisés, ses réactions et favoris effacés.`,
-                      )
+                      await confirm({
+                        title: `Supprimer le compte de ${selected.email} ?`,
+                        message: "Définitif : ses commentaires seront anonymisés, ses réactions et favoris effacés.",
+                        confirmLabel: "Supprimer définitivement",
+                        danger: true,
+                      })
                     ) {
                       run(
                         () => deleteUser(selected.id),

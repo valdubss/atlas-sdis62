@@ -289,7 +289,7 @@ export function StoryViewer({
                 <MoreHorizontal size={22} strokeWidth={1.75} />
               </Link>
             )}
-            <button type="button" onClick={onClose} aria-label="Fermer" className="pointer-events-auto flex h-10 w-10 items-center justify-center text-white/90">
+            <button type="button" onClick={onClose} aria-label="Fermer" autoFocus className="pointer-events-auto flex h-10 w-10 items-center justify-center text-white/90">
               <X size={24} strokeWidth={1.75} />
             </button>
           </div>

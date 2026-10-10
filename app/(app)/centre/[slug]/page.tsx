@@ -42,7 +42,7 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
   const { profile } = current;
   const supabase = await createClient();
 
-  const [week, newcomers, photos, posts, follows, referent, home, team, canManage, fallback] = await Promise.all([
+  const [week, newcomers, photos, posts, follows, referent, home, team, canManage, fallback, requests] = await Promise.all([
     fetchCenterWeek(center.id),
     fetchNewcomers(center.id),
     fetchCenterPhotos(center.id),
@@ -53,8 +53,9 @@ export default async function CenterPage({ params }: { params: Promise<{ slug: s
     fetchTeam("center", center.id),
     supabase.rpc("can_manage_center", { p_center: center.id }).then((r) => Boolean(r.data)),
     supabase.from("app_settings").select("value").eq("key", "membership_fallback_email").maybeSingle().then((r) => (typeof r.data?.value === "string" ? (r.data.value as string) : null)),
+    // Demandes en attente : chargées en même temps que le reste (vides si l'agent n'est pas responsable)
+    supabase.rpc("can_manage_center", { p_center: center.id }).then((r) => (r.data ? fetchCenterRequests(center.id) : [])),
   ]);
-  const requests = canManage ? await fetchCenterRequests(center.id) : [];
   const isAdmin = profile.role === "admin";
   void supabase.rpc("record_page_view", { p_kind: "center", p_target: center.id }).then(() => undefined, () => undefined);
 

@@ -156,8 +156,8 @@ h1, h2, h3, h4 {
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass {
     background: var(--glass);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
   }
 }
 /* Verre flottant (barre basse) : bord complet et ombre portée */
@@ -217,7 +217,7 @@ html[data-sheet-open] .glass {
 
 /* Focus visible (accessibilité) : liseré, jamais de halo coloré */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible:not(.outline-none) {
-  outline: 1px solid var(--glass-edge);
+  outline: 2px solid var(--text-1);
   outline-offset: 2px;
 }
 input, textarea, select {
@@ -272,8 +272,12 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
   touch-action: pan-x pan-y pinch-zoom;
 }
 
-/* Téléphone en paysage : l'app reste conçue pour le portrait */
+/* Téléphone en paysage : l'app reste conçue pour le portrait, sauf pendant une
+   visionneuse, une story ou une vidéo (dialogue ou lecteur ouvert) */
 @media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+  html:has([role="dialog"], video:not([hidden])) body::after {
+    display: none;
+  }
   body::after {
     content: "Tournez votre téléphone : ATLAS s'utilise en portrait.";
     position: fixed;
@@ -423,4 +427,10 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
 }
 .maplibregl-ctrl button .maplibregl-ctrl-icon {
   filter: invert(1);
+}
+
+/* Message visé par une citation ou un épinglé : surbrillance brève */
+.msg-highlight > div {
+  box-shadow: 0 0 0 2px var(--text-1);
+  transition: box-shadow 0.4s ease;
 }

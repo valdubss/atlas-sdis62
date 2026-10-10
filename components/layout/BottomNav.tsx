@@ -28,13 +28,14 @@ export function BottomNav() {
     setPendingHref(null);
   }, [pathname]);
 
-  // Non-lus de la messagerie : rafraîchis à chaque navigation, au retour sur l'app et toutes les 45 s
+  // Non-lus de la messagerie : valeur du serveur à chaque navigation (contexte), puis
+  // rafraîchie au retour sur l'app et toutes les deux minutes ; aucune requête par route.
+  useEffect(() => setUnread(initialUnread), [initialUnread]);
   useEffect(() => {
     if (!canMessage) return;
     let alive = true;
     const refresh = () => getMessagingUnread().then((n) => alive && setUnread(n)).catch(() => {});
-    refresh();
-    const t = setInterval(refresh, 45_000);
+    const t = setInterval(refresh, 120_000);
     const onVisible = () => document.visibilityState === "visible" && refresh();
     document.addEventListener("visibilitychange", onVisible);
     return () => {
@@ -42,7 +43,7 @@ export function BottomNav() {
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [canMessage, pathname]);
+  }, [canMessage]);
 
   const items: { href: string; label: string; icon: keyof typeof ICONS }[] = NAV_ITEMS.map((it) => (canMessage && it.href === "/annuaire" ? { href: "/messages", label: "Messages", icon: "messages" } : it));
 

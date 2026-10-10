@@ -10,6 +10,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
+import { useConfirm } from "@/components/ui/Confirm";
 
 /**
  * Liste + composeur de commentaires. Un seul niveau de réponse.
@@ -69,14 +70,19 @@ export function Comments({
   function submit() {
     const text = body.trim();
     if (!text) return;
+    // Affiché tout de suite (insertion optimiste), remplacé par la version du serveur au rechargement
+    const temp: CommentItem = { id: `tmp-${Date.now()}`, post_id: postId, parent_id: replyTo?.id ?? null, body: text, status: "visible", created_at: new Date().toISOString(), edited_at: null, is_mine: true, author: { name: "Vous", center: null, avatar_key: null } };
+    setItems((prev) => [...(prev ?? []), temp]);
+    setBody("");
+    setReplyTo(null);
     startTransition(async () => {
-      const res = await postComment({ post_id: postId, parent_id: replyTo?.id ?? null, body: text });
+      const res = await postComment({ post_id: postId, parent_id: temp.parent_id, body: text });
       if (!res.ok) {
+        setItems((prev) => (prev ?? []).filter((c) => c.id !== temp.id));
+        setBody(text);
         toast(res.error);
         return;
       }
-      setBody("");
-      setReplyTo(null);
       await reload();
     });
   }
@@ -190,6 +196,7 @@ function CommentRow({
   const [reason, setReason] = useState("");
   const [pending, startTransition] = useTransition();
   const toast = useToast();
+  const confirm = useConfirm();
   const hidden = comment.status !== "visible";
 
   if (hidden && !canModerate) return null;
@@ -205,14 +212,14 @@ function CommentRow({
           {hidden && <span className="text-red-text"> masqué</span>}
         </p>
         <p className={cn("whitespace-pre-line break-words text-[15px] text-text-1", hidden && "opacity-50")}>{comment.body}</p>
-        <div className="mt-1 flex flex-wrap items-center gap-4 text-[13px] font-medium text-text-2">
+        <div className="-mb-2 flex flex-wrap items-center gap-2 text-[13px] font-medium text-text-2">
           {onReply && (
-            <button type="button" onClick={onReply} className="hover:text-text-1">
+            <button type="button" onClick={onReply} className="min-h-11 px-1.5 hover:text-text-1">
               Répondre
             </button>
           )}
           {!comment.is_mine && !hidden && (
-            <button type="button" onClick={() => setReporting((v) => !v)} className="hover:text-text-1">
+            <button type="button" onClick={() => setReporting((v) => !v)} className="min-h-11 px-1.5 hover:text-text-1">
               Signaler
             </button>
           )}
@@ -220,15 +227,15 @@ function CommentRow({
             <button
               type="button"
               disabled={pending}
-              onClick={() => {
-                if (!confirm("Supprimer votre commentaire ?")) return;
+              onClick={async () => {
+                if (!(await confirm({ title: "Supprimer votre commentaire ?", confirmLabel: "Supprimer", danger: true }))) return;
                 startTransition(async () => {
                   const res = await deleteComment(comment.id);
                   if (!res.ok) toast(res.error);
                   onChanged();
                 });
               }}
-              className="hover:text-red-text"
+              className="min-h-11 px-1.5 hover:text-red-text"
             >
               Supprimer
             </button>
@@ -244,7 +251,7 @@ function CommentRow({
                   onChanged();
                 })
               }
-              className="hover:text-text-1"
+              className="min-h-11 px-1.5 hover:text-text-1"
             >
               {hidden ? "Rétablir" : "Masquer"}
             </button>

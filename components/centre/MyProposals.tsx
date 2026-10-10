@@ -9,6 +9,7 @@ import { formatDateTime, formatRelative } from "@/lib/format";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/components/ui/Confirm";
 
 const STATUS: Record<string, { label: string; tone: "neutral" | "red" | "success" | "navy" }> = {
   pending: { label: "En attente", tone: "navy" },
@@ -23,6 +24,7 @@ export function MyProposals({ items }: { items: MyProposal[] }) {
   const [pending, start] = useTransition();
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
   if (items.length === 0) return <EmptyState title="Aucune proposition" description="Vos actus, photos et événements proposés pour votre centre apparaîtront ici." />;
   return (
     <ul className="hairline rounded-[16px] bg-bg-1">
@@ -52,8 +54,8 @@ export function MyProposals({ items }: { items: MyProposal[] }) {
                 <button
                   type="button"
                   disabled={pending}
-                  onClick={() => {
-                    if (!confirm("Retirer cette proposition ?")) return;
+                  onClick={async () => {
+                    if (!(await confirm({ title: "Retirer cette proposition ?", confirmLabel: "Retirer", danger: true }))) return;
                     start(async () => {
                       const r = await withdrawProposal(p.kind, p.id);
                       toast(r.ok ? "Proposition retirée" : r.error);

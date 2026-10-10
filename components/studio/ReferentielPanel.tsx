@@ -9,6 +9,7 @@ import type { Center, Grouping, Service } from "@/lib/supabase/database.types";
 import { CENTER_TYPE_LABELS } from "@/lib/config";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
+import { useConfirm } from "@/components/ui/Confirm";
 
 type CenterRow = Center & { grouping: { name: string } | null; referents_count: number };
 
@@ -18,6 +19,7 @@ export function ReferentielPanel({ groupings, centers, services }: { groupings: 
   const [pending, start] = useTransition();
   const router = useRouter();
   const toast = useToast();
+  const confirm = useConfirm();
 
   function run(fn: () => Promise<{ ok: boolean; error?: string }>, ok: string) {
     start(async () => {
@@ -75,8 +77,8 @@ export function ReferentielPanel({ groupings, centers, services }: { groupings: 
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => {
-                  if (confirm(`Supprimer le groupement « ${g.name} » ? Ses centres resteront, sans groupement.`)) run(() => deleteGrouping(g.id), "Groupement supprimé");
+                onClick={async () => {
+                  if (await confirm({ title: `Supprimer le groupement « ${g.name} » ?`, message: "Ses centres resteront, sans groupement.", confirmLabel: "Supprimer", danger: true })) run(() => deleteGrouping(g.id), "Groupement supprimé");
                 }}
                 className="text-[13px] text-text-3 hover:text-red-text"
               >

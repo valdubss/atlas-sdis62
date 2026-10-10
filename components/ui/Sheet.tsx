@@ -115,7 +115,7 @@ export function Sheet({
             )}
           >
             <div className="flex shrink-0 cursor-grab touch-none flex-col items-center pt-2">
-              <span className="h-[5px] w-9 rounded-full bg-white/20" aria-hidden="true" />
+              <span className="h-[5px] w-9 rounded-full bg-line-strong" aria-hidden="true" />
               <div className="flex h-12 w-full items-center px-5">
                 <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">{title}</h2>
               </div>

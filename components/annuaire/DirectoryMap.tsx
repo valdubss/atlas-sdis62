@@ -360,7 +360,7 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
       )}
 
       {mode !== "carte" && (
-        <p className="flex items-center gap-2 px-1 text-[12px] text-text-4">
+        <p className="flex items-center gap-2 px-1 text-[12px] text-text-3">
           {live ? `Mis à jour à ${hhmm(live.generated_at)} · Météo-France, Open-Meteo, Hub'Eau${mode === "drone" ? ", IGN" : ""}` : "Chargement des données…"}
           <button type="button" onClick={() => void refresh()} disabled={loading} aria-label="Actualiser" className="flex h-7 w-7 items-center justify-center rounded-full text-text-3 hover:text-text-1 disabled:opacity-50">
             <RefreshCw size={14} strokeWidth={1.75} className={cn(loading && "animate-spin")} />
@@ -436,7 +436,7 @@ function DepartmentWeather({ live }: { live: LiveLayers }) {
             <p className="mt-0.5 text-[17px] font-semibold tracking-[-0.02em] text-text-1" style={label === "Feu de végétation" ? { color: fireColor(fire) } : undefined}>
               {value}
             </p>
-            {hint && <p className="text-[12px] text-text-4">{hint}</p>}
+            {hint && <p className="text-[12px] text-text-3">{hint}</p>}
           </div>
         ))}
       </div>
@@ -457,7 +457,7 @@ function DepartmentWeather({ live }: { live: LiveLayers }) {
           </ul>
         </section>
       )}
-      <p className="px-1 text-[12px] text-text-4">Synthèse sur les {w.length} points du département (un par centre), sans détail par centre.</p>
+      <p className="px-1 text-[12px] text-text-3">Synthèse sur les {w.length} points du département (un par centre), sans détail par centre.</p>
     </div>
   );
 }
@@ -498,7 +498,7 @@ function DronePanel({ located, weatherOf, onPick }: { located: Located[]; weathe
           </li>
         ))}
       </ul>
-      <p className="px-1 text-[12px] text-text-4">Seuils indicatifs catégorie ouverte : prudence dès 36 km/h, refus à 43 km/h de vent moyen (10, 80 ou 120 m) ou 54 km/h de rafales, pluie, visibilité sous 1,5 km. Zones colorées : restrictions UAS de l&apos;IGN, hors interdictions temporaires (vérifiez les NOTAM avant tout vol).</p>
+      <p className="px-1 text-[12px] text-text-3">Seuils indicatifs catégorie ouverte : prudence dès 36 km/h, refus à 43 km/h de vent moyen (10, 80 ou 120 m) ou 54 km/h de rafales, pluie, visibilité sous 1,5 km. Zones colorées : restrictions UAS de l&apos;IGN, hors interdictions temporaires (vérifiez les NOTAM avant tout vol).</p>
     </section>
   );
 }

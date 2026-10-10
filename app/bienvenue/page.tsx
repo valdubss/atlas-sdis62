@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/server";
+import { fetchDirectory } from "@/lib/centres/public";
 import { Onboarding } from "./Onboarding";
 
 export const metadata: Metadata = { title: "Bienvenue" };
@@ -20,15 +21,14 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
   // Première connexion par lien ou code : le mot de passe est proposé (facultatif)
   const offerPassword = mdp === "1" || !profile.onboarded_at;
 
-  const supabase = await createClient();
-  const { data: centers } = await supabase.from("centers").select("id, name").eq("is_active", true).order("sort_order").order("name");
+  const directory = await fetchDirectory();
 
   return (
     <Onboarding
       firstName={profile.first_name}
       lastName={profile.last_name}
       centerId={profile.center_id}
-      centers={centers ?? []}
+      directory={directory}
       needPassword={offerPassword}
       startAtForm={Boolean(profile.onboarded_at)}
       key={profile.onboarded_at ? "reset" : "first"}

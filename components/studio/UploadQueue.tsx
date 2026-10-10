@@ -19,7 +19,7 @@ export function UploadQueue() {
         </span>
         <span className="shrink-0 text-text-3">{active.filter((i) => i.status === "uploading").length > 0 ? "Envoi en arrière-plan" : ""}</span>
       </div>
-      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-line">
         <div className="h-full rounded-full bg-text-1 transition-[width]" style={{ width: `${Math.round(overall * 100)}%` }} />
       </div>
     </div>

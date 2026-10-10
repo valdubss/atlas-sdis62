@@ -25,17 +25,19 @@ const FULL_NAV = [
 
 const LIMITED_NAV = [{ href: "/studio/partages", label: "Publications partagées", exact: false }];
 
-export function StudioNav({ compact = false, pendingCenters = 0, limited = false }: { compact?: boolean; pendingCenters?: number; limited?: boolean }) {
+export function StudioNav({ compact = false, pendingCenters = 0, limited = false, isAdmin = false }: { compact?: boolean; pendingCenters?: number; limited?: boolean; isAdmin?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
-  const NAV = limited ? LIMITED_NAV : FULL_NAV;
+  const NAV = (limited ? LIMITED_NAV : FULL_NAV).filter((n) => isAdmin || n.href !== "/studio/utilisateurs");
+  // Entrée active : la plus précise (« Rattachements » l'emporte sur « Centres »)
+  const current = NAV.filter((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href))).sort((a, b) => b.href.length - a.href.length)[0]?.href ?? NAV[0].href;
 
   if (compact) {
     return (
       <label className="relative flex items-center">
         <select
           aria-label="Navigation du studio"
-          value={NAV.find((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))?.href ?? NAV[0].href}
+          value={current}
           onChange={(e) => router.push(e.target.value)}
           className="h-9 appearance-none rounded-[10px] bg-bg-2 pl-3 pr-8 text-[15px] font-medium text-text-1"
         >
@@ -54,7 +56,7 @@ export function StudioNav({ compact = false, pendingCenters = 0, limited = false
   return (
     <nav className="flex flex-col px-3 pt-2" aria-label="Navigation du studio">
       {NAV.map((item) => {
-        const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+        const active = item.href === current;
         return (
           <Link
             key={item.href}

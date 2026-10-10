@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { MediaUploader, type EditorMedia } from "./MediaUploader";
 import { CoeditorsPanel } from "./CoeditorsPanel";
 import { cn } from "@/lib/cn";
+import { useConfirm } from "@/components/ui/Confirm";
 
 type Ref = { id: string; name: string; slug: string };
 
@@ -67,6 +68,7 @@ export function PostEditor({
 }) {
   const [state, action, pending] = useActionState(savePost, initial);
   const [deleting, startDelete] = useTransition();
+  const confirm = useConfirm();
   const fields = state.status === "error" ? state.fields ?? {} : {};
 
   const initialType: EditorPostType =
@@ -116,6 +118,45 @@ export function PostEditor({
     return () => clearInterval(timer);
   }, [post, hasLock, title, location, excerpt, body]);
   const publishBlocked = reviewStatus === "requested" && !isAdmin;
+
+  // Nouvelle publication : le texte est gardé sur l'appareil tant qu'elle n'est pas enregistrée
+  // (fermeture d'onglet, retour arrière), puis proposé à la réouverture.
+  const DRAFT_KEY = "atlas:studio:brouillon-nouveau";
+  const [restored, setRestored] = useState(false);
+  useEffect(() => {
+    if (post) return;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw) as { title?: string; location?: string; excerpt?: string; body?: string; type?: EditorPostType };
+      if (!(d.title || d.body || d.excerpt)) return;
+      setTitle(d.title ?? "");
+      setLocation(d.location ?? "");
+      setExcerpt(d.excerpt ?? "");
+      setBody(d.body ?? "");
+      if (d.type) setType(d.type);
+      setRestored(true);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lecture unique au montage
+  }, []);
+  useEffect(() => {
+    if (post) return;
+    const t = setTimeout(() => {
+      try {
+        if (title || body || excerpt) localStorage.setItem(DRAFT_KEY, JSON.stringify({ title, location, excerpt, body, type }));
+        else localStorage.removeItem(DRAFT_KEY);
+      } catch {}
+    }, 800);
+    return () => clearTimeout(t);
+  }, [post, title, location, excerpt, body, type]);
+  useEffect(() => {
+    // Enregistrée (redirection vers la page d'édition) : le brouillon local est effacé
+    if (state.status === "idle" && post) {
+      try {
+        localStorage.removeItem(DRAFT_KEY);
+      } catch {}
+    }
+  }, [state.status, post]);
 
   const preview: FeedPost = useMemo(
     () => ({
@@ -195,7 +236,7 @@ export function PostEditor({
             <Badge tone={badge.tone}>{badge.label}</Badge>
             {coeditor && <Badge tone="navy">Co-rédaction</Badge>}
           </div>
-          <Link href={coeditor ? "/studio/partages" : "/studio/posts"} className="pressable hidden text-[15px] font-medium text-text-2 hover:text-text-1 sm:inline">
+          <Link href={coeditor ? "/studio/partages" : "/studio/posts"} className="pressable text-[15px] font-medium text-text-2 hover:text-text-1">
             {coeditor ? "Publications partagées" : "Publications"}
           </Link>
         </div>
@@ -203,6 +244,27 @@ export function PostEditor({
         {notice && (
           <p role="status" className="text-[15px] text-text-2">
             {notice}
+          </p>
+        )}
+        {restored && !post && (
+          <p role="status" className="flex flex-wrap items-center gap-3 rounded-[12px] bg-bg-1 px-4 py-3 text-[13px] text-text-2">
+            Brouillon non enregistré retrouvé sur cet appareil.
+            <button
+              type="button"
+              className="font-medium text-text-1"
+              onClick={() => {
+                setTitle("");
+                setLocation("");
+                setExcerpt("");
+                setBody("");
+                setRestored(false);
+                try {
+                  localStorage.removeItem(DRAFT_KEY);
+                } catch {}
+              }}
+            >
+              Repartir de zéro
+            </button>
           </p>
         )}
         {post && <DraftLock postId={post.id} onLocked={setHasLock} />}
@@ -416,8 +478,8 @@ export function PostEditor({
               size="md"
               className="ml-auto"
               loading={deleting}
-              onClick={() => {
-                if (window.confirm("Supprimer cette publication ? Elle disparaîtra du fil.")) {
+              onClick={async () => {
+                if (await confirm({ title: "Supprimer cette publication ?", message: "Elle disparaîtra du fil.", confirmLabel: "Supprimer", danger: true })) {
                   startDelete(async () => {
                     await deletePost(post.id);
                   });

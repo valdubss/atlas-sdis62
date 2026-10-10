@@ -54,7 +54,7 @@ export default async function StatusPage() {
           <p className="px-5 py-6 text-center text-[15px] text-text-2">Vérification impossible pour le moment.</p>
         )}
       </section>
-      <p className="px-1 text-[12px] text-text-4">
+      <p className="px-1 text-[12px] text-text-3">
         {health ? `Vérifié le ${formatDateTime(health.checked_at)} · version ${health.version}` : ""}
       </p>
       <section className="space-y-2">
@@ -77,7 +77,7 @@ export default async function StatusPage() {
           ))}
         </ul>
       </section>
-      <p className="px-1 text-[12px] text-text-4">En cas de panne, le fil reste consultable hors ligne (dernières publications) et vos réactions ou messages partent dès le retour du réseau.</p>
+      <p className="px-1 text-[12px] text-text-3">En cas de panne, le fil reste consultable hors ligne (dernières publications) et vos réactions ou messages partent dès le retour du réseau.</p>
     </div>
   );
 }

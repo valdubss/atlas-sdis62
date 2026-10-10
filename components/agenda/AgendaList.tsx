@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CalendarPlus, MapPin } from "lucide-react";
 import type { EventItem } from "@/lib/agenda/queries";
@@ -17,6 +17,18 @@ import { cn } from "@/lib/cn";
 export function AgendaList({ upcoming, past }: { upcoming: EventItem[]; past: EventItem[] }) {
   const [open, setOpen] = useState<EventItem | null>(null);
   const [showPast, setShowPast] = useState(false);
+
+  // Lien profond d'une notification (/agenda#<id>) : ouvre la feuille de l'événement visé
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id) return;
+    const target = [...upcoming, ...past].find((e) => e.id === id);
+    if (target) {
+      if (past.some((e) => e.id === id)) setShowPast(true);
+      setOpen(target);
+      document.getElementById(id)?.scrollIntoView({ block: "center" });
+    }
+  }, [upcoming, past]);
 
   if (upcoming.length === 0 && past.length === 0) {
     return <EmptyState title="Rien de prévu pour le moment" description="Les événements du service apparaîtront ici." />;
@@ -53,7 +65,7 @@ export function AgendaList({ upcoming, past }: { upcoming: EventItem[]; past: Ev
             groupByMonth(past).map(([month, items]) => (
               <section key={month} className="space-y-2 pt-2">
                 <h2 className="px-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-text-3">{month}</h2>
-                <ul className="hairline overflow-hidden rounded-[16px] bg-bg-1 opacity-70">
+                <ul className="hairline overflow-hidden rounded-[16px] bg-bg-1">
                   {items.map((e) => (
                     <EventRow key={e.id} event={e} onOpen={() => setOpen(e)} />
                   ))}
@@ -82,7 +94,7 @@ function groupByMonth(items: EventItem[]): [string, EventItem[]][] {
 function EventRow({ event: e, onOpen }: { event: EventItem; onOpen: () => void }) {
   const today = isToday(e);
   return (
-    <li>
+    <li id={e.id}>
       <button type="button" onClick={onOpen} className="pressable flex w-full items-center gap-4 px-4 py-3 text-left">
         <span
           className={cn(

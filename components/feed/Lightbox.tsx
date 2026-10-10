@@ -166,6 +166,7 @@ export function Lightbox({
             type="button"
             onClick={onClose}
             aria-label="Fermer"
+            autoFocus
             className="absolute right-3 top-[max(env(safe-area-inset-top),12px)] z-10 flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-white"
           >
             <X size={22} strokeWidth={1.75} aria-hidden="true" />

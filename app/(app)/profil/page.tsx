@@ -22,7 +22,7 @@ export default async function ProfilPage() {
   const { profile } = current;
 
   const supabase = await createClient();
-  const [{ data: settings }, { count: subCount }, home] = await Promise.all([
+  const [{ data: settings }, { count: subCount }, home, { count: sharedCount }] = await Promise.all([
     supabase.from("user_settings").select("push_new_posts, push_pinned, push_center, push_agenda, push_messages, quiet_start, quiet_end, hide_preview, digest_email, theme").eq("user_id", profile.id).maybeSingle(),
     supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id),
     profile.center_id
@@ -30,6 +30,7 @@ export default async function ProfilPage() {
       : profile.service_id
         ? supabase.from("services").select("name").eq("id", profile.service_id).maybeSingle().then((r) => r.data?.name ?? null)
         : Promise.resolve(null),
+    supabase.from("post_editors").select("post_id", { count: "exact", head: true }).eq("profile_id", profile.id),
   ]);
   const prefs = {
     push_new_posts: settings?.push_new_posts ?? true,
@@ -116,6 +117,16 @@ export default async function ProfilPage() {
           <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
         </Link>
       </div>
+
+      {!isEditorRole(profile.role) && (sharedCount ?? 0) > 0 && (
+        <Link href="/studio/partages" className="pressable flex items-center justify-between rounded-[16px] bg-bg-1 px-5 py-4">
+          <span>
+            <span className="block text-[15px] text-text-1">Publications partagées</span>
+            <span className="block text-[13px] text-text-3">Le service communication vous a ajouté comme co-rédacteur</span>
+          </span>
+          <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
+        </Link>
+      )}
 
       {isEditorRole(profile.role) && (
         <Link href="/studio" className="pressable flex items-center justify-between rounded-[16px] bg-bg-1 px-5 py-4">

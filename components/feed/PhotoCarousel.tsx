@@ -24,6 +24,7 @@ export function PhotoCarousel({
   onTap,
   interactive = true,
   rounded = true,
+  priority = false,
 }: {
   media: MediaItem[];
   size?: "medium" | "full";
@@ -32,6 +33,8 @@ export function PhotoCarousel({
   onTap?: (index: number) => void;
   interactive?: boolean;
   rounded?: boolean;
+  /** Première photo chargée en priorité (cartes visibles à l'ouverture seulement) */
+  priority?: boolean;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
@@ -153,8 +156,8 @@ export function PhotoCarousel({
                     alt={m.alt}
                     width={m.width ?? undefined}
                     height={m.height ?? undefined}
-                    loading={i === 0 || visible ? "eager" : "lazy"}
-                    fetchPriority={i === 0 ? "high" : "auto"}
+                    loading={(i === 0 && priority) || visible ? "eager" : "lazy"}
+                    fetchPriority={i === 0 && priority ? "high" : "auto"}
                     decoding="async"
                     draggable={false}
                     onClick={() => tap(i)}
@@ -215,10 +218,12 @@ export function PhotoCarousel({
                   aria-selected={i === index}
                   aria-label={`Photo ${i + 1}`}
                   onClick={() => goTo(i)}
-                  className={cn("h-1.5 rounded-full transition-[width,background-color] duration-200", i === index ? "w-4 bg-text-1" : "w-1.5 bg-text-4")}
-                />
+                  className="flex h-6 items-center px-0.5"
+                >
+                  <span className={cn("block h-1.5 rounded-full transition-[width,background-color] duration-200", i === index ? "w-4 bg-text-1" : "w-1.5 bg-text-4")} aria-hidden="true" />
+                </button>
               ))}
-              {media.length > 12 && <span className="text-[11px] text-text-4">+{media.length - 12}</span>}
+              {media.length > 12 && <span className="text-[11px] text-text-3">+{media.length - 12}</span>}
             </div>
           )}
         </div>

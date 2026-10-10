@@ -129,7 +129,7 @@ export function EditorialCalendar({ initial, initialFrom, initialTo }: { initial
       <div className="grid gap-3 md:grid-cols-[200px_minmax(0,1fr)]">
         <section data-day="undated" className={cn("rounded-[16px] bg-bg-1 p-3", drag?.over === "undated" && "ring-1 ring-glass-edge")}>
           <h3 className="px-1 pb-2 text-[13px] font-semibold uppercase tracking-[0.06em] text-text-3">
-            Sans date <span className="text-text-4">{undated.length}</span>
+            Sans date <span className="text-text-3">{undated.length}</span>
           </h3>
           <ul className="space-y-1.5">
             {undated.map((it) => (
@@ -167,7 +167,7 @@ export function EditorialCalendar({ initial, initialFrom, initialTo }: { initial
           {drag.item.title}
         </div>
       )}
-      <p className="text-[12px] text-text-4">Glissez un élément sur un jour pour le reprogrammer ; un brouillon déposé devient programmé à 9 h. Les contenus publiés ne bougent pas.</p>
+      <p className="text-[12px] text-text-3">Glissez un élément sur un jour pour le reprogrammer ; un brouillon déposé devient programmé à 9 h. Les contenus publiés ne bougent pas.</p>
     </div>
   );
 }

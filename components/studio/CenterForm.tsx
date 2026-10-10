@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/cn";
+import { useConfirm } from "@/components/ui/Confirm";
 
 const initial: FormState = { status: "idle" };
 type Agent = { id: string; first_name: string; last_name: string; email: string; avatar_key: string | null; role: string };
@@ -46,7 +47,7 @@ export function CenterForm({ center, groupings, notice }: { center: CenterWithRe
           <h1 className="min-w-0 text-[26px] font-semibold tracking-[-0.02em] text-text-1 sm:text-[28px]">{center ? center.name : "Nouveau centre"}</h1>
           {center && <Badge>{CENTER_TYPE_LABELS[center.type]}</Badge>}
         </div>
-        <Link href="/studio/centres/referentiel" className="pressable hidden text-[15px] font-medium text-text-2 hover:text-text-1 sm:inline">
+        <Link href="/studio/centres/referentiel" className="pressable text-[15px] font-medium text-text-2 hover:text-text-1">
           Référentiel
         </Link>
       </div>
@@ -201,6 +202,7 @@ function ReferentsEditor({ center, onChanged }: { center: CenterWithRefs; onChan
   const [pending, start] = useTransition();
   const [showHistory, setShowHistory] = useState(false);
   const toast = useToast();
+  const confirm = useConfirm();
   const active = center.referents.filter((r) => r.is_active);
   const history = center.referents.filter((r) => !r.is_active);
 
@@ -229,7 +231,7 @@ function ReferentsEditor({ center, onChanged }: { center: CenterWithRefs; onChan
               <span className="block truncate text-[15px] text-text-1">{r.profile ? `${r.profile.first_name} ${r.profile.last_name}` : "Agent supprimé"}</span>
               <span className="block text-[12px] text-text-3">depuis le {formatDateLong(r.since)}</span>
             </span>
-            <button type="button" disabled={pending} onClick={() => confirm("Retirer ce référent ?") && run(() => removeReferent(r.id), "Référent retiré")} className="text-[13px] text-text-3 hover:text-red-text">
+            <button type="button" disabled={pending} onClick={() => void confirm({ title: "Retirer ce référent ?", confirmLabel: "Retirer", danger: true }).then((ok) => ok && run(() => removeReferent(r.id), "Référent retiré"))} className="text-[13px] text-text-3 hover:text-red-text">
               Retirer
             </button>
           </li>

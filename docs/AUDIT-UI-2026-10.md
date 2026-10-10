@@ -82,3 +82,28 @@ messagerie, notifications, profil, Studio, accueil, rattachement), à l'aune de 
 8. F7 envoi SMTP synchrone à l'accueil (fort / faible)
 9. E1 + E2 navigation du Studio mobile (moyen / faible)
 10. F6 chargement différé des gros composants de la carte du fil (moyen / moyen)
+
+## Suivi de réalisation (10 octobre 2026)
+
+**Fait (44 / 48)** : F1 à F8, F10, F11, F13 ; R1 à R9 ; L1 à L8 ; E1 à E6 ; A1, A3, A4, A5 ;
+X1 à X6.
+
+Précisions :
+
+- E4 : une nouvelle publication est gardée sur l'appareil (brouillon local proposé à la
+  réouverture) plutôt que créée en base dès le premier titre, pour ne pas semer de
+  brouillons vides.
+- L7 : tout est toujours marqué lu à l'ouverture (la pastille disparaît), mais les
+  notifications non lues à l'arrivée restent mises en avant et filtrables pendant la visite.
+- F3 et R5 sont couverts par la messagerie v2 (README § 7e, migration `0034`).
+- E6 : feuille de confirmation maison (`components/ui/Confirm.tsx`, `useConfirm`) dans les
+  douze fichiers concernés.
+
+**Reporté (4)** :
+
+- F9 `FollowButton` : `router.refresh()` conservé, les onglets suivis dépendent du serveur.
+- F12 pagination des listes du Studio (500 / 300 / 100 lignes) : à traiter avec la montée
+  en charge (filtres A1 livrés en attendant).
+- R10 tables de statistiques / journal / calendrier à 360 px : défilement horizontal
+  conservé.
+- A2 actions groupées sur les comptes.

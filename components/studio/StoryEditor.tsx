@@ -15,6 +15,7 @@ import { StoryPreview } from "./StoryPreview";
 import { cn } from "@/lib/cn";
 import { measureImageContrast } from "@/lib/media/contrast";
 import { imageSrc } from "@/lib/media/url";
+import { useConfirm } from "@/components/ui/Confirm";
 
 type Series = { id: string; title: string };
 type PostRef = { id: string; slug: string; title: string | null };
@@ -24,6 +25,7 @@ const initial: StoryFormState = { status: "idle" };
 export function StoryEditor({ story, series, posts, notice }: { story: StoryItem | null; series: Series[]; posts: PostRef[]; notice?: string | null }) {
   const [state, action, pending] = useActionState(saveStory, initial);
   const [deleting, startDelete] = useTransition();
+  const confirm = useConfirm();
   const fields = state.status === "error" ? state.fields ?? {} : {};
 
   const [seriesId, setSeriesId] = useState(story?.series_id ?? series[0]?.id ?? "");
@@ -108,7 +110,7 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
             <h1 className="min-w-0 text-[26px] font-semibold tracking-[-0.02em] text-text-1 sm:text-[28px]">{story ? "Modifier la story" : "Nouvelle story"}</h1>
             <Badge tone={badge[status].tone}>{badge[status].label}</Badge>
           </div>
-          <Link href="/studio/stories" className="pressable hidden text-[15px] font-medium text-text-2 hover:text-text-1 sm:inline">
+          <Link href="/studio/stories" className="pressable text-[15px] font-medium text-text-2 hover:text-text-1">
             Stories
           </Link>
         </div>
@@ -270,8 +272,8 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
               size="md"
               className="ml-auto"
               loading={deleting}
-              onClick={() => {
-                if (window.confirm("Supprimer cette story ?")) {
+              onClick={async () => {
+                if (await confirm({ title: "Supprimer cette story ?", confirmLabel: "Supprimer", danger: true })) {
                   startDelete(async () => {
                     const res = await deleteStory(story.id);
                     if (res.ok) window.location.href = "/studio/stories";
@@ -300,7 +302,7 @@ export function StoryEditor({ story, series, posts, notice }: { story: StoryItem
             else setQuestionPos(pos);
           }}
         />
-        <p className="mt-2 text-center text-[12px] text-text-4">Zones hachurées : recouvertes par les barres et les réactions.</p>
+        <p className="mt-2 text-center text-[12px] text-text-3">Zones hachurées : recouvertes par les barres et les réactions.</p>
       </aside>
     </div>
   );

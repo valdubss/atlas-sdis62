@@ -1,5 +1,6 @@
 import "server-only";
 
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { sendMembershipRequestEmail, type MembershipRequestInfo } from "./email";
 
@@ -20,13 +21,15 @@ export async function requestMembership(target: { center_id?: string | null; ser
     return { ok: false, error: "Demande impossible pour le moment. Réessayez." };
   }
   const info = data as unknown as MembershipRequestInfo;
-  let emailSent = false;
-  try {
-    emailSent = await sendMembershipRequestEmail(info);
-  } catch (e) {
-    console.error("e-mail de rattachement", e);
-  }
-  return { ok: true, targetName: info.target_name, recipient: info.recipient_email, emailSent };
+  // L'e-mail part après la réponse : l'écran ne bloque pas sur le SMTP
+  after(async () => {
+    try {
+      await sendMembershipRequestEmail(info);
+    } catch (e) {
+      console.error("e-mail de rattachement", e);
+    }
+  });
+  return { ok: true, targetName: info.target_name, recipient: info.recipient_email, emailSent: Boolean(info.recipient_email) };
 }
 
 export type PendingRequest = { id: string; status: string; requested_at: string; expires_at: string; recipient_email: string | null; center: { id: string; name: string; slug: string } | null; service: { id: string; name: string; slug: string } | null };

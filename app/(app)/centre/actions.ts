@@ -49,7 +49,7 @@ export async function attachTo(input: unknown): Promise<{ ok: true; href: string
   if (!r.ok) return r;
   revalidateCenter();
   revalidatePath("/");
-  return { ok: true, href: "/profil/centre", pending: true, targetName: r.targetName, recipient: r.recipient };
+  return { ok: true, href: "/centre", pending: true, targetName: r.targetName, recipient: r.recipient };
 }
 
 /** L'agent retire sa demande en attente. */
