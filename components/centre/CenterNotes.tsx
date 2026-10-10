@@ -91,11 +91,11 @@ export function CenterFeeds({
                 role="tab"
                 aria-selected={tab === t}
                 onClick={() => select(t)}
-                className={cn("relative h-9 rounded-full px-4 text-[14px] font-medium transition-colors", tab === t ? "bg-bg-2 text-text-1" : "text-text-2 hover:text-text-1")}
+                className={cn("relative flex h-9 shrink-0 items-center whitespace-nowrap rounded-full px-4 text-[14px] font-medium transition-colors", tab === t ? "bg-bg-2 text-text-1" : "text-text-2 hover:text-text-1")}
               >
                 {t === "actus" ? "Actus" : "Notes de service"}
                 {t === "notes" && freshIds.size > 0 && (
-                  <span className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-fill px-1.5 text-[11px] font-semibold text-white" aria-label={`${freshIds.size} nouvelles`}>
+                  <span className="ml-1.5 inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-red-fill px-1.5 text-[11px] font-semibold text-white" aria-label={`${freshIds.size} nouvelles`}>
                     {freshIds.size}
                   </span>
                 )}

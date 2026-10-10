@@ -79,7 +79,7 @@ test("notes de service : publication par le responsable com, visibilité membres
     // --- Commentaires : feuille du fil, commentaire, réponse, suppression -------------
     await m.goto("/", { waitUntil: "networkidle" });
     const card = m.getByRole("article", { name: `Commentaires ${stamp}` });
-    await card.getByRole("button", { name: "Commentaires" }).click();
+    await card.getByRole("button", { name: "Commentaires", exact: true }).click();
     const box = m.getByRole("textbox", { name: "Votre commentaire" });
     await box.fill(`Premier commentaire ${stamp}`);
     await m.getByRole("button", { name: "Publier le commentaire" }).click();
