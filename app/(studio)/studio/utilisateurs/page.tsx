@@ -26,7 +26,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const supabase = await createClient();
   let query = supabase
     .from("profiles")
-    .select("id, email, first_name, last_name, role, is_active, created_at, onboarded_at, center_id, service_id, center:centers(name), service:services(name)")
+    .select("id, email, first_name, last_name, role, is_active, created_at, onboarded_at, center_id, service_id, center:centers!profiles_center_id_fkey(name), service:services!profiles_service_id_fkey(name)")
     .order("created_at", { ascending: false })
     .limit(500);
   if (q.trim()) {
