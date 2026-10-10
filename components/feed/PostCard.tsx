@@ -46,6 +46,7 @@ export function PostCard({
   canModerate = false,
   preview = false,
   priority = false,
+  overlay = false,
 }: {
   post: FeedPost;
   variant?: "feed" | "full";
@@ -53,6 +54,8 @@ export function PostCard({
   preview?: boolean;
   /** Première carte visible : médias chargés en priorité */
   priority?: boolean;
+  /** Vue plein écran ouverte depuis le fil (la barre basse est couverte) */
+  overlay?: boolean;
 }) {
   const [post, setPost] = useState(initial);
   const [expanded, setExpanded] = useState(variant === "full");
@@ -341,13 +344,14 @@ export function PostCard({
           className="rounded-[16px] bg-bg-1 pt-4"
         >
           <h3 className="px-4 pb-1 text-[17px] font-semibold tracking-[-0.02em] text-text-1">
-            Commentaires
+            Commentaires{shown.comment_count > 0 && <span className="text-text-3"> {shown.comment_count}</span>}
           </h3>
           <Comments
             postId={shown.id}
             enabled={shown.comments_enabled}
             canModerate={canModerate}
             onCountChange={setCommentCount}
+            clearNav={!overlay}
           />
         </section>
       )}
@@ -371,7 +375,7 @@ export function PostCard({
         <Sheet
           open={commentsOpen}
           onClose={() => setCommentsOpen(false)}
-          title="Commentaires"
+          title={shown.comment_count > 0 ? `Commentaires · ${shown.comment_count}` : "Commentaires"}
           tall
           scroll={false}
         >

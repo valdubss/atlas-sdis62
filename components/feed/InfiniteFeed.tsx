@@ -85,7 +85,6 @@ export function InfiniteFeed({
         return (
           <motion.div
             key={p.id}
-            className="[content-visibility:auto] [contain-intrinsic-size:auto_520px]"
             initial={cascade ? { opacity: 0, y: 8 } : false}
             animate={{ opacity: 1, y: 0 }}
             transition={reduced ? { duration: 0 } : { ...SPRING, delay: cascade ? Math.min(i, 8) * 0.04 : 0 }}

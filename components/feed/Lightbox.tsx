@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { SPRING } from "@/lib/motion";
 import { lockScroll, unlockScroll } from "@/lib/dom/scroll-lock";
+import { Portal } from "@/components/ui/Portal";
 
 export type LightboxItem = { src: string; alt: string };
 
@@ -149,6 +150,7 @@ export function Lightbox({
   const progress = Math.min(1, Math.abs(dragY) / 260);
 
   return (
+    <Portal>
     <AnimatePresence>
       {open && list.length > 0 && (
         <motion.div
@@ -221,5 +223,6 @@ export function Lightbox({
         </motion.div>
       )}
     </AnimatePresence>
+    </Portal>
   );
 }

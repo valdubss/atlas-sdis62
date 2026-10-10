@@ -1,7 +1,7 @@
 import { cn } from "@/lib/cn";
 import { mediaUrl } from "@/lib/media/url";
 
-const SIZES = { sm: "h-8 w-8 text-[11px]", md: "h-10 w-10 text-[13px]", lg: "h-16 w-16 text-[22px]" } as const;
+const SIZES = { xs: "h-7 w-7 text-[10px]", sm: "h-8 w-8 text-[11px]", md: "h-10 w-10 text-[13px]", lg: "h-16 w-16 text-[22px]" } as const;
 
 /** Avatar : photo si disponible, sinon initiales sur --bg-2. Jamais de fond coloré. */
 export function Avatar({

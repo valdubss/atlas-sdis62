@@ -44,3 +44,7 @@ next-env.d.ts
 .claude/settings.local.json
 .tmp/
 test-results/
+.ui-test-user.json
+scripts/_ui-test-user.tmp.mjs
+scripts/_ui-shot.tmp.mjs
+scripts/_ui-setup-centre.tmp.mjs

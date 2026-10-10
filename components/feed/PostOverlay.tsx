@@ -112,7 +112,7 @@ export function PostOverlay({
         </header>
         <div className="mx-auto w-full max-w-[680px] px-3 pb-[max(env(safe-area-inset-bottom),24px)] pt-[calc(48px+env(safe-area-inset-top)+8px)] sm:px-8">
           <ViewTracker postId={post.id} />
-          <PostCard post={post} variant="full" canModerate={canModerate} />
+          <PostCard post={post} variant="full" canModerate={canModerate} overlay />
         </div>
       </motion.div>
     </div>

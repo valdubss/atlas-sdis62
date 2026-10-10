@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-motion";
 import { SPRING } from "@/lib/motion";
 import { cn } from "@/lib/cn";
+import { Portal } from "@/components/ui/Portal";
 
 /**
  * Bottom sheet 22 px avec poignée (mobile) / panneau centré 480 px (desktop).
@@ -84,6 +85,7 @@ export function Sheet({
   }
 
   return (
+    <Portal>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -129,6 +131,7 @@ export function Sheet({
         </motion.div>
       )}
     </AnimatePresence>
+    </Portal>
   );
 }
 
