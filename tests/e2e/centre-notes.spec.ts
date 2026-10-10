@@ -22,6 +22,8 @@ test("notes de service : publication par le responsable com, visibilité membres
   const manager = await createTestUser(admin, "notes-com");
   const member = await createTestUser(admin, "notes-membre");
   const outsider = await createTestUser(admin, "notes-autre");
+  const superUser = await createTestUser(admin, "notes-admin");
+  await admin.from("profiles").update({ role: "admin" }).eq("id", superUser.id);
   const { stamp } = manager;
   const { data: centers } = await admin.from("centers").select("id, slug, name, com_email, com_name").eq("is_active", true).eq("type", "cis").order("name").limit(2);
   const center = centers?.[0];
@@ -94,6 +96,17 @@ test("notes de service : publication par le responsable com, visibilité membres
     await m.getByRole("button", { name: "Supprimer" }).last().click();
     await m.getByRole("button", { name: "Supprimer", exact: true }).last().click();
     await expect.poll(async () => (await admin.from("comments").select("id").eq("post_id", postId)).data?.length ?? 0, { timeout: 15_000 }).toBe(1);
+
+    // --- Administrateur : suppression définitive du commentaire d'un autre agent ------
+    const a = await (await browser.newContext()).newPage();
+    await loginWithPassword(a, superUser.email, superUser.password);
+    await a.goto("/", { waitUntil: "networkidle" });
+    await a.getByRole("article", { name: `Commentaires ${stamp}` }).getByRole("button", { name: "Commentaires", exact: true }).click();
+    await expect(a.getByText(`Premier commentaire ${stamp}`)).toBeVisible({ timeout: 15_000 });
+    await a.getByRole("button", { name: "Supprimer" }).first().click();
+    await expect(a.getByText("Suppression définitive", { exact: false })).toBeVisible();
+    await a.getByRole("button", { name: "Supprimer", exact: true }).last().click();
+    await expect.poll(async () => (await admin.from("comments").select("id").eq("post_id", postId)).data?.length ?? 0, { timeout: 15_000 }).toBe(0);
   } finally {
     const { data: notes } = await admin.from("center_notes").select("id").eq("center_id", center.id).eq("author_id", manager.id);
     if (notes?.length) await admin.from("center_notes").delete().in("id", notes.map((n) => n.id));
@@ -104,6 +117,6 @@ test("notes de service : publication par le responsable com, visibilité membres
     const { data: queue } = await admin.from("notification_queue").select("id, payload").in("status", ["pending", "processing"]);
     const ids = (queue ?? []).filter((q) => notes?.some((n) => n.id === (q.payload as { note_id?: string })?.note_id) || (q.payload as { post_id?: string })?.post_id === postId).map((q) => q.id);
     if (ids.length) await admin.from("notification_queue").delete().in("id", ids);
-    for (const u of [manager, member, outsider]) await admin.auth.admin.deleteUser(u.id);
+    for (const u of [manager, member, outsider, superUser]) await admin.auth.admin.deleteUser(u.id);
   }
 });
