@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type maplibregl from "maplibre-gl";
+import type * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import Link from "next/link";
 import { CloudSun, LocateFixed, Phone, Plane, RefreshCw } from "lucide-react";
@@ -402,7 +402,7 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
 }
 
 function firstSymbolLayer(map: maplibregl.Map): string | undefined {
-  return map.getStyle().layers?.find((l) => l.type === "symbol")?.id;
+  return map.getStyle().layers?.find((l: { type: string }) => l.type === "symbol")?.id;
 }
 
 /** Météo du département : synthèse des points (pas de détail par centre), mer, cours d'eau. */

@@ -707,6 +707,13 @@ $$);
   (e-mail lien + code), poser prénom, nom, rôle et centre, renvoyer un e-mail de connexion,
   envoyer une réinitialisation de mot de passe, désactiver, exporter, supprimer (anonymisation,
   migration 0029 pour les commentaires).
+- **Réglages Supabase Auth** (tableau de bord) : changement de mot de passe sécurisé activé,
+  longueur minimale 10 (comme l'app), code e-mail à six chiffres valable quinze minutes.
+  « Prevent use of leaked passwords » demande le plan Pro.
+- **RGPD** (migration 0032) : `export_user_data` couvre messagerie, stories, retours,
+  rattachement, notifications, consultations, appareils ; `anonymize_user_data` traite chaque
+  table liée avant de retirer le profil. Bucket `media` : envoi direct accepté seulement pour un
+  média déclaré par l'agent (`media_tus_insert`), 60 Mo par objet, types bornés.
 - **Co-rédacteurs** (`post_editors`) : tout éditeur modifie déjà toute publication. Depuis
   l'éditeur, un éditeur ajoute un agent extérieur au service ; celui-ci ouvre
   `/studio/partages` et la publication, modifie texte, médias et options, sans publier,

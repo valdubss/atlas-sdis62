@@ -87,8 +87,8 @@ export async function sendAccountEmail(kind: LinkKind, email: string, opts: { fi
       button: "Choisir un mot de passe",
     },
   }[kind];
-  const text = `${copy.title}\n\n${copy.intro.replace(/<[^>]+>/g, "")}\n\nLien : ${url}\nCode : ${email_otp ?? "(voir le lien)"}\n\nValable une heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`;
-  const html = layout({ title: copy.title, intro: copy.intro, code: email_otp ?? undefined, buttons: [{ label: copy.button, href: url }], footer: "Valable une heure. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail." });
+  const text = `${copy.title}\n\n${copy.intro.replace(/<[^>]+>/g, "")}\n\nLien : ${url}\nCode : ${email_otp ?? "(voir le lien)"}\n\nValable quinze minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`;
+  const html = layout({ title: copy.title, intro: copy.intro, code: email_otp ?? undefined, buttons: [{ label: copy.button, href: url }], footer: "Valable quinze minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail." });
   const sent = await sendMail({ to: email, subject: copy.subject, html, text });
   if (!sent) {
     // Pas de transport côté app : on laisse Supabase envoyer son e-mail standard

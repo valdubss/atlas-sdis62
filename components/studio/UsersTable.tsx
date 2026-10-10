@@ -267,7 +267,7 @@ export function UsersTable({
                   Réinitialiser le mot de passe
                 </Button>
               </div>
-              <p className="text-[13px] text-text-3">L&apos;agent reçoit un lien et un code valables une heure ; le mot de passe, s&apos;il en veut un, se choisit dans son profil.</p>
+              <p className="text-[13px] text-text-3">L&apos;agent reçoit un lien et un code valables quinze minutes ; le mot de passe, s&apos;il en veut un, se choisit dans son profil.</p>
             </section>
 
             <section className="space-y-2">

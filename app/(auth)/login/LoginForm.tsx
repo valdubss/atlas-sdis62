@@ -32,7 +32,7 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
         <div className="space-y-1">
           <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">E-mail envoyé</p>
           <p className="text-[15px] text-text-2">
-            Sur <span className="text-text-1">{sent.email}</span> : touchez le lien, ou saisissez ici le code à six chiffres qui figure dans l&apos;e-mail. Valable une heure.
+            Sur <span className="text-text-1">{sent.email}</span> : touchez le lien, ou saisissez ici le code à six chiffres qui figure dans l&apos;e-mail. Valable quinze minutes.
           </p>
         </div>
         <form action={codeAction} className="space-y-3" noValidate>
