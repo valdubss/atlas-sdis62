@@ -84,7 +84,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (pathname.startsWith("/studio")) {
-    const role = meta.role;
+    let role = meta.role;
+    if (role !== "editor" && role !== "admin") {
+      // Le rôle vient d'être relevé par un admin : le jeton en poche est périmé.
+      // On le rafraîchit une fois avant de refuser (évite la déconnexion manuelle).
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      role = (refreshed.session?.user.app_metadata as { role?: string } | undefined)?.role ?? role;
+    }
     if (role !== "editor" && role !== "admin") {
       const url = request.nextUrl.clone();
       url.pathname = "/";
