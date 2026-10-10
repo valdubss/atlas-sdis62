@@ -34,7 +34,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Fichiers statiques versionnés : cache d'abord
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || url.pathname.startsWith("/vendor/")) {
     event.respondWith(
       caches.match(request).then(
         (hit) =>

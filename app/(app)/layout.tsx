@@ -22,7 +22,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const theme = (themeRow.data?.theme ?? "system") as Theme;
 
   return (
-    <RoleProvider canEdit={canEdit} canMessage={canMessage} messagesUnread={messagesUnread}>
+    <RoleProvider canEdit={canEdit} isAdmin={current.profile.role === "admin"} canMessage={canMessage} messagesUnread={messagesUnread}>
       <ThemeApplier theme={theme} />
       <OfflineBanner />
       <div className="min-h-dvh overflow-x-clip bg-bg-0">

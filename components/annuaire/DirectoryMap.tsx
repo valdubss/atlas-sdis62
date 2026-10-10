@@ -76,6 +76,9 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
       const lib = await import("maplibre-gl");
       if (cancelled || !container.current) return;
       libRef.current = lib;
+      // Le worker est servi depuis public/vendor (copié par `npm run vendor:maplibre`) : MapLibre
+      // le cherche sinon à côté de son module, introuvable une fois empaqueté par Next.
+      lib.setWorkerUrl("/vendor/maplibre-gl-worker.mjs");
       map = new lib.Map({ container: container.current, style: MAP_STYLE, bounds: DEFAULT_BOUNDS, fitBoundsOptions: { padding: 24 }, attributionControl: false, cooperativeGestures: false });
       map.addControl(new lib.NavigationControl({ showCompass: false }), "top-right");
       map.on("error", () => setFailed(true));
@@ -331,7 +334,7 @@ export function DirectoryMap({ centers, homeCenterId }: { centers: DirectoryCent
       <div className="relative -mx-3 overflow-hidden bg-bg-1 sm:mx-0 sm:rounded-[16px]">
         <div ref={container} className="h-[min(62dvh,560px)] w-full" aria-label="Carte des centres" role="application" />
         {!ready && !failed && <p className="absolute inset-0 flex items-center justify-center text-[15px] text-text-2">Chargement de la carte…</p>}
-        {failed && !ready && <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-[15px] text-text-2">Carte indisponible hors ligne. Les numéros restent accessibles depuis l&apos;annuaire.</p>}
+        {failed && !ready && <p className="absolute inset-0 flex items-center justify-center px-6 text-center text-[15px] text-text-2">{typeof navigator !== "undefined" && !navigator.onLine ? "Carte indisponible hors ligne. Les numéros restent accessibles depuis l'annuaire." : "La carte n'a pas pu se charger. Réessayez dans un instant ; les numéros restent accessibles depuis l'annuaire."}</p>}
         {groupNames.length > 0 && (
           <div className="absolute bottom-3 left-3 flex flex-wrap gap-1.5" aria-label="Légende">
             {groupNames.map((n, i) => (

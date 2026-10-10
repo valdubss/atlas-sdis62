@@ -37,7 +37,7 @@ export default async function StudioLayout({ children }: { children: React.React
   const isAdmin = current.profile.role === "admin";
 
   return (
-    <RoleProvider canEdit canMessage={editor} messagesUnread={messagesUnread}>
+    <RoleProvider canEdit isAdmin={isAdmin} canMessage={editor} messagesUnread={messagesUnread}>
     <ThemeApplier theme="system" />
     <div className="flex min-h-dvh bg-bg-0">
       <aside className="hidden w-[280px] shrink-0 flex-col bg-bg-1 md:flex">

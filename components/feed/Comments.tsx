@@ -13,6 +13,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { CommentSkeleton } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { useConfirm } from "@/components/ui/Confirm";
+import { useRole } from "@/components/layout/RoleContext";
 import { cn } from "@/lib/cn";
 
 type Item = CommentItem & { pending?: boolean };
@@ -334,8 +335,11 @@ function CommentRow({
   const toast = useToast();
   const confirm = useConfirm();
   const reduced = useReducedMotion();
+  const { isAdmin } = useRole();
   const hidden = comment.status !== "visible";
   const name = comment.author.name ?? "Agent";
+  // Suppression définitive : l'auteur, ou un administrateur (en plus de masquer)
+  const canDelete = comment.is_mine || isAdmin;
 
   return (
     <article className={cn("flex gap-3 py-2.5", (hidden || comment.pending) && "opacity-60")} aria-label={`Commentaire de ${name}`}>
@@ -360,12 +364,12 @@ function CommentRow({
                 Signaler
               </button>
             )}
-            {comment.is_mine && (
+            {canDelete && (
               <button
                 type="button"
                 disabled={pending}
                 onClick={async () => {
-                  if (!(await confirm({ title: "Supprimer votre commentaire ?", confirmLabel: "Supprimer", danger: true }))) return;
+                  if (!(await confirm({ title: comment.is_mine ? "Supprimer votre commentaire ?" : `Supprimer le commentaire de ${name} ?`, message: comment.is_mine ? undefined : "Suppression définitive, sans trace pour l'auteur. Préférez « Masquer » pour pouvoir revenir en arrière.", confirmLabel: "Supprimer", danger: true }))) return;
                   startTransition(async () => {
                     const res = await deleteComment(comment.id);
                     if (!res.ok) toast(res.error);

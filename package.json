@@ -17,7 +17,8 @@
     "test:rls": "node --experimental-websocket scripts/test-rls.mjs",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "vapid": "web-push generate-vapid-keys"
+    "vapid": "web-push generate-vapid-keys",
+    "vendor:maplibre": "node scripts/vendor-maplibre.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1131.0",

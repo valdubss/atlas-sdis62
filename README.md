@@ -437,6 +437,12 @@ docs/ARCHITECTURE.md       plan d'architecture
 
 ## 7h. Carte dynamique : groupements, météo du département, mode drone
 
+> **MapLibre 6 et son worker.** MapLibre cherche son script de calcul (`maplibre-gl-worker.mjs`)
+> à côté de son propre module ; une fois empaqueté par Next, ce fichier n'est pas servi et la
+> carte affichait « indisponible hors ligne ». Le worker est copié dans
+> `public/vendor/maplibre-gl-worker.mjs` (versionné) et la carte le déclare avec `setWorkerUrl`.
+> Après une montée de version de `maplibre-gl` : `npm run vendor:maplibre`.
+
 - **Accès rapide** : icône carte dans la barre haute de tous les écrans (à côté de la cloche).
 - **Groupements territoriaux** toujours tracés : polygones Est / Centre / Ouest obtenus en rattachant
   chaque commune au CIS le plus proche (`npm run geo:groupements` → `public/geo/groupements.json`,
@@ -589,7 +595,8 @@ docs/ARCHITECTURE.md       plan d'architecture
 - **Commentaires** (refonte d'octobre 2026) : feuille à hauteur fixe avec composeur épinglé
   (suit le clavier), fils à un niveau repliés sous « Voir les N réponses », réponse à une
   réponse préfixée par le prénom, envoi optimiste (« Envoi… »), compteur dans le titre,
-  signalement en place, modération (masquer / rétablir) pour le service communication. Les
+  signalement en place, modération (masquer / rétablir) pour le service communication,
+  suppression définitive par un administrateur (politique `comments_delete_admin`). Les
   feuilles et visionneuses sont rendues sous `<body>` (`components/ui/Portal.tsx`) : un
   ancêtre transformé ou en `content-visibility` ne peut plus les figer dans la page.
 
