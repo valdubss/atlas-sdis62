@@ -1,7 +1,7 @@
 "use client";
 
 import { lockScroll, unlockScroll } from "@/lib/dom/scroll-lock";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "framer-motion";
 import { SPRING } from "@/lib/motion";
 import { cn } from "@/lib/cn";
@@ -33,9 +33,15 @@ export function Sheet({
 }) {
   const reduced = useReducedMotion();
   const keyboard = useKeyboardInset(open);
+  // onClose est souvent une fonction fléchée recréée à chaque rendu : on la lit via une
+  // référence pour que l'effet (piège clavier, focus initial) ne rejoue qu'à l'ouverture.
+  // Sinon chaque frappe dans un champ de la feuille relançait l'effet et déplaçait le focus.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
+    const onClose = () => onCloseRef.current();
     const opener = document.activeElement as HTMLElement | null;
     const focusable = () =>
       Array.from(
@@ -71,7 +77,7 @@ export function Sheet({
       document.documentElement.removeAttribute("data-sheet-open");
       opener?.focus?.({ preventScroll: true });
     };
-  }, [open, onClose]);
+  }, [open]);
 
   function onDragEnd(_: unknown, info: PanInfo) {
     if (info.offset.y > 80 || info.velocity.y > 600) onClose();
