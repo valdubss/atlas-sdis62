@@ -7,6 +7,7 @@ import type { MediaItem } from "@/lib/feed/types";
 import { imageSizes, imageSrc, imageSrcSet } from "@/lib/media/url";
 import { cn } from "@/lib/cn";
 import { Lightbox, type LightboxItem } from "./Lightbox";
+import { usePinchZoom } from "./usePinchZoom";
 
 /** Nombre de photos chargées d'avance autour de la photo affichée. */
 const AHEAD = 2;
@@ -47,6 +48,8 @@ export function PhotoCarousel({
   const root = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const [visible, setVisible] = useState(false);
+  // Pincement à deux doigts : zoom sur place, sans ouvrir la publication
+  const pinch = usePinchZoom(scroller, interactive);
 
   useEffect(() => {
     const el = root.current;
@@ -94,7 +97,7 @@ export function PhotoCarousel({
   const caption = media[index]?.caption ?? null;
 
   function tap(i: number) {
-    if (!interactive) return;
+    if (!interactive || pinch.recentlyPinched()) return;
     const now = Date.now();
     if (now - lastTap.current < 300) {
       lastTap.current = 0;
