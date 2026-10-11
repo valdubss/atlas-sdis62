@@ -40,7 +40,7 @@ export function ServiceForm({ service, groupings, notice }: { service: (Service 
     <div className="mx-auto max-w-[760px] space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="min-w-0 text-[26px] font-semibold tracking-[-0.02em] text-text-1 sm:text-[28px]">{service ? service.name : "Nouveau service"}</h1>
-        <Link href="/studio/centres/referentiel" className="pressable hidden text-[15px] font-medium text-text-2 hover:text-text-1 sm:inline">
+        <Link href="/admin/centres" className="pressable hidden text-[15px] font-medium text-text-2 hover:text-text-1 sm:inline">
           Référentiel
         </Link>
       </div>

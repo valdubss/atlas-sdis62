@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { declareIncident, fetchAudit, resolveIncident, type AuditEntry, type AuditFilters } from "@/app/(studio)/studio/journal/actions";
+import { declareIncident, fetchAudit, resolveIncident, type AuditEntry, type AuditFilters } from "@/app/(admin)/admin/journal/actions";
 import { formatDateTime } from "@/lib/format";
 import { Button } from "@/components/ui/Button";
 import { Field, SelectField, TextareaField } from "@/components/ui/Field";
@@ -37,7 +37,7 @@ export function AuditJournal({ initial, filters, facets, incidents, isAdmin }: {
   function apply(next: Partial<Record<"acteur" | "action" | "type" | "du" | "au", string>>) {
     const params = new URLSearchParams(query);
     for (const [k, v] of Object.entries(next)) v ? params.set(k, v) : params.delete(k);
-    router.push(`/studio/journal?${params.toString()}`);
+    router.push(`/admin/journal?${params.toString()}`);
   }
   function loadMore() {
     start(async () => {
@@ -51,7 +51,7 @@ export function AuditJournal({ initial, filters, facets, incidents, isAdmin }: {
     <div className="mx-auto max-w-[960px] space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">Journal</h1>
-        <a href={`/studio/journal/export?${query}`} className="pressable rounded-[10px] bg-bg-2 px-3 py-2 text-[13px] font-medium text-text-1">
+        <a href={`/admin/journal/export?${query}`} className="pressable rounded-[10px] bg-bg-2 px-3 py-2 text-[13px] font-medium text-text-1">
           Export CSV
         </a>
       </div>
@@ -86,7 +86,23 @@ export function AuditJournal({ initial, filters, facets, incidents, isAdmin }: {
         <Field label="Au" name="au" type="date" value={filters.to ?? ""} onChange={(e) => apply({ au: e.target.value })} />
       </div>
 
-      <div className="overflow-x-auto rounded-[16px] bg-bg-1">
+      <ul className="hairline divide-y divide-line/60 rounded-[16px] bg-bg-1 sm:hidden">
+        {entries.length === 0 && <li className="px-5 py-6 text-center text-[13px] text-text-2">Aucune action sur cette période.</li>}
+        {entries.map((e) => (
+          <li key={e.id} className="px-4 py-3 text-[13px]">
+            <p className="flex items-baseline justify-between gap-3">
+              <span className="font-medium text-text-1">{ACTIONS[e.action] ?? e.action} · {ENTITIES[e.entity_type] ?? e.entity_type}</span>
+              <span className="shrink-0 text-text-3">{formatDateTime(e.created_at)}</span>
+            </p>
+            <p className="truncate text-text-1">{e.summary ?? e.entity_id}</p>
+            <p className="truncate text-text-3">
+              {e.actor?.name ?? "Système"}
+              {e.changed.length > 0 ? ` · ${e.changed.join(", ")}` : ""}
+            </p>
+          </li>
+        ))}
+      </ul>
+      <div className="hidden overflow-x-auto rounded-[16px] bg-bg-1 sm:block">
         <table className="w-full min-w-[720px] text-[13px]">
           <thead>
             <tr className="text-left text-text-3">

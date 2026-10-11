@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, ChevronDown } from "lucide-react";
+import { ArrowLeft, ChevronDown, Settings2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const FULL_NAV = [
@@ -13,22 +13,18 @@ const FULL_NAV = [
   { href: "/studio/stories", label: "Stories" },
   { href: "/studio/agenda", label: "Agenda" },
   { href: "/studio/centres", label: "Centres" },
-  { href: "/studio/centres/demandes", label: "Rattachements", exact: true },
   { href: "/studio/statistiques", label: "Statistiques" },
   { href: "/studio/moderation", label: "Modération" },
   { href: "/studio/retours", label: "Retours" },
-  { href: "/studio/journal", label: "Journal" },
-  { href: "/studio/utilisateurs", label: "Utilisateurs" },
-  { href: "/studio/parametres", label: "Paramètres" },
   ...(process.env.NODE_ENV === "production" ? [] : [{ href: "/studio/dev-ui", label: "Composants" }]),
 ];
 
 const LIMITED_NAV = [{ href: "/studio/partages", label: "Publications partagées", exact: false }];
 
-export function StudioNav({ compact = false, pendingCenters = 0, limited = false, isAdmin = false }: { compact?: boolean; pendingCenters?: number; limited?: boolean; isAdmin?: boolean }) {
+export function StudioNav({ compact = false, pendingCenters = 0, limited = false }: { compact?: boolean; pendingCenters?: number; limited?: boolean; isAdmin?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
-  const NAV = (limited ? LIMITED_NAV : FULL_NAV).filter((n) => isAdmin || n.href !== "/studio/utilisateurs");
+  const NAV = limited ? LIMITED_NAV : FULL_NAV;
   // Entrée active : la plus précise (« Rattachements » l'emporte sur « Centres »)
   const current = NAV.filter((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href))).sort((a, b) => b.href.length - a.href.length)[0]?.href ?? NAV[0].href;
 
@@ -47,6 +43,7 @@ export function StudioNav({ compact = false, pendingCenters = 0, limited = false
               {n.href === "/studio/centres" && pendingCenters > 0 ? ` (${pendingCenters})` : ""}
             </option>
           ))}
+          {!limited && <option value="/admin">Administration →</option>}
         </select>
         <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" className="pointer-events-none absolute right-3 text-text-3" />
       </label>
@@ -74,7 +71,13 @@ export function StudioNav({ compact = false, pendingCenters = 0, limited = false
           </Link>
         );
       })}
-      <Link href="/" className="pressable mt-4 flex h-10 items-center gap-2 px-3 text-[15px] text-text-2 hover:text-text-1">
+      {!limited && (
+        <Link href="/admin" className="pressable mt-4 flex h-10 items-center gap-2 rounded-[10px] px-3 text-[15px] text-text-2 hover:text-text-1">
+          <Settings2 size={18} strokeWidth={1.75} aria-hidden="true" />
+          Administration
+        </Link>
+      )}
+      <Link href="/" className="pressable mt-1 flex h-10 items-center gap-2 px-3 text-[15px] text-text-2 hover:text-text-1">
         <ArrowLeft size={18} strokeWidth={1.75} />
         Retour au fil
       </Link>

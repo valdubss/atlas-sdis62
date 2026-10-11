@@ -109,7 +109,7 @@ export function ReferentielPanel({ groupings, centers, services }: { groupings: 
           <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">
             Centres <span className="text-text-3">{centers.length}</span>
           </h2>
-          <Link href="/studio/centres/referentiel/centre/new" className="pressable flex h-10 items-center gap-1 rounded-[10px] bg-red-fill px-3 text-[13px] font-semibold text-white">
+          <Link href="/admin/centres/centre/new" className="pressable flex h-10 items-center gap-1 rounded-[10px] bg-red-fill px-3 text-[13px] font-semibold text-white">
             <Plus size={16} strokeWidth={2} aria-hidden="true" /> Nouveau centre
           </Link>
         </div>
@@ -118,7 +118,7 @@ export function ReferentielPanel({ groupings, centers, services }: { groupings: 
             <h3 className="px-1 text-[13px] font-semibold uppercase tracking-[0.06em] text-text-3">{name}</h3>
             <div className="hairline rounded-[16px] bg-bg-1">
               {list.map((c) => (
-                <Link key={c.id} href={`/studio/centres/referentiel/centre/${c.id}`} className="pressable flex items-center gap-3 px-5 py-3">
+                <Link key={c.id} href={`/admin/centres/centre/${c.id}`} className="pressable flex items-center gap-3 px-5 py-3">
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[15px] text-text-1">{c.name}</span>
                     <span className="block truncate text-[13px] text-text-3">
@@ -141,7 +141,7 @@ export function ReferentielPanel({ groupings, centers, services }: { groupings: 
           <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">
             Services <span className="text-text-3">{services.length}</span>
           </h2>
-          <Link href="/studio/centres/referentiel/service/new" className="pressable flex h-10 items-center gap-1 rounded-[10px] bg-red-fill px-3 text-[13px] font-semibold text-white">
+          <Link href="/admin/centres/service/new" className="pressable flex h-10 items-center gap-1 rounded-[10px] bg-red-fill px-3 text-[13px] font-semibold text-white">
             <Plus size={16} strokeWidth={2} aria-hidden="true" /> Nouveau service
           </Link>
         </div>
@@ -150,7 +150,7 @@ export function ReferentielPanel({ groupings, centers, services }: { groupings: 
             <p className="px-5 py-6 text-[15px] text-text-2">Aucun service. Ajoutez les services de la direction (RH, formation, SSSM…).</p>
           ) : (
             services.map((s) => (
-              <Link key={s.id} href={`/studio/centres/referentiel/service/${s.id}`} className="pressable flex items-center gap-3 px-5 py-3">
+              <Link key={s.id} href={`/admin/centres/service/${s.id}`} className="pressable flex items-center gap-3 px-5 py-3">
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[15px] text-text-1">{s.name}</span>
                   <span className="block truncate text-[13px] text-text-3">{s.short_description ?? "Description à compléter"}</span>

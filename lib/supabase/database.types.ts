@@ -789,6 +789,8 @@ export type Database = {
       can_manage_center: { Args: { p_center: string }; Returns: boolean };
       center_notes_list: { Args: { p_center: string; p_limit?: number }; Returns: Json[] };
       mark_password_set: { Args: Record<string, never>; Returns: undefined };
+      admin_adoption_stats: { Args: Record<string, never>; Returns: Json };
+      admin_last_sign_in: { Args: { p_ids: string[] }; Returns: Json };
       center_for_contact_email: { Args: { p_email: string }; Returns: string | null };
       attach_center_contacts: { Args: { p_center: string; p_notify?: boolean }; Returns: undefined };
       center_author_role: { Args: { p_center: string; p_profile: string }; Returns: string | null };

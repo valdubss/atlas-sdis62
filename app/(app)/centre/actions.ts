@@ -74,7 +74,7 @@ export async function decideRequest(requestId: string, accept: boolean, note?: s
   if (!r.ok) return { ok: false, error: r.reason === "expired" ? "Cette demande a expiré." : "Cette demande n'est plus en attente." };
   if (r.requester_email) sendMembershipDecisionEmail(r.requester_email, r.requester_name ?? "", r.target_name ?? "", accept, note?.trim() || null).catch(() => {});
   revalidateCenter();
-  revalidatePath("/studio/centres/demandes");
+  revalidatePath("/admin/centres/demandes");
   return { ok: true };
 }
 
@@ -220,7 +220,7 @@ export async function proposeCenterUpdate(centerId: string, input: unknown): Pro
     .map(([field, value]) => ({ field, value: String(value) }));
   const { error } = await supabase.rpc("propose_center_changes", { p_center: centerId, p_changes: changes });
   if (error) return { ok: false, error: error.message.includes("PROPOSITION_VIDE") ? "Aucune modification par rapport à la fiche actuelle." : humanError(error.message) };
-  revalidatePath("/studio/centres/referentiel");
+  revalidatePath("/admin/centres");
   return { ok: true };
 }
 

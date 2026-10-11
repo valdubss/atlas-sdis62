@@ -765,6 +765,32 @@ $$);
   `app/(app)/centre/notes-actions.ts`, `components/centre/CenterNotes.tsx` (onglets + liste),
   `components/centre/NoteComposer.tsx`. Test : `tests/e2e/centre-notes.spec.ts`.
 
+## 7k. Espace d'administration (hors Studio)
+
+- **Adresse** : `/admin`, distinct du Studio (qui ne garde que les contenus : flash,
+  publications, calendrier, stories, agenda, validation des propositions de centre,
+  statistiques, modération, retours). Entrées : Profil → Administration, menu « + » →
+  Administration, lien en bas de la navigation du Studio. Anciennes adresses du Studio
+  (`/studio/utilisateurs`, `/studio/journal`, `/studio/parametres`,
+  `/studio/centres/demandes`, `/studio/centres/referentiel/…`) redirigées.
+- **Interface** : panneau latéral sur ordinateur (240 px), barre haute avec sélecteur et barre
+  basse sur téléphone ; chaque page est utilisable au doigt (fiches en feuille, listes en
+  cartes sous 640 px).
+- **Tableau de bord** (administrateurs) : comptes actifs par rôle, nouveaux sur 7 et 30 jours,
+  agents vus ces 7 jours, jamais connectés, rattachés, mots de passe définis, appareils avec
+  notifications, demandes en attente ; inscriptions et agents connectés par semaine sur douze
+  semaines ; centres sans chef ni responsable com (liste cliquable), sans membre, avec notes ;
+  contenu sur 30 jours. Fonction `admin_adoption_stats` (migration `0039`).
+- **Utilisateurs** (administrateurs) : liste paginée par 100 avec recherche côté serveur,
+  filtres (rôle, jamais connectés, désactivés), sélection multiple et actions groupées
+  (passer éditeur ou agent, désactiver, réactiver), fiche par compte (identité,
+  rattachement direct, mot de passe de dépannage, rôle, désactivation, export et
+  suppression RGPD), dernière connexion réelle.
+- **Centres et services** : référentiel (groupements, centres, services, référents),
+  **Rattachements** (demandes en attente et dernières décisions), **Journal** (actions et
+  incidents, export CSV), **Paramètres** : ouverts au service communication, les
+  paramètres restant modifiables par les seuls administrateurs.
+
 ## 7i. Comptes, rattachement validé, co-rédacteurs, événements de centre (v3, lot comptes)
 
 - **Connexion** : l'écran propose d'abord l'e-mail professionnel (@sdis62.fr). L'agent reçoit

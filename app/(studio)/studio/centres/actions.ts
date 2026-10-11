@@ -33,7 +33,7 @@ async function requireEditor() {
 }
 
 const revalidateAll = () => {
-  for (const p of ["/studio/centres", "/studio/centres/referentiel", "/", "/agenda"]) revalidatePath(p);
+  for (const p of ["/studio/centres", "/admin/centres", "/", "/agenda"]) revalidatePath(p);
 };
 
 // ---- File de validation ------------------------------------------------------
@@ -149,7 +149,7 @@ export async function saveCenter(_prev: FormState, formData: FormData): Promise<
   if (dbError?.code === "23505") return { status: "error", message: "Vérifiez les champs signalés.", fields: { slug: "Cet identifiant d'adresse est déjà utilisé." } };
   if (dbError || !data) return { status: "error", message: friendlyDbError(dbError?.message) };
   revalidateAll();
-  if (!v.id) redirect(`/studio/centres/referentiel/centre/${data.id}?ok=1`);
+  if (!v.id) redirect(`/admin/centres/centre/${data.id}?ok=1`);
   return { status: "saved" };
 }
 
@@ -251,6 +251,6 @@ export async function saveService(_prev: FormState, formData: FormData): Promise
   if (dbError?.code === "23505") return { status: "error", message: "Vérifiez les champs signalés.", fields: { slug: "Cet identifiant d'adresse est déjà utilisé." } };
   if (dbError || !data) return { status: "error", message: friendlyDbError(dbError?.message) };
   revalidateAll();
-  if (!v.id) redirect(`/studio/centres/referentiel/service/${data.id}?ok=1`);
+  if (!v.id) redirect(`/admin/centres/service/${data.id}?ok=1`);
   return { status: "saved" };
 }

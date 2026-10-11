@@ -67,7 +67,7 @@ test("parcours comptes : nouvel agent par lien et code, accueil, fil ; administr
     // --- 4. Administrateur : Studio → Utilisateurs, rôle éditeur, création d'un compte -----
     const a = await (await browser.newContext()).newPage();
     await loginWithPassword(a, superUser.email, superUser.password);
-    await a.goto("/studio/utilisateurs", { waitUntil: "networkidle" });
+    await a.goto("/admin/utilisateurs", { waitUntil: "networkidle" });
     await a.getByLabel("Rechercher").fill(newEmail);
     await a.keyboard.press("Enter");
     await a.getByRole("button", { name: new RegExp(`Agent ${stamp}`) }).first().click();
@@ -77,7 +77,7 @@ test("parcours comptes : nouvel agent par lien et code, accueil, fil ; administr
     await page.reload({ waitUntil: "networkidle" });
     await expect(page.getByRole("button", { name: /Publier|Créer|Nouveau/ }).first()).toBeVisible({ timeout: 15_000 });
 
-    await a.goto("/studio/utilisateurs", { waitUntil: "networkidle" });
+    await a.goto("/admin/utilisateurs", { waitUntil: "networkidle" });
     await a.getByRole("button", { name: "Créer un compte" }).click();
     await a.getByLabel("Adresse e-mail").fill(createdEmail);
     await a.getByLabel("Prénom").fill("Compte");

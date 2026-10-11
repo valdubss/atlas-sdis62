@@ -135,13 +135,22 @@ export default async function ProfilPage() {
       )}
 
       {isEditorRole(profile.role) && (
-        <Link href="/studio" className="pressable flex items-center justify-between rounded-[16px] bg-bg-1 px-5 py-4">
-          <span>
-            <span className="block text-[15px] text-text-1">Studio</span>
-            <span className="block text-[13px] text-text-3">Publier et modérer les contenus</span>
-          </span>
-          <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
-        </Link>
+        <div className="hairline rounded-[16px] bg-bg-1">
+          <Link href="/studio" className="pressable flex items-center justify-between px-5 py-4">
+            <span>
+              <span className="block text-[15px] text-text-1">Studio</span>
+              <span className="block text-[13px] text-text-3">Publier et modérer les contenus</span>
+            </span>
+            <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
+          </Link>
+          <Link href="/admin" className="pressable flex items-center justify-between px-5 py-4">
+            <span>
+              <span className="block text-[15px] text-text-1">Administration</span>
+              <span className="block text-[13px] text-text-3">{profile.role === "admin" ? "Tableau de bord, comptes, centres, rattachements, journal" : "Centres, rattachements, journal"}</span>
+            </span>
+            <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
+          </Link>
+        </div>
       )}
 
       <section className="rounded-[16px] bg-bg-1 px-5 py-4">

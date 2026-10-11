@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
-import { createUser, type CreateUserState } from "@/app/(studio)/studio/utilisateurs/actions";
+import { createUser, type CreateUserState } from "@/app/(admin)/admin/utilisateurs/actions";
 import { LIMITS, ROLE_LABELS } from "@/lib/config";
 import { Field, SelectField } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";

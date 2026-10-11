@@ -75,7 +75,7 @@ export function CenterStats({ s, days }: { s: CenterStatsData; days: number }) {
             <ul className="mt-3 max-h-64 space-y-1.5 overflow-y-auto text-[13px]">
               {s.silent_centers.map((c) => (
                 <li key={c.id} className="flex items-center justify-between gap-3">
-                  <Link href={`/studio/centres/referentiel/centre/${c.id}`} className="min-w-0 truncate text-text-1 hover:text-navy-link">
+                  <Link href={`/admin/centres/centre/${c.id}`} className="min-w-0 truncate text-text-1 hover:text-navy-link">
                     {c.name}
                   </Link>
                   <span className="shrink-0 text-text-3">{c.last ? `dernière le ${formatDateLong(c.last)}` : "jamais"}</span>

@@ -69,7 +69,7 @@ export function CentersQueue({ posts, events, published, groupings }: { posts: P
           <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">Centres</h1>
           <p className="text-[13px] text-text-3">
             {total === 0 ? "Aucune proposition en attente." : `${total} proposition${total > 1 ? "s" : ""} en attente de validation.`}{" "}
-            <Link href="/studio/centres/referentiel" className="text-navy-link">
+            <Link href="/admin/centres" className="text-navy-link">
               Référentiel des centres et services
             </Link>
           </p>

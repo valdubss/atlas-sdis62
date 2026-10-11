@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BarChart3, CalendarPlus, ChevronRight, Images, LayoutDashboard, Plus, Siren, Video, Zap } from "lucide-react";
+import { BarChart3, CalendarPlus, ChevronRight, Images, LayoutDashboard, Settings2, Plus, Siren, Video, Zap } from "lucide-react";
 import { useRole } from "./RoleContext";
 import { Sheet } from "@/components/ui/Sheet";
 
@@ -51,6 +51,18 @@ export function CreateMenu() {
                 <LayoutDashboard size={20} strokeWidth={1.75} aria-hidden="true" />
               </span>
               <span className="min-w-0 flex-1 text-[15px] font-medium text-text-1">Ouvrir le Studio</span>
+              <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
+            </Link>
+          </li>
+          <li>
+            <Link href="/admin" onClick={() => setOpen(false)} className="pressable flex min-h-14 items-center gap-3 rounded-[12px] px-3 py-2 hover:bg-bg-2">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bg-2 text-text-1">
+                <Settings2 size={20} strokeWidth={1.75} aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[15px] font-medium text-text-1">Administration</span>
+                <span className="block text-[13px] text-text-3">Comptes, centres, rattachements, journal</span>
+              </span>
               <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
             </Link>
           </li>

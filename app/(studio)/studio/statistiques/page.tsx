@@ -123,7 +123,22 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">
           Publications <span className="text-text-3">{s.posts.length}</span>
         </h2>
-        <div className="overflow-x-auto rounded-[16px] bg-bg-1">
+        <ul className="hairline divide-y divide-line/60 rounded-[16px] bg-bg-1 sm:hidden">
+          {s.posts.length === 0 && <li className="px-5 py-6 text-center text-[13px] text-text-2">Aucune publication sur la période.</li>}
+          {s.posts.map((p) => (
+            <li key={p.id} className="px-4 py-3">
+              <Link href={`/studio/posts/${p.id}`} className="block truncate text-[15px] text-text-1 hover:text-navy-link">{p.title ?? "Sans titre"}</Link>
+              <p className="text-[12px] text-text-3">{TYPES[p.type] ?? p.type} · {formatDateTime(p.published_at)}</p>
+              <p className="mt-1 flex gap-4 text-[13px] tabular-nums text-text-2">
+                <span>{p.views} vues</span>
+                <span>{p.reactions} réactions</span>
+                <span>{p.comments} comm.</span>
+                <span>{p.bookmarks} favoris</span>
+              </p>
+            </li>
+          ))}
+        </ul>
+        <div className="hidden overflow-x-auto rounded-[16px] bg-bg-1 sm:block">
           <table className="w-full min-w-[640px] text-[13px]">
             <thead>
               <tr className="text-left text-text-3">

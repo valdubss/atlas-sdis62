@@ -99,11 +99,11 @@ Précisions :
 - E6 : feuille de confirmation maison (`components/ui/Confirm.tsx`, `useConfirm`) dans les
   douze fichiers concernés.
 
-**Reporté (4)** :
+**Complément du 11 octobre 2026** : F12 (comptes paginés par 100, recherche côté serveur,
+dans l'espace d'administration), A2 (sélection multiple et actions groupées sur les comptes),
+R10 (statistiques et journal en cartes sous 640 px ; le calendrier éditorial garde sa grille,
+outil d'ordinateur) sont livrés.
+
+**Reporté (1)** :
 
 - F9 `FollowButton` : `router.refresh()` conservé, les onglets suivis dépendent du serveur.
-- F12 pagination des listes du Studio (500 / 300 / 100 lignes) : à traiter avec la montée
-  en charge (filtres A1 livrés en attendant).
-- R10 tables de statistiques / journal / calendrier à 360 px : défilement horizontal
-  conservé.
-- A2 actions groupées sur les comptes.

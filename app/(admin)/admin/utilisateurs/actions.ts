@@ -30,7 +30,7 @@ export async function setUserRole(userId: string, role: UserRole): Promise<Resul
   if (user.id === userId && role !== "admin") return { ok: false, error: "Vous ne pouvez pas retirer votre propre rôle d'administrateur." };
   const { error: dbError } = await supabase.from("profiles").update({ role }).eq("id", userId);
   if (dbError) return { ok: false, error: friendlyDbError(dbError.message) };
-  revalidatePath("/studio/utilisateurs");
+  revalidatePath("/admin/utilisateurs");
   return { ok: true };
 }
 
@@ -47,7 +47,7 @@ export async function setUserActive(userId: string, active: boolean): Promise<Re
   } catch (e) {
     console.error("ban utilisateur", e);
   }
-  revalidatePath("/studio/utilisateurs");
+  revalidatePath("/admin/utilisateurs");
   return { ok: true };
 }
 
@@ -82,7 +82,7 @@ export async function deleteUser(userId: string): Promise<Result> {
     return { ok: false, error: "Données anonymisées, mais SUPABASE_SERVICE_ROLE_KEY est absente : compte de connexion conservé. " + String(e) };
   }
 
-  revalidatePath("/studio/utilisateurs");
+  revalidatePath("/admin/utilisateurs");
   return { ok: true };
 }
 
@@ -108,7 +108,7 @@ export async function updateUserProfile(userId: string, input: unknown): Promise
   if (dbError) return { ok: false, error: friendlyDbError(dbError.message) };
   // Un rattachement posé par l'administrateur clôt la demande en attente de l'agent
   await createAdminClient().from("membership_requests").update({ status: "accepted", decided_at: new Date().toISOString(), decided_by: user.id, decided_via: "admin" }).eq("profile_id", userId).eq("status", "pending");
-  revalidatePath("/studio/utilisateurs");
+  revalidatePath("/admin/utilisateurs");
   return { ok: true };
 }
 
@@ -216,11 +216,41 @@ export async function createUser(_prev: CreateUserState, formData: FormData): Pr
     const { error: patchError } = await admin.from("profiles").update(patch).eq("id", data.user.id);
     if (patchError) console.error("createUser profil", patchError.message);
   }
-  revalidatePath("/studio/utilisateurs");
+  revalidatePath("/admin/utilisateurs");
   let warning: string | undefined;
   if (!v.password) {
     const sent = await sendAccountEmail("invite", v.email, { firstName: v.first_name, by: `${user.email ?? "un administrateur"}` });
     if (!sent.ok) warning = "Compte créé, mais l'invitation n'a pas pu partir : " + sent.error;
   }
   return { status: "created", email: v.email, invited: !v.password, warning };
+}
+
+const bulkSchema = z.object({
+  ids: z.array(z.uuid()).min(1).max(200),
+  action: z.enum(["role_reader", "role_editor", "activate", "deactivate"]),
+});
+
+/** Administrateur : même action sur plusieurs comptes (rôle, activation), journalisée une fois par compte. */
+export async function bulkUsers(input: { ids: string[]; action: "role_reader" | "role_editor" | "activate" | "deactivate" }): Promise<{ ok: true; done: number; failed: number } | { ok: false; error: string }> {
+  const parsed = bulkSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Sélection invalide." };
+  const { supabase, user, error } = await requireAdmin();
+  if (!user) return { ok: false, error: error! };
+  let done = 0;
+  let failed = 0;
+  for (const id of parsed.data.ids) {
+    if (id === user.id && parsed.data.action !== "activate") {
+      failed += 1;
+      continue;
+    }
+    const r =
+      parsed.data.action === "role_reader" ? await setUserRole(id, "reader")
+      : parsed.data.action === "role_editor" ? await setUserRole(id, "editor")
+      : await setUserActive(id, parsed.data.action === "activate");
+    if (r.ok) done += 1;
+    else failed += 1;
+  }
+  void supabase;
+  revalidatePath("/admin/utilisateurs");
+  return { ok: true, done, failed };
 }

@@ -11,7 +11,9 @@ import {
   setUserActive,
   setUserRole,
   updateUserProfile,
-} from "@/app/(studio)/studio/utilisateurs/actions";
+  bulkUsers,
+} from "@/app/(admin)/admin/utilisateurs/actions";
+import Link from "next/link";
 import { Field, SelectField } from "@/components/ui/Field";
 import type { UserRole } from "@/lib/supabase/database.types";
 import { ROLE_LABELS } from "@/lib/config";
@@ -21,7 +23,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Sheet } from "@/components/ui/Sheet";
 import { Button } from "@/components/ui/Button";
 import { CreateUserForm } from "./CreateUserForm";
-import { Eye, EyeOff, RefreshCw, UserPlus } from "lucide-react";
+import { CheckSquare, ChevronLeft, ChevronRight, Eye, EyeOff, RefreshCw, Square, UserPlus, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useConfirm } from "@/components/ui/Confirm";
 
@@ -38,6 +40,8 @@ export type UserRow = {
   service_id: string | null;
   center: { name: string } | null;
   service: { name: string } | null;
+  /** Dernière connexion réelle (auth), quand la page l'a demandée */
+  last_sign_in_at?: string | null;
 };
 
 type Ref = { id: string; name: string };
@@ -52,14 +56,30 @@ export function UsersTable({
   q,
   centers = [],
   services = [],
+  basePath = "/admin/utilisateurs",
+  page = 1,
+  pageSize = 100,
+  total,
+  initialFilter,
 }: {
   users: UserRow[];
   meId: string;
   q: string;
   centers?: Ref[];
   services?: Ref[];
+  /** Adresse de la page (recherche, pagination) */
+  basePath?: string;
+  page?: number;
+  pageSize?: number;
+  /** Nombre total de comptes correspondant à la recherche (pagination côté serveur) */
+  total?: number;
+  initialFilter?: string;
 }) {
   const router = useRouter();
+  // Sélection pour les actions groupées (identifiants de la page courante)
+  const [checked, setChecked] = useState<Set<string>>(() => new Set());
+  const pageHref = (n: number) => `${basePath}?${new URLSearchParams({ ...(q ? { q } : {}), ...(n > 1 ? { page: String(n) } : {}) }).toString()}`;
+  const totalPages = total !== undefined ? Math.max(1, Math.ceil(total / pageSize)) : 1;
   const [selected, setSelected] = useState<UserRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState(q);
@@ -119,7 +139,7 @@ export function UsersTable({
   }
 
   type Filter = "all" | "admin" | "editor" | "reader" | "inactive" | "never";
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<Filter>(() => (["all", "admin", "editor", "reader", "inactive", "never"].includes(initialFilter ?? "") ? (initialFilter as Filter) : "all"));
   const FILTERS: { id: Filter; label: string }[] = [
     { id: "all", label: "Tous" },
     { id: "admin", label: "Administrateurs" },
@@ -131,7 +151,7 @@ export function UsersTable({
   const visible = users.filter((u) => {
     if (filter === "all") return true;
     if (filter === "inactive") return !u.is_active;
-    if (filter === "never") return !u.onboarded_at;
+    if (filter === "never") return u.last_sign_in_at === undefined ? !u.onboarded_at : !u.last_sign_in_at;
     if (filter === "reader") return u.role === "reader" || u.role === "referent";
     return u.role === filter;
   });
@@ -168,8 +188,8 @@ export function UsersTable({
             Utilisateurs
           </h1>
           <p className="text-[13px] text-text-3">
-            {users.length} comptes, {counts.admin} administrateurs,{" "}
-            {counts.editor} éditeurs, {counts.reader} agents
+            {total !== undefined && total > users.length ? `${total} comptes, page ${page} sur ${totalPages} · sur cette page : ` : `${users.length} comptes, `}
+            {counts.admin} administrateurs, {counts.editor} éditeurs, {counts.reader} agents
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -185,11 +205,7 @@ export function UsersTable({
             className="flex gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              router.push(
-                search.trim()
-                  ? `/studio/utilisateurs?q=${encodeURIComponent(search.trim())}`
-                  : "/studio/utilisateurs",
-              );
+              router.push(search.trim() ? `${basePath}?q=${encodeURIComponent(search.trim())}` : basePath);
             }}
           >
             <input
@@ -204,9 +220,7 @@ export function UsersTable({
         </div>
       </div>
 
-      <p className="text-[13px] text-text-3">
-        Toute adresse @sdis62.fr crée son compte à la première connexion (lien ou code reçu par e-mail), avec le rôle Agent et un rattachement validé par le chef de centre. Vous pouvez aussi inviter un agent : il reçoit l&apos;e-mail de connexion, et vous posez son rôle et son centre directement.
-      </p>
+      <p className="text-[13px] text-text-3">Toute adresse @sdis62.fr crée son compte à sa première connexion, avec le rôle Agent. « Créer un compte » invite un agent et pose directement son rôle et son centre.</p>
 
       <Sheet
         open={creating}
@@ -224,7 +238,53 @@ export function UsersTable({
         ))}
       </div>
 
+      {checked.size > 0 && (
+        <div className="sticky top-[calc(48px+env(safe-area-inset-top)+8px)] z-20 flex flex-wrap items-center gap-2 rounded-[14px] bg-bg-2 px-3 py-2 ring-1 ring-glass-edge md:top-2">
+          <span className="px-1 text-[13px] font-medium text-text-1">{checked.size} sélectionné{checked.size > 1 ? "s" : ""}</span>
+          {([
+            ["role_editor", "Passer éditeur"],
+            ["role_reader", "Passer agent"],
+            ["deactivate", "Désactiver"],
+            ["activate", "Réactiver"],
+          ] as const).map(([action, label]) => (
+            <button
+              key={action}
+              type="button"
+              disabled={pending}
+              onClick={async () => {
+                if (!(await confirm({ title: `${label} ${checked.size} compte${checked.size > 1 ? "s" : ""} ?`, confirmLabel: label, danger: action === "deactivate" }))) return;
+                start(async () => {
+                  const r = await bulkUsers({ ids: [...checked], action });
+                  toast(r.ok ? `${r.done} compte${r.done > 1 ? "s" : ""} mis à jour${r.failed ? `, ${r.failed} en échec` : ""}` : r.error);
+                  setChecked(new Set());
+                  router.refresh();
+                });
+              }}
+              className={cn("h-9 rounded-full px-3 text-[13px] font-medium", action === "deactivate" ? "bg-red-soft text-red-text" : "bg-bg-1 text-text-1")}
+            >
+              {label}
+            </button>
+          ))}
+          <button type="button" onClick={() => setChecked(new Set())} aria-label="Annuler la sélection" className="ml-auto flex h-9 w-9 items-center justify-center rounded-full text-text-3 hover:text-text-1">
+            <X size={18} strokeWidth={2} aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
       <div className="hairline rounded-[16px] bg-bg-1">
+        {visible.length > 0 && (
+          <div className="flex items-center gap-3 px-5 py-2 text-[13px] text-text-3">
+            <button
+              type="button"
+              onClick={() => setChecked(checked.size === visible.length ? new Set() : new Set(visible.map((u) => u.id)))}
+              aria-label={checked.size === visible.length ? "Tout désélectionner" : "Tout sélectionner"}
+              className="flex h-8 w-8 items-center justify-center rounded-[8px] text-text-2 hover:text-text-1"
+            >
+              {checked.size === visible.length ? <CheckSquare size={18} strokeWidth={1.75} aria-hidden="true" /> : <Square size={18} strokeWidth={1.75} aria-hidden="true" />}
+            </button>
+            <span>{visible.length} compte{visible.length > 1 ? "s" : ""} affiché{visible.length > 1 ? "s" : ""}</span>
+          </div>
+        )}
         {visible.length === 0 ? (
           <p className="px-5 py-8 text-center text-[15px] text-text-2">
             Aucun compte ne correspond.
@@ -232,15 +292,22 @@ export function UsersTable({
         ) : (
           visible.map((u) => {
             const fullName = `${u.first_name} ${u.last_name}`.trim();
+            const isChecked = checked.has(u.id);
             return (
+              <div key={u.id} className={cn("flex items-center gap-2 pl-3", !u.is_active && "opacity-50", isChecked && "bg-bg-2/60")}>
+                <button
+                  type="button"
+                  onClick={() => setChecked((prev) => { const next = new Set(prev); if (next.has(u.id)) next.delete(u.id); else next.add(u.id); return next; })}
+                  aria-label={isChecked ? `Désélectionner ${fullName || u.email}` : `Sélectionner ${fullName || u.email}`}
+                  aria-pressed={isChecked}
+                  className="flex h-10 w-8 shrink-0 items-center justify-center rounded-[8px] text-text-3 hover:text-text-1"
+                >
+                  {isChecked ? <CheckSquare size={18} strokeWidth={1.75} aria-hidden="true" /> : <Square size={18} strokeWidth={1.75} aria-hidden="true" />}
+                </button>
               <button
-                key={u.id}
                 type="button"
                 onClick={() => select(u)}
-                className={cn(
-                  "flex w-full items-center gap-4 px-5 py-3 text-left",
-                  !u.is_active && "opacity-50",
-                )}
+                className="flex min-w-0 flex-1 items-center gap-4 py-3 pr-5 text-left"
               >
                 <Avatar name={fullName || u.email} size="sm" />
                 <span className="min-w-0 flex-1">
@@ -250,7 +317,7 @@ export function UsersTable({
                   <span className="block truncate text-[13px] text-text-3">
                     {u.email}
                     {u.center ? `, ${u.center.name}` : u.service ? `, ${u.service.name}` : ""}
-                    {!u.onboarded_at && " · jamais connecté"}
+                    {(u.last_sign_in_at === undefined ? !u.onboarded_at : !u.last_sign_in_at) && " · jamais connecté"}
                   </span>
                 </span>
                 <span className="hidden text-[13px] text-text-3 sm:block">
@@ -260,10 +327,27 @@ export function UsersTable({
                   {u.is_active ? ROLE_LABELS[u.role] : "Désactivé"}
                 </span>
               </button>
+              </div>
             );
           })
         )}
       </div>
+
+      {totalPages > 1 && (
+        <nav className="flex items-center justify-between gap-3 px-1 text-[13px] text-text-2" aria-label="Pagination">
+          {page > 1 ? (
+            <Link href={pageHref(page - 1)} className="pressable flex h-10 items-center gap-1 rounded-[10px] bg-bg-1 px-3 font-medium text-text-1">
+              <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" /> Précédents
+            </Link>
+          ) : <span />}
+          <span className="tabular-nums">Page {page} sur {totalPages}</span>
+          {page < totalPages ? (
+            <Link href={pageHref(page + 1)} className="pressable flex h-10 items-center gap-1 rounded-[10px] bg-bg-1 px-3 font-medium text-text-1">
+              Suivants <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
+            </Link>
+          ) : <span />}
+        </nav>
+      )}
 
       <Sheet
         open={selected !== null}
@@ -281,7 +365,7 @@ export function UsersTable({
               <p>{selected.email}</p>
               <p>
                 Compte créé le {formatDateLong(selected.created_at)}
-                {selected.onboarded_at ? "" : ", jamais connecté"}
+                {selected.last_sign_in_at ? `, dernière connexion le ${formatDateLong(selected.last_sign_in_at)}` : selected.onboarded_at && selected.last_sign_in_at === undefined ? "" : ", jamais connecté"}
               </p>
             </div>
 

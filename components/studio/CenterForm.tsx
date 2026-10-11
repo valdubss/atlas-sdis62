@@ -47,7 +47,7 @@ export function CenterForm({ center, groupings, notice }: { center: CenterWithRe
           <h1 className="min-w-0 text-[26px] font-semibold tracking-[-0.02em] text-text-1 sm:text-[28px]">{center ? center.name : "Nouveau centre"}</h1>
           {center && <Badge>{CENTER_TYPE_LABELS[center.type]}</Badge>}
         </div>
-        <Link href="/studio/centres/referentiel" className="pressable text-[15px] font-medium text-text-2 hover:text-text-1">
+        <Link href="/admin/centres" className="pressable text-[15px] font-medium text-text-2 hover:text-text-1">
           Référentiel
         </Link>
       </div>
