@@ -143,7 +143,8 @@ export function PostCard({
   return (
     <article className="space-y-2" aria-label={shown.title ?? "Publication"}>
       <ReadTracker postId={shown.id} enabled={variant === "feed" && !preview}>
-      <div className="overflow-hidden rounded-[22px] bg-bg-1">
+      {/* Liseré fin : la carte se détache du fond, les publications se distinguent au premier coup d'œil */}
+      <div className="overflow-hidden rounded-[22px] bg-bg-1 ring-1 ring-glass-edge">
         {shown.type === "photo" && images.length > 0 && (
           <PhotoCarousel
             media={images}

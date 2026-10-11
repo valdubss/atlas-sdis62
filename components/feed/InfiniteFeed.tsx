@@ -38,14 +38,15 @@ export function InfiniteFeed({
   const [done, setDone] = useState(!more);
   const [pending, startTransition] = useTransition();
   const sentinel = useRef<HTMLDivElement>(null);
-  const firstIds = useRef(new Set(initial.map((p) => p.id)));
+  // Plus de cascade d'entrée carte par carte : le fondu de page (app/(app)/template.tsx) suffit,
+  // et la cascade clignotait par-dessus au retour sur le fil (changement d'onglet)
+  const firstIds = useRef<Set<string>>(new Set());
   const reduced = useReducedMotion();
   const key = JSON.stringify(params);
 
   useEffect(() => {
     setPosts(initial);
     setDone(!more);
-    firstIds.current = new Set(initial.map((p) => p.id));
   }, [initial, key, more]);
 
   // Après le premier défilement, la page suivante est demandée deux écrans avant le bas ;
@@ -87,7 +88,7 @@ export function InfiniteFeed({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {posts.map((p, i) => {
         // Même rendu serveur et client (pas d'écart d'hydratation quand « réduire les animations » est actif) :
         // l'entrée est toujours déclarée, seule la transition devient instantanée.
@@ -98,9 +99,6 @@ export function InfiniteFeed({
             initial={cascade ? { opacity: 0, y: 8 } : false}
             animate={{ opacity: 1, y: 0 }}
             transition={reduced ? { duration: 0 } : { ...SPRING, delay: cascade ? Math.min(i, 8) * 0.04 : 0 }}
-            // Cartes hors écran non peintes (content-visibility) : défilement léger sur un long fil ;
-            // la hauteur réservée évite tout saut, les surfaces fixes sont en portail
-            style={{ contentVisibility: "auto", containIntrinsicSize: "auto 480px" }}
           >
             <PostCard post={p} canModerate={canModerate} priority={i < 2} />
           </motion.div>

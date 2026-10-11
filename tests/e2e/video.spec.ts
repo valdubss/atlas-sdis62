@@ -56,7 +56,7 @@ test("vidéo : publication, HLS, sous-titres, paliers de lecture", async ({ brow
     await page.getByRole("button", { name: "Publier", exact: true }).click();
     // Publication : retour au fil avec la bulle de confirmation
     await page.waitForURL((u) => u.pathname === "/", { timeout: 30_000 });
-    await expect(page.getByRole("status")).toContainText("Publication en ligne", { timeout: 10_000 });
+    await expect(page.getByRole("status").filter({ hasText: "Publication en ligne" })).toBeVisible({ timeout: 10_000 });
     postId = (await admin.from("posts").select("id").eq("title", `Vidéo test ${stamp}`).single()).data!.id;
 
     const { data: media } = await admin.from("media").select("video_status, hls_key, poster_key, renditions, orientation").eq("kind", "video").order("created_at", { ascending: false }).limit(1).single();

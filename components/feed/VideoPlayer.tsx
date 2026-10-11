@@ -94,6 +94,8 @@ export function VideoPlayer({
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
   const [started, setStarted] = useState(false);
+  // Première image décodée : le poster peut s'effacer
+  const [firstFrame, setFirstFrame] = useState(false);
   const reached = useRef(new Set<number>());
   const hlsUrl = media.hls_key && media.video_status === "ready" ? mediaUrl(media.hls_key) : null;
   const subtitlesUrl = media.subtitles_key ? mediaUrl(media.subtitles_key) : null;
@@ -253,6 +255,8 @@ export function VideoPlayer({
           setStarted(true);
         }}
         onPause={() => setPlaying(false)}
+        onPlaying={() => setFirstFrame(true)}
+        onLoadedData={() => setFirstFrame(true)}
         onTimeUpdate={onTime}
         onEnded={() => {
           reached.current.add(100);
@@ -268,6 +272,12 @@ export function VideoPlayer({
       >
         {subtitlesUrl && <track kind="subtitles" srcLang="fr" label="Français" src={subtitlesUrl} default />}
       </video>
+
+      {/* Poster maintenu par-dessus la vidéo tant qu'aucune image n'est décodée : pas d'éclair noir à l'arrivée sur le fil */}
+      {posterSrc(media) && !firstFrame && !processing && (
+        // eslint-disable-next-line @next/next/no-img-element -- poster déjà optimisé
+        <img src={posterSrc(media)} alt="" aria-hidden="true" className={cn("pointer-events-none absolute inset-0 h-full w-full", ratio < 1 && !controls ? "object-cover" : "object-contain")} />
+      )}
 
       {processing && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55 text-white" aria-live="polite">
