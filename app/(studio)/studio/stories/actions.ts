@@ -136,6 +136,7 @@ export async function saveStory(_prev: StoryFormState, formData: FormData): Prom
   }
 
   revalidate();
+  if (status === "published") redirect("/?publie=story");
   redirect(`/studio/stories?ok=${status}`);
 }
 

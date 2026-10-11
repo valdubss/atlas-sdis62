@@ -169,6 +169,9 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
       }
     });
   }
+  // Publié ou programmé : retour au fil avec la bulle de confirmation ; brouillon : on reste dans le Studio
+  if (status === "published") redirect("/?publie=publication");
+  if (status === "scheduled") redirect("/?publie=programmee");
   redirect(`/studio/posts/${id}?ok=${status}`);
 }
 

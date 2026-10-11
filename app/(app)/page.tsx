@@ -14,13 +14,14 @@ import { StoryBar } from "@/components/stories/StoryBar";
 import { AgendaChip } from "@/components/feed/AgendaChip";
 import { ScrollRestore } from "@/components/feed/ScrollRestore";
 import { fetchNextEvent } from "@/lib/agenda/queries";
+import { PublishedToast } from "@/components/feed/PublishedToast";
 
 export const dynamic = "force-dynamic";
 
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ erreur?: string; categorie?: string; centre?: string; q?: string; tag?: string }>;
+  searchParams: Promise<{ erreur?: string; publie?: string; categorie?: string; centre?: string; q?: string; tag?: string }>;
 }) {
   const sp = await searchParams;
   const params = {
@@ -50,6 +51,8 @@ export default async function FeedPage({
       <Suspense>
         <FeedHeader categories={categories} centers={centers} showCategories={FEATURES.categories} showCenters={FEATURES.centers} unread={unread} />
       </Suspense>
+
+      {sp.publie && <PublishedToast kind={sp.publie} />}
 
       {sp.erreur === "acces-studio" && (
         <p role="alert" className="rounded-[16px] bg-bg-1 px-4 py-3 text-[15px] text-text-2">
