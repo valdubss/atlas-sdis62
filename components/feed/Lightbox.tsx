@@ -259,6 +259,7 @@ export function Lightbox({
       {open && list.length > 0 && (
         <motion.div
           className="fixed inset-0 z-[55] flex min-h-dvh flex-col bg-black"
+          data-allow-pinch=""
           style={{ backgroundColor: `rgba(0,0,0,${1 - progress * 0.6})` }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

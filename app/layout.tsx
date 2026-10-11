@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { APP_NAME, APP_TAGLINE } from "@/lib/config";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ErrorReporter } from "@/components/app/ErrorReporter";
+import { NoPageZoom } from "@/components/app/NoPageZoom";
 import { ConfirmProvider } from "@/components/ui/Confirm";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import "./globals.css";
@@ -29,6 +30,10 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0c",
   width: "device-width",
   initialScale: 1,
+  // Jamais de zoom de l'interface (le zoom des photos est géré par l'app) ; Safari iOS
+  // ignore ce réglage par défaut, NoPageZoom et touch-action complètent
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   interactiveWidget: "resizes-content",
 };
@@ -53,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         </ToastProvider>
         <PwaRegister />
         <ErrorReporter />
+        <NoPageZoom />
       </body>
     </html>
   );

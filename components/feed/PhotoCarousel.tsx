@@ -137,6 +137,7 @@ export function PhotoCarousel({
           ref={scroller}
           className="no-scrollbar flex h-full snap-x snap-mandatory overflow-x-auto overscroll-x-contain"
           style={{ touchAction: "pan-x pan-y", WebkitOverflowScrolling: "touch" } as React.CSSProperties}
+          data-allow-pinch=""
           role={many ? "group" : undefined}
           aria-roledescription={many ? "carrousel" : undefined}
           aria-label={many ? `${media.length} photos` : undefined}
