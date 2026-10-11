@@ -311,19 +311,22 @@ export function PostCard({
               <span aria-hidden="true" />
             )}
             <div className="flex items-center">
-              <IconButton
-                label="Commentaires"
-                icon={MessageCircle}
-                count={shown.comment_count}
-                onClick={() =>
-                  !preview &&
-                  (variant === "full"
-                    ? document
-                        .getElementById(`comments-${shown.id}`)
-                        ?.scrollIntoView({ behavior: "smooth" })
-                    : setCommentsOpen(true))
-                }
-              />
+              {/* Commentaires fermés par le service communication : pas d'icône */}
+              {shown.comments_enabled && (
+                <IconButton
+                  label="Commentaires"
+                  icon={MessageCircle}
+                  count={shown.comment_count}
+                  onClick={() =>
+                    !preview &&
+                    (variant === "full"
+                      ? document
+                          .getElementById(`comments-${shown.id}`)
+                          ?.scrollIntoView({ behavior: "smooth" })
+                      : setCommentsOpen(true))
+                  }
+                />
+              )}
               <IconButton
                 label={
                   shown.is_bookmarked ? "Retirer des favoris" : "Enregistrer"
@@ -338,7 +341,8 @@ export function PostCard({
         </div>
       </div>
 
-      {variant === "full" && !preview && (
+      {/* Page de la publication : section présente si les commentaires sont ouverts, ou s'il en existe déjà (lecture seule) */}
+      {variant === "full" && !preview && (shown.comments_enabled || shown.comment_count > 0) && (
         <section
           id={`comments-${shown.id}`}
           className="rounded-[16px] bg-bg-1 pt-4"
