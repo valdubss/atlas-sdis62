@@ -7,9 +7,11 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export type Env = Record<string, string>;
 
+/** Variables du projet visé : .env.local par défaut, ou le fichier donné par E2E_ENV_FILE (.env.test.local). */
 export function loadEnv(): Env {
-  const p = path.join(process.cwd(), ".env.local");
-  if (!fs.existsSync(p)) throw new Error(".env.local introuvable");
+  const file = process.env.E2E_ENV_FILE ?? ".env.local";
+  const p = path.join(process.cwd(), file);
+  if (!fs.existsSync(p)) throw new Error(`${file} introuvable`);
   return Object.fromEntries(
     fs
       .readFileSync(p, "utf8")

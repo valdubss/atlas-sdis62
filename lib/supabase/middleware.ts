@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { buildCsp, makeNonce } from "@/lib/security/csp";
 
 const PUBLIC_PREFIXES = ["/login", "/auth/", "/offline", "/rattachement/"];
 
@@ -17,7 +18,19 @@ function isPublicPath(pathname: string) {
  *    synchronisé par trigger SQL ; la page studio revérifie en base).
  */
 export async function updateSession(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // Nonce de la requête : lu par la mise en page (script de thème) et par Next pour ses scripts en ligne
+  const nonce = makeNonce();
+  const csp = buildCsp(nonce);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  // Next lit la politique dans les en-têtes de la requête pour nonce-er ses propres scripts en ligne
+  requestHeaders.set("Content-Security-Policy", csp);
+  const next = () => {
+    const r = NextResponse.next({ request: { headers: requestHeaders } });
+    r.headers.set("Content-Security-Policy", csp);
+    return r;
+  };
+  let response = next();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,7 +44,7 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          response = NextResponse.next({ request });
+          response = next();
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );

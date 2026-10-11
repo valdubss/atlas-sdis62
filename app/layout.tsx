@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import { APP_NAME, APP_TAGLINE } from "@/lib/config";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -31,12 +32,15 @@ export const viewport: Viewport = {
   interactiveWidget: "resizes-content",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Nonce posé par le proxy (Content-Security-Policy) pour le script en ligne ci-dessous
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="fr" className={inter.variable} suppressHydrationWarning>
       <head>
         {/* Thème mémorisé sur l'appareil appliqué avant le premier rendu : pas de flash sombre → clair */}
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: "try{var t=localStorage.getItem('atlas:theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}",
           }}

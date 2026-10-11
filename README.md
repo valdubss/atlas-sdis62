@@ -121,6 +121,7 @@ redirige vers `/login`.
 | `0036_center_notes.sql` | notes de service (fil interne du centre) : table `center_notes` (PDF ou image, épinglage), lecture réservée aux membres du centre et aux responsables, écriture par le chef de centre, le responsable com et le service communication (`can_manage_center`), `center_notes_list`, `center_author_role`, notification `note` (cloche + push « mon centre ») |
 | `0037_center_contacts_attach.sql` | chefs de centre et responsables com rattachés d'office : `center_for_contact_email`, `attach_center_contacts`, trigger sur `centers` (adresses saisies ou modifiées) et sur `profiles` (première connexion), demandes en attente annulées, notification « Vous êtes chef de centre » ; profils existants rattachés sans notification |
 | `0038_password_required.sql` | mot de passe obligatoire : `profiles.password_set_at` (posé à l'accueil, dans le profil, par un administrateur), `mark_password_set`, recopie `password_set` dans le jeton ; éditeurs et administrateurs existants considérés comme équipés, les lecteurs le choisissent à leur prochaine visite |
+| `0039_admin_adoption.sql` | espace d'administration : `admin_adoption_stats` (comptes, inscriptions par semaine, jamais connectés, centres sans contact ou sans membre, demandes, contenu), `admin_last_sign_in` ; administrateurs seulement |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -875,6 +876,58 @@ Puis :
    envoyés sur Supabase Storage restent lisibles tant que l'ancienne URL
    publique est conservée dans `NEXT_PUBLIC_S3_PUBLIC_URL`… ou se migrent avec
    `rclone` (`rclone copy supabase:media scaleway:<bucket>`).
+
+## 12. Environnement de test, surveillance, sauvegardes
+
+### 12.1 Environnement de test (atlas-test)
+
+Un second projet Supabase, **atlas-test** (réf. `zrwaybfwteagfpaxkqzr`), isolé de la
+production : les tests automatiques et les essais s'y font sans risque de publication ou
+de notification visible par les agents.
+
+- **Clés** : `.env.test.local` (jamais commité) avec `NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` du projet de test
+  (Project Settings → API Keys → onglet *Legacy anon, service_role*), une paire VAPID propre
+  et un `CRON_SECRET` propre.
+- **Schéma** : `npx supabase login`, `npx supabase link --project-ref zrwaybfwteagfpaxkqzr`,
+  puis `npx supabase db push`. Référentiel sans donnée personnelle :
+  `npm run referentiel:export` (lecture de la production) puis exécution de
+  `supabase/tests/fixtures-referentiel.sql` dans l'éditeur SQL du projet de test, et
+  `supabase/seed.sql` pour l'administrateur initial.
+- **Serveur local sur le projet de test** : `npm run dev:test` → http://localhost:3100
+  (refuse de démarrer si les clés manquent ou pointent sur la production).
+- **Tests de bout en bout sur le projet de test** : `npm run test:e2e:test` (serveur de test
+  lancé). `npm run test:e2e` seul vise `.env.local`, donc la production : à n'utiliser
+  que sur un projet de test.
+- **Déploiement de test** : projet Vercel séparé (`atlas-test-sdis62`, même dépôt, même
+  branche `main`) avec les variables du projet de test ; URL installable sur téléphone
+  comme l'application principale.
+
+### 12.2 Surveillance
+
+`.github/workflows/monitor.yml` appelle `/api/health` toutes les dix minutes (trois
+essais) et vérifie la page de connexion. Un échec fait échouer l'exécution et GitHub envoie
+l'e-mail « Run failed » à l'adresse du compte GitHub : aucun service tiers. Vérifier dans
+GitHub → Settings → Notifications que les échecs d'Actions sont envoyés par e-mail.
+
+### 12.3 Sauvegardes
+
+`.github/workflows/backup.yml` exporte chaque dimanche rôles, schéma et données de la base
+(Supabase CLI) et copie le bucket `media`, conserve l'archive 90 jours comme artefact du
+dépôt et, si le secret `RCLONE_CONFIG` est renseigné, la dépose dans Google Drive
+(« ATLAS Sdis62 / sauvegardes », douze semaines conservées). Secrets du dépôt à créer :
+`SUPABASE_ACCESS_TOKEN` (supabase.com/dashboard/account/tokens), `SUPABASE_DB_PASSWORD`
+(mot de passe de la base de production), `RCLONE_CONFIG` (facultatif : `rclone config`
+une fois sur un poste, remote nommé `gdrive`, contenu de `rclone.conf`).
+
+### 12.4 Sécurité
+
+- **Content-Security-Policy** posée par le proxy sur chaque page, avec un nonce par requête
+  pour les scripts en ligne (`lib/security/csp.ts`) : scripts du domaine seulement, images et
+  connexions limitées à Supabase, au stockage et aux fonds de carte, aucune inclusion dans
+  une autre page. Après l'ajout d'un service externe appelé depuis le navigateur, l'ajouter
+  à `buildCsp` et vérifier la console.
+- Secret des tâches planifiées comparé à temps constant (`lib/auth/cron.ts`).
 
 ## 9. Déploiement Vercel
 

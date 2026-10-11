@@ -1,0 +1,90 @@
+# Sauvegarde hebdomadaire (dimanche 03:00 UTC) : schéma + données de la base de production,
+# et copie des médias du bucket « media ». L'archive est conservée 90 jours comme artefact du
+# dépôt (privé) et, si le secret RCLONE_CONFIG est renseigné, envoyée dans Google Drive
+# (dossier « ATLAS Sdis62 / sauvegardes »). Un échec déclenche l'e-mail « Run failed » de GitHub.
+#
+# Secrets à renseigner (Settings → Secrets and variables → Actions) :
+#   SUPABASE_ACCESS_TOKEN   jeton personnel Supabase (supabase.com/dashboard/account/tokens)
+#   SUPABASE_DB_PASSWORD    mot de passe de la base du projet de production
+#   RCLONE_CONFIG           (facultatif) contenu du fichier rclone.conf avec un remote « gdrive »
+name: Sauvegarde hebdomadaire
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_REF: fxtqutqtiqgpttqpnouy
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Liaison au projet de production
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "::error::Secret SUPABASE_ACCESS_TOKEN manquant"; exit 1; }
+          test -n "$SUPABASE_DB_PASSWORD" || { echo "::error::Secret SUPABASE_DB_PASSWORD manquant"; exit 1; }
+          supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Export de la base (rôles, schéma, données)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          stamp=$(date -u +%Y-%m-%d)
+          mkdir -p "sauvegarde/$stamp"
+          supabase db dump --linked -p "$SUPABASE_DB_PASSWORD" -f "sauvegarde/$stamp/roles.sql" --role-only
+          supabase db dump --linked -p "$SUPABASE_DB_PASSWORD" -f "sauvegarde/$stamp/schema.sql"
+          supabase db dump --linked -p "$SUPABASE_DB_PASSWORD" -f "sauvegarde/$stamp/data.sql" --data-only --use-copy
+          echo "STAMP=$stamp" >> "$GITHUB_ENV"
+          ls -la "sauvegarde/$stamp"
+
+      - name: Copie des médias (bucket media)
+        continue-on-error: true
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          mkdir -p "sauvegarde/$STAMP/media"
+          supabase storage cp -r "ss:///media" "sauvegarde/$STAMP/media" --experimental --linked
+          du -sh "sauvegarde/$STAMP/media" || true
+
+      - name: Archive
+        run: |
+          tar -czf "atlas-sauvegarde-$STAMP.tar.gz" -C sauvegarde "$STAMP"
+          ls -la atlas-sauvegarde-*.tar.gz
+
+      - name: Artefact (90 jours)
+        uses: actions/upload-artifact@v4
+        with:
+          name: atlas-sauvegarde-${{ env.STAMP }}
+          path: atlas-sauvegarde-${{ env.STAMP }}.tar.gz
+          retention-days: 90
+          compression-level: 0
+
+      - name: Google Drive (si RCLONE_CONFIG est renseigné)
+        if: ${{ secrets.RCLONE_CONFIG != '' }}
+        env:
+          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+        run: |
+          curl -fsSL https://rclone.org/install.sh | sudo bash
+          mkdir -p ~/.config/rclone
+          printf '%s' "$RCLONE_CONFIG" > ~/.config/rclone/rclone.conf
+          rclone copy "atlas-sauvegarde-$STAMP.tar.gz" "gdrive:ATLAS Sdis62/sauvegardes" --progress
+          # Rotation : on garde les douze dernières semaines
+          rclone lsf "gdrive:ATLAS Sdis62/sauvegardes" | sort | head -n -12 | while read -r old; do rclone delete "gdrive:ATLAS Sdis62/sauvegardes/$old"; done

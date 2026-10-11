@@ -1,0 +1,38 @@
+# Surveillance de la production : toutes les 10 minutes, /api/health doit répondre 200 et « ok ».
+# En cas d'échec, GitHub envoie un e-mail « Run failed » à l'adresse du compte (contact.vdubois@gmail.com) :
+# aucun service tiers, aucun secret. Réglage des notifications : github.com/settings/notifications → Actions.
+name: Surveillance production
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Santé de l'application
+        env:
+          URL: https://atlas-sdis62.vercel.app/api/health
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o body.json -w '%{http_code}' --max-time 25 "$URL" || echo "000")
+            if [ "$code" = "200" ] && ! grep -q '"status":"down"' body.json; then
+              echo "OK ($code) : $(head -c 300 body.json)"
+              exit 0
+            fi
+            echo "Tentative $attempt : HTTP $code — $(head -c 300 body.json 2>/dev/null || true)"
+            sleep 20
+          done
+          echo "::error::ATLAS ne répond pas correctement sur $URL (HTTP $code)"
+          exit 1
+      - name: Page de connexion servie
+        run: |
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 https://atlas-sdis62.vercel.app/login)
+          [ "$code" = "200" ] || { echo "::error::/login répond HTTP $code"; exit 1; }

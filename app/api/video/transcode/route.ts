@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { isCronAuthorized } from "@/lib/auth/cron";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getVideoProvider } from "@/lib/video/provider";
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
   const mediaId = body?.mediaId;
   if (!mediaId || !z.uuid().safeParse(mediaId).success) return NextResponse.json({ error: "identifiant invalide" }, { status: 400 });
 
-  const byCron = Boolean(process.env.CRON_SECRET) && req.headers.get("authorization") === `Bearer ${process.env.CRON_SECRET}`;
+  const byCron = isCronAuthorized(req);
   if (!byCron) {
     const supabase = await createClient();
     const {
