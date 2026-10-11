@@ -7,6 +7,7 @@
     "dev:test": "node scripts/dev-test.mjs",
     "test:e2e:test": "cross-env E2E_ENV_FILE=.env.test.local E2E_BASE_URL=http://localhost:3100 playwright test",
     "referentiel:export": "node --experimental-websocket scripts/export-referentiel.mjs",
+    "referentiel:sync-test": "node --experimental-websocket scripts/sync-referentiel-test.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

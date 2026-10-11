@@ -19,6 +19,8 @@ permissions:
 
 env:
   PROJECT_REF: fxtqutqtiqgpttqpnouy
+  # Le contexte « secrets » n'est pas lisible dans un « if » : on passe par l'environnement
+  RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
 
 jobs:
   backup:
@@ -78,9 +80,7 @@ jobs:
           compression-level: 0
 
       - name: Google Drive (si RCLONE_CONFIG est renseigné)
-        if: ${{ secrets.RCLONE_CONFIG != '' }}
-        env:
-          RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
+        if: ${{ env.RCLONE_CONFIG != '' }}
         run: |
           curl -fsSL https://rclone.org/install.sh | sudo bash
           mkdir -p ~/.config/rclone

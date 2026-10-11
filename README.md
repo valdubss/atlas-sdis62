@@ -925,9 +925,18 @@ de notification visible par les agents.
 - **Tests de bout en bout sur le projet de test** : `npm run test:e2e:test` (serveur de test
   lancé). `npm run test:e2e` seul vise `.env.local`, donc la production : à n'utiliser
   que sur un projet de test.
-- **Déploiement de test** : projet Vercel séparé (`atlas-test-sdis62`, même dépôt, même
-  branche `main`) avec les variables du projet de test ; URL installable sur téléphone
-  comme l'application principale.
+- **Déploiement de test** : projet Vercel séparé (`atlas-sdis62-8tws`, même dépôt, même
+  branche `main`, variables du projet de test) servi sur **https://atlas-test-sdis62.vercel.app**
+  (et sur son adresse d'origine `atlas-sdis62-8tws.vercel.app`), installable sur téléphone
+  comme l'application principale. Côté Supabase atlas-test : Site URL
+  `https://atlas-test-sdis62.vercel.app`, redirections `…/**` des deux adresses et de
+  `localhost:3000` / `localhost:3100`.
+- **Référentiel et compte initial** : `npm run referentiel:sync-test` copie groupements,
+  services et centres (sans donnée personnelle) de la production vers le projet de test,
+  pose la liste blanche d'adresses et crée le compte administrateur initial ; chaque push sur
+  `main` déploie aussi le site de test.
+- **Tests sur le site de test déployé** :
+  `npx cross-env E2E_ENV_FILE=.env.test.local E2E_BASE_URL=https://atlas-test-sdis62.vercel.app playwright test`.
 
 ### 12.2 Surveillance
 
