@@ -6,6 +6,10 @@ import { completeMultipart, createUpload, discardMedia, finalizeMedia, presignMu
 import { altAssistEnabled, suggestAlt } from "@/app/(studio)/studio/media/alt-actions";
 import { prepareFile, uploadWithProgress } from "@/lib/media/client";
 import { unlockAudio } from "@/lib/media/compress-realtime";
+import { reportClientError } from "@/lib/client-errors";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/Toast";
+import { tryPublishPending } from "@/app/(studio)/studio/posts/pending-actions";
 import { uploadFile } from "@/lib/media/uploader";
 import { fingerprintFile } from "@/lib/media/fingerprint";
 import { uploadQueue } from "@/lib/media/queue";
@@ -58,6 +62,8 @@ export function MediaUploader({
 }) {
   const cfg = LABELS[accept];
   const inputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
+  const router = useRouter();
   const [dragging, setDragging] = useState(false);
   const [rejected, setRejected] = useState<string[]>([]);
   const [altAssist, setAltAssist] = useState(false);
@@ -172,6 +178,27 @@ export function MediaUploader({
           const done = await finalizeMedia(created.mediaId);
           if (!done.ok) throw new Error(done.error);
           uploadQueue.upsert({ id: created.mediaId, name: file.name, kind: prepared.kind, status: "ready", progress: 1 });
+          // Publication différée (« Publier » pressé pendant l'envoi) : part dès que ce média était le dernier attendu
+          tryPublishPending(created.mediaId)
+            .then((r) => {
+              for (const p of r.published) toast(`Publication en ligne ✓${p.title ? ` · ${p.title}` : ""}`);
+              if (r.published.length > 0) router.refresh();
+            })
+            .catch(() => {});
+          // Publication différée (« Publier » pressé pendant l'envoi) : part dès que ce média était le dernier attendu
+          tryPublishPending(created.mediaId)
+            .then((r) => {
+              for (const p of r.published) toast(`Publication en ligne ✓${p.title ? ` · ${p.title}` : ""}`);
+              if (r.published.length > 0) router.refresh();
+            })
+            .catch(() => {});
+          // Publication différée (« Publier » pressé pendant l'envoi) : part dès que ce média était le dernier attendu
+          tryPublishPending(created.mediaId)
+            .then((r) => {
+              for (const p of r.published) toast(`Publication en ligne ✓${p.title ? ` · ${p.title}` : ""}`);
+              if (r.published.length > 0) router.refresh();
+            })
+            .catch(() => {});
           // Vidéo très lourde (4K, 60 i/s) : elle démarre lentement sur mobile
           const perSecond = prepared.kind === "video" && prepared.duration && !prepared.originalBytes ? prepared.blob.size / prepared.duration : 0;
           const warning =
@@ -185,13 +212,14 @@ export function MediaUploader({
           );
         } catch (e) {
           const message = e instanceof Error ? e.message : "Échec de l'envoi.";
+          reportClientError(e, { where: "media", name: file.name, size: file.size, type: file.type, kind: kindGuess });
           onChange((prev) => prev.map((m) => (m.id === tempId || m.preview_url === previewUrl ? { ...m, status: "error", error: message } : m)));
           uploadQueue.upsert({ id: tempId, name: file.name, kind: kindGuess, status: "error", progress: 0, error: message });
           setTimeout(() => uploadQueue.remove(tempId), 6000);
         }
       }
     },
-    [cfg, accept, items.length, onChange, patch],
+    [cfg, accept, items.length, onChange, patch, router, toast],
   );
 
   function remove(m: EditorMedia) {

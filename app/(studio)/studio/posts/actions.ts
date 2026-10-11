@@ -64,7 +64,10 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     return saveAsCoeditor(supabase, v);
   }
 
-  // Tous les médias doivent être prêts (variantes générées) avant publication.
+  // Médias encore en envoi ou en traitement : « Publier » enregistre un brouillon marqué
+  // « à publier dès que tout est prêt » (publication automatique à la fin de l'envoi) ;
+  // « Programmer » attend que tout soit prêt.
+  let deferred = false;
   if (v.media.length > 0) {
     const { data: rows } = await supabase
       .from("media")
@@ -72,12 +75,14 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
       .in("id", v.media.map((m) => m.id));
     const ready = new Set((rows ?? []).filter((r) => r.status === "ready").map((r) => r.id));
     const notReady = v.media.filter((m) => !ready.has(m.id));
+    const failed = (rows ?? []).some((r) => r.status === "failed") || (rows ?? []).length !== v.media.length;
     if (notReady.length > 0 && v.action !== "draft") {
-      return { status: "error", message: "Attendez la fin du traitement des médias avant de publier.", fields: { media: "Médias en cours de traitement." } };
+      if (v.action === "publish" && !failed) deferred = true;
+      else return { status: "error", message: failed ? "Un média est en échec : retirez-le ou renvoyez-le." : "Attendez la fin du traitement des médias avant de programmer.", fields: { media: "Médias en cours de traitement." } };
     }
   }
 
-  const status = v.action === "publish" ? "published" : v.action === "schedule" ? "scheduled" : "draft";
+  const status = deferred ? "draft" : v.action === "publish" ? "published" : v.action === "schedule" ? "scheduled" : "draft";
 
   // Épinglage : conservé si déjà épinglé, sinon horodaté maintenant.
   let pinned_at: string | null = null;
@@ -107,6 +112,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     scheduled_at: status === "scheduled" ? fromLocalInput(v.scheduled_at)!.toISOString() : null,
     // Article : la première image sert de couverture ; photo/vidéo : médias du carrousel.
     cover_media_id: v.type === "article" ? (v.media[0]?.id ?? null) : null,
+    publish_when_ready: deferred,
     ...(status === "draft" ? { published_at: null } : {}),
   } as const;
 
@@ -170,6 +176,7 @@ export async function savePost(_prev: PostFormState, formData: FormData): Promis
     });
   }
   // Publié ou programmé : retour au fil avec la bulle de confirmation ; brouillon : on reste dans le Studio
+  if (deferred) redirect("/?publie=attente");
   if (status === "published") redirect("/?publie=publication");
   if (status === "scheduled") redirect("/?publie=programmee");
   redirect(`/studio/posts/${id}?ok=${status}`);

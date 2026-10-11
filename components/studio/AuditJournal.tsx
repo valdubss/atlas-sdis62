@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 
 export type AuditFacets = { actors: { id: string; name: string }[]; entities: string[] };
 export type IncidentRow = { id: string; title: string; service: string; started_at: string; resolved_at: string | null; note: string | null };
+export type ClientErrorRow = { id: number; message: string; url: string | null; user_agent: string | null; context: Record<string, unknown> | null; created_at: string; user: { first_name: string | null; last_name: string | null } | null };
 
 const ACTIONS: Record<string, string> = { insert: "création", update: "modification", delete: "suppression" };
 const ENTITIES: Record<string, string> = { posts: "publications", stories: "stories", flashes: "flashs", events: "agenda", centers: "centres", channels: "messagerie", categories: "séries", app_settings: "paramètres", profiles: "comptes", story_highlights: "à la une", incidents: "incidents" };
@@ -23,7 +24,7 @@ const SERVICES = [
 ];
 
 /** Journal d'audit : filtres (acteur, action, type, période), pagination, export CSV ; incidents (admin). */
-export function AuditJournal({ initial, filters, facets, incidents, isAdmin }: { initial: AuditEntry[]; filters: AuditFilters; facets: AuditFacets; incidents: IncidentRow[]; isAdmin: boolean }) {
+export function AuditJournal({ initial, filters, facets, incidents, isAdmin, clientErrors = [] }: { initial: AuditEntry[]; filters: AuditFilters; facets: AuditFacets; incidents: IncidentRow[]; isAdmin: boolean; clientErrors?: ClientErrorRow[] }) {
   const [entries, setEntries] = useState(initial);
   const [hasMore, setHasMore] = useState(initial.length >= 50);
   const [pending, start] = useTransition();
@@ -140,6 +141,93 @@ export function AuditJournal({ initial, filters, facets, incidents, isAdmin }: {
         <Button type="button" variant="secondary" loading={pending} onClick={loadMore}>
           Afficher la suite
         </Button>
+      )}
+
+      {isAdmin && (
+        <section className="space-y-3">
+          <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">
+            Erreurs côté app <span className="text-text-3">{clientErrors.length}</span>
+          </h2>
+          <p className="text-[13px] text-text-3">Erreurs survenues sur les téléphones et navigateurs des agents (envoi de médias, pages), 30 derniers jours, 50 dernières.</p>
+          <div className="hairline rounded-[16px] bg-bg-1">
+            {clientErrors.length === 0 && <p className="px-5 py-4 text-[15px] text-text-2">Aucune erreur remontée.</p>}
+            {clientErrors.map((e) => {
+              const ctx = (e.context ?? {}) as Record<string, unknown>;
+              const who = e.user ? [e.user.first_name, e.user.last_name].filter(Boolean).join(" ") : "agent inconnu";
+              const device = (e.user_agent ?? "").match(/iPhone|iPad|Android|Windows|Macintosh|Linux/)?.[0] ?? "";
+              return (
+                <div key={e.id} className="px-5 py-3">
+                  <p className="text-[15px] text-text-1 [overflow-wrap:anywhere]">{e.message}</p>
+                  <p className="text-[13px] text-text-3">
+                    {formatDateTime(e.created_at)} · {who}
+                    {device ? ` · ${device}` : ""}
+                    {ctx.where ? ` · ${String(ctx.where)}` : ""}
+                    {ctx.name ? ` · ${String(ctx.name)}${ctx.size ? ` (${Math.round(Number(ctx.size) / 1048576)} Mo)` : ""}` : ""}
+                    {e.url ? ` · ${e.url}` : ""}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {isAdmin && (
+        <section className="space-y-3">
+          <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">
+            Erreurs côté app <span className="text-text-3">{clientErrors.length}</span>
+          </h2>
+          <p className="text-[13px] text-text-3">Erreurs survenues sur les téléphones et navigateurs des agents (envoi de médias, pages), 30 derniers jours, 50 dernières.</p>
+          <div className="hairline rounded-[16px] bg-bg-1">
+            {clientErrors.length === 0 && <p className="px-5 py-4 text-[15px] text-text-2">Aucune erreur remontée.</p>}
+            {clientErrors.map((e) => {
+              const ctx = (e.context ?? {}) as Record<string, unknown>;
+              const who = e.user ? [e.user.first_name, e.user.last_name].filter(Boolean).join(" ") : "agent inconnu";
+              const device = (e.user_agent ?? "").match(/iPhone|iPad|Android|Windows|Macintosh|Linux/)?.[0] ?? "";
+              return (
+                <div key={e.id} className="px-5 py-3">
+                  <p className="text-[15px] text-text-1 [overflow-wrap:anywhere]">{e.message}</p>
+                  <p className="text-[13px] text-text-3">
+                    {formatDateTime(e.created_at)} · {who}
+                    {device ? ` · ${device}` : ""}
+                    {ctx.where ? ` · ${String(ctx.where)}` : ""}
+                    {ctx.name ? ` · ${String(ctx.name)}${ctx.size ? ` (${Math.round(Number(ctx.size) / 1048576)} Mo)` : ""}` : ""}
+                    {e.url ? ` · ${e.url}` : ""}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {isAdmin && (
+        <section className="space-y-3">
+          <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">
+            Erreurs côté app <span className="text-text-3">{clientErrors.length}</span>
+          </h2>
+          <p className="text-[13px] text-text-3">Erreurs survenues sur les téléphones et navigateurs des agents (envoi de médias, pages), 30 derniers jours, 50 dernières.</p>
+          <div className="hairline rounded-[16px] bg-bg-1">
+            {clientErrors.length === 0 && <p className="px-5 py-4 text-[15px] text-text-2">Aucune erreur remontée.</p>}
+            {clientErrors.map((e) => {
+              const ctx = (e.context ?? {}) as Record<string, unknown>;
+              const who = e.user ? [e.user.first_name, e.user.last_name].filter(Boolean).join(" ") : "agent inconnu";
+              const device = (e.user_agent ?? "").match(/iPhone|iPad|Android|Windows|Macintosh|Linux/)?.[0] ?? "";
+              return (
+                <div key={e.id} className="px-5 py-3">
+                  <p className="text-[15px] text-text-1 [overflow-wrap:anywhere]">{e.message}</p>
+                  <p className="text-[13px] text-text-3">
+                    {formatDateTime(e.created_at)} · {who}
+                    {device ? ` · ${device}` : ""}
+                    {ctx.where ? ` · ${String(ctx.where)}` : ""}
+                    {ctx.name ? ` · ${String(ctx.name)}${ctx.size ? ` (${Math.round(Number(ctx.size) / 1048576)} Mo)` : ""}` : ""}
+                    {e.url ? ` · ${e.url}` : ""}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       <section className="space-y-3">

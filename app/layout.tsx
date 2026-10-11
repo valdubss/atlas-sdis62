@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import { APP_NAME, APP_TAGLINE } from "@/lib/config";
 import { ToastProvider } from "@/components/ui/Toast";
+import { ErrorReporter } from "@/components/app/ErrorReporter";
 import { ConfirmProvider } from "@/components/ui/Confirm";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import "./globals.css";
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ConfirmProvider>{children}</ConfirmProvider>
         </ToastProvider>
         <PwaRegister />
+        <ErrorReporter />
       </body>
     </html>
   );

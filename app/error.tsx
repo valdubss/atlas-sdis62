@@ -4,11 +4,13 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { Button } from "@/components/ui/Button";
+import { reportClientError } from "@/lib/client-errors";
 
 /** Erreur inattendue (serveur ou rendu) : écran en français, retour au fil ou nouvel essai. */
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error("erreur page", error);
+    reportClientError(error, { where: "page", digest: error.digest ?? null });
   }, [error]);
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-bg-0 px-6 text-center">

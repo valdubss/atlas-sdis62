@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { UploadQueue } from "@/components/studio/UploadQueue";
 import { createClient, getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { RoleProvider } from "@/components/layout/RoleContext";
 import { ThemeApplier, type Theme } from "@/components/layout/ThemeApplier";
@@ -29,6 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         {/* Marges d'écran 20 px mobile / 32 px desktop ; lecture ≤ 680 px ; place pour la barre haute (48 px) */}
         <main className="mx-auto w-full max-w-[680px] px-3 pb-28 pt-[calc(48px+env(safe-area-inset-top)+8px)] sm:px-8">{children}</main>
         <BottomNav />
+        <UploadQueue />
       </div>
     </RoleProvider>
   );

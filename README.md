@@ -987,6 +987,27 @@ de notification visible par les agents.
 - **Tests sur le site de test déployé** :
   `npx cross-env E2E_ENV_FILE=.env.test.local E2E_BASE_URL=https://atlas-test-sdis62.vercel.app playwright test`.
 
+### 12.1 ter Erreurs côté appareil, publication différée, import des contacts
+
+- **Erreurs côté app** (migration `0040`, table `client_errors`) : les erreurs survenues sur
+  les téléphones (envoi de médias, pages en erreur, exceptions non rattrapées) sont envoyées à
+  `/api/journal/client` par `lib/client-errors.ts` (30 par heure et par compte, doublons
+  ignorés) et listées dans Administration → Journal → « Erreurs côté app » (administrateurs),
+  avec l'appareil, l'agent, le fichier concerné ; purge après 30 jours par le cron.
+- **Publier pendant l'envoi** : dans le Studio, « Publier » reste possible dès que les médias
+  ont un identifiant (envoi ou traitement en cours) ; la publication est enregistrée en
+  brouillon marqué `posts.publish_when_ready`, l'éditeur revient au fil (bulle « Envoi en
+  cours… ») et le bandeau d'envoi reste visible dans toute l'app. À la fin de chaque envoi,
+  `tryPublishPending` publie la publication si tous ses médias sont prêts (bulle
+  « Publication en ligne ✓ ») ; le cron quotidien fait de même en filet de sécurité
+  (`lib/posts/publish-pending.ts`). Un média en échec lève le marqueur. « Programmer »
+  attend toujours la fin du traitement.
+- **Import des chefs de centre et responsables com** : Administration → Centres, bloc
+  « Chefs de centre et responsables com » : collage d'un tableau ou fichier CSV (`centre ;
+  chef ; e-mail ; responsable com ; e-mail`), vérification ligne par ligne (centre reconnu
+  par nom, slug ou commune, sans accents ni « CIS »), puis application ; cellule vide =
+  inchangé, « - » = effacé. Les rattachements d'office (migration 0037) s'appliquent.
+
 ### 12.2 Surveillance
 
 `.github/workflows/monitor.yml` appelle `/api/health` toutes les dix minutes (trois

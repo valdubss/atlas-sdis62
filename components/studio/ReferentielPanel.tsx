@@ -10,6 +10,7 @@ import { CENTER_TYPE_LABELS } from "@/lib/config";
 import { Badge } from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import { useConfirm } from "@/components/ui/Confirm";
+import { ContactsImport } from "@/components/admin/ContactsImport";
 
 type CenterRow = Center & { grouping: { name: string } | null; referents_count: number };
 
@@ -46,6 +47,8 @@ export function ReferentielPanel({ groupings, centers, services }: { groupings: 
           </Link>
         </p>
       </div>
+
+      <ContactsImport />
 
       <section className="space-y-3">
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">

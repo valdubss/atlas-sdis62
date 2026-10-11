@@ -104,6 +104,7 @@ type PostRow = {
   lock_at: Timestamp | null;
   autosave_at: Timestamp | null;
   review_status: "none" | "requested" | "approved" | "returned";
+  publish_when_ready: boolean;
   review_requested_to: string | null;
   review_requested_by: string | null;
   review_requested_at: Timestamp | null;
@@ -495,7 +496,7 @@ export type Database = {
         Row: PostRow;
         Insert: Optional<
           PostRow,
-          | "id" | "slug" | "title" | "location" | "scope" | "submitted_by" | "reviewed_by" | "reviewed_at" | "moderation_message" | "promoted_from_id" | "excerpt" | "body" | "category_id" | "center_id" | "tags"
+          | "id" | "publish_when_ready" | "slug" | "title" | "location" | "scope" | "submitted_by" | "reviewed_by" | "reviewed_at" | "moderation_message" | "promoted_from_id" | "excerpt" | "body" | "category_id" | "center_id" | "tags"
           | "author_id" | "author_display" | "status" | "scheduled_at" | "published_at"
           | "pinned_at" | "comments_enabled" | "reactions_enabled" | "cover_media_id" | "created_at" | "updated_at" | "deleted_at"
           | "lock_by" | "lock_at" | "autosave_at" | "review_status" | "review_requested_to" | "review_requested_by" | "review_requested_at" | "review_decided_by" | "review_decided_at"
@@ -615,6 +616,12 @@ export type Database = {
         Row: { story_id: string; user_id: string; viewed_at: Timestamp; progress: number; advanced: boolean };
         Insert: { story_id: string; user_id: string; viewed_at?: Timestamp; progress?: number; advanced?: boolean };
         Update: never;
+        Relationships: [];
+      };
+      client_errors: {
+        Row: { id: number; user_id: string | null; message: string; stack: string | null; url: string | null; user_agent: string | null; context: Json; created_at: Timestamp };
+        Insert: { user_id?: string | null; message: string; stack?: string | null; url?: string | null; user_agent?: string | null; context?: Json; created_at?: Timestamp };
+        Update: Partial<{ message: string }>;
         Relationships: [];
       };
       incidents: {
@@ -817,6 +824,7 @@ export type Database = {
       studio_reading_stats: { Args: { p_days?: number }; Returns: Json };
       studio_notification_stats: { Args: { p_days?: number }; Returns: Json };
       schedule_hourly_dispatch: { Args: { p_url: string; p_secret: string }; Returns: string };
+      purge_client_errors: { Args: Record<string, never>; Returns: undefined };
       purge_page_views: { Args: Record<string, never>; Returns: undefined };
       is_referent: { Args: Record<string, never>; Returns: boolean };
       promote_center_post: { Args: { p_post_id: string }; Returns: string };

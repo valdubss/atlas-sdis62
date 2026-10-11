@@ -260,6 +260,10 @@ export async function runMaintenance(): Promise<{ requeued: number; orphanMedia:
   const { data: messaging, error: messagingError } = await admin.rpc("messaging_maintenance");
   if (messagingError) console.error("entretien messagerie", messagingError.message);
   const messagingKeys = ((messaging as { keys?: string[] } | null)?.keys ?? []).filter(Boolean);
+  await admin.rpc("purge_client_errors").then(({ error }) => error && console.error("purge erreurs client", error.message));
+  // Brouillons « à publier dès la fin de l'envoi » dont l'app n'a pas pu conclure (filet de sécurité)
+  const { publishPendingPosts } = await import("@/lib/posts/publish-pending");
+  await publishPendingPosts().catch((e) => console.error("publication différée", e));
   const { data: orphans } = await admin.rpc("purge_orphan_media");
   const allKeys = [...((orphans ?? []) as { id: string; keys: string[] }[]).flatMap((o) => o.keys ?? []), ...messagingKeys];
   // Vidéos chez Bunny Stream (URL absolues) : suppression chez Bunny, pas dans le stockage

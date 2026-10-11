@@ -98,7 +98,10 @@ export function PostEditor({
   });
 
   const readyMedia = media.filter((m) => m.status !== "error");
-  const busy = media.some((m) => m.status !== "ready" && m.status !== "error");
+  // Bloqué seulement tant qu'un média n'a pas encore d'identifiant (préparation) ; pendant l'envoi
+  // ou le traitement, « Publier » reste possible : la publication partira toute seule à la fin
+  const busy = media.some((m) => m.status === "preparing" || (m.id.startsWith("tmp-") && m.status !== "error"));
+  const uploading = media.some((m) => !m.id.startsWith("tmp-") && (m.status === "uploading" || m.status === "processing"));
 
   // Brouillon partagé : verrou (la sauvegarde automatique ne tourne que si l'on a la main)
   const router = useRouter();
@@ -205,7 +208,7 @@ export function PostEditor({
 
   const status = post?.status ?? "draft";
   const badge = STATUS_BADGE[status] ?? STATUS_BADGE.draft;
-  const mediaPayload = JSON.stringify(media.filter((m) => m.status === "ready").map((m) => ({ id: m.id, kind: m.kind, alt: m.alt, caption: m.caption ?? "" })));
+  const mediaPayload = JSON.stringify(media.filter((m) => m.status !== "error" && !m.id.startsWith("tmp-")).map((m) => ({ id: m.id, kind: m.kind, alt: m.alt, caption: m.caption ?? "" })));
   const uploaderAccept = type === "photo" ? "images" : type === "video" ? "video" : "cover";
 
   function changeType(next: EditorPostType) {
@@ -456,12 +459,12 @@ export function PostEditor({
               Enregistrer mes modifications
             </Button>
           ) : schedule ? (
-            <Button type="submit" name="action" value="schedule" loading={pending} disabled={busy || publishBlocked}>
+            <Button type="submit" name="action" value="schedule" loading={pending} disabled={busy || uploading || publishBlocked}>
               Programmer
             </Button>
           ) : (
             <Button type="submit" name="action" value="publish" loading={pending} disabled={busy || publishBlocked}>
-              {status === "published" ? "Mettre à jour" : "Publier"}
+              {uploading ? "Publier dès l'envoi terminé" : status === "published" ? "Mettre à jour" : "Publier"}
             </Button>
           )}
           {!coeditor && (

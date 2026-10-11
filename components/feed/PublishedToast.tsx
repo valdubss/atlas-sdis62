@@ -7,6 +7,7 @@ const TEXTS: Record<string, string> = {
   publication: "Publication en ligne ✓",
   story: "Story en ligne ✓",
   programmee: "Publication programmée ✓",
+  attente: "Envoi en cours : la publication partira toute seule ✓",
 };
 
 /**
