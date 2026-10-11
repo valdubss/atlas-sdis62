@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getStorage } from "@/lib/storage";
 import { mediaKeys, extensionFor } from "@/lib/media/keys";
 import { FILE_MIMES, MESSAGE_LIMITS } from "@/lib/messages/helpers";
-import { makeImageVariants } from "@/lib/media/variants";
+import { remoteImageVariants } from "@/lib/media/remote-variants";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -108,14 +108,7 @@ export async function importMessageMedia(messageId: string, index: number): Prom
       .single();
     if (error || !media) return { ok: false, error: "Création du média impossible." };
     await storage.putObject(media.original_key, original, item.mime);
-    const { variants, width, height, lqip } = await makeImageVariants(original);
-    const keys = { thumb: mediaKeys.variant(media.id, "thumb"), small: mediaKeys.variant(media.id, "small"), medium: mediaKeys.variant(media.id, "medium"), full: mediaKeys.variant(media.id, "full") };
-    await Promise.all([
-      storage.putObject(keys.thumb, variants.thumb, "image/webp"),
-      storage.putObject(keys.small, variants.small, "image/webp"),
-      storage.putObject(keys.medium, variants.medium, "image/webp"),
-      storage.putObject(keys.full, variants.full, "image/webp"),
-    ]);
+    const { variants: keys, width, height, lqip } = await remoteImageVariants(media.id, media.original_key);
     await supabase.from("media").update({ status: "ready", variants: keys, width, height, lqip }).eq("id", media.id);
     return { ok: true, mediaId: media.id };
   } catch (e) {

@@ -984,6 +984,16 @@ de notification visible par les agents.
   écrire en production ; les comptes de test (`e2e-…`, `ui-test-…`) ne sont pas copiés. Secrets
   du dépôt : `SUPABASE_DB_PASSWORD` (production) et `SUPABASE_TEST_DB_PASSWORD` (test). En
   local : `SUPABASE_DB_PASSWORD` dans `.env.local` puis `npm run comptes:sync-test`.
+- **Déploiement du site de test à la demande** : le projet Vercel de test suit la branche
+  `test` et ignore les autres branches (`commandForIgnoringBuildStep`). `npm run deploy:test`
+  pousse `main` vers `test` et déclenche un seul déploiement. Les pushs sur `main` ne
+  déploient plus que la production (stockage Vercel : le compteur « Functions Storage » est
+  cumulé par cycle, chaque déploiement y ajoute le poids de ses fonctions).
+- **Fonctions légères** : ffmpeg n'est embarqué que dans `/api/video/transcode` et
+  `/api/video/subtitles` ; sharp (28 Mo) seulement dans `/api/media/variants`, que les actions
+  (Studio, messagerie, avatar) appellent par HTTP interne (`lib/media/remote-variants.ts`).
+  Après `next build`, `grep -l '@img/sharp' .next/server/app/**/*.nft.json` ne doit lister que
+  cette route.
 - **Tests sur le site de test déployé** :
   `npx cross-env E2E_ENV_FILE=.env.test.local E2E_BASE_URL=https://atlas-test-sdis62.vercel.app playwright test`.
 

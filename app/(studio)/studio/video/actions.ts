@@ -55,7 +55,7 @@ export async function getVideoState(mediaId: string): Promise<VideoState | null>
     if (fresh) media = fresh;
   }
   const { data: sub } = await supabase.from("media_subtitles").select("cues, status, source").eq("media_id", mediaId).eq("lang", "fr").maybeSingle();
-  const { pendingRenditions } = await import("@/lib/video/transcode");
+  const { pendingRenditions } = await import("@/lib/video/ladder");
   return {
     video_status: media.video_status,
     video_error: media.video_error,

@@ -8,6 +8,7 @@ import { SPRING } from "@/lib/motion";
 import { lockScroll, unlockScroll } from "@/lib/dom/scroll-lock";
 import { ViewTracker } from "@/app/(app)/post/[slug]/ViewTracker";
 import { PostCard } from "./PostCard";
+import { Portal } from "@/components/ui/Portal";
 
 /**
  * Publication en exergue, ouverte instantanément depuis le fil avec les
@@ -72,8 +73,10 @@ export function PostOverlay({
   }
 
   return (
-    // Enveloppe fixe non animée et découpée : le panneau qui glisse depuis la
-    // droite ne peut pas élargir la page (Safari iOS la rendait « pannable »).
+    // Portail sous <body> : la carte du fil peut rester en content-visibility (défilement léger)
+    // sans devenir le bloc conteneur de cette surface fixe. Enveloppe fixe non animée et
+    // découpée : le panneau qui glisse depuis la droite ne peut pas élargir la page.
+    <Portal>
     <div className="fixed inset-0 z-[45] overflow-clip">
       <motion.div
         role="dialog"
@@ -125,5 +128,6 @@ export function PostOverlay({
         </div>
       </motion.div>
     </div>
+    </Portal>
   );
 }

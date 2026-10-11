@@ -10,6 +10,7 @@
     "referentiel:sync-test": "node --experimental-websocket scripts/sync-referentiel-test.mjs",
     "comptes:sync-test": "node scripts/sync-users-test.mjs",
     "bunny:webhook": "node scripts/bunny-webhook.mjs",
+    "deploy:test": "git push origin main:test",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

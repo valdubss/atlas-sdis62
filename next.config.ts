@@ -45,7 +45,7 @@ const nextConfig: NextConfig = {
   // dans chaque fonction de chaque déploiement : c'est ce qui remplissait le stockage Vercel).
   // Les autres fonctions passent par lib/video/remote (appel HTTP interne).
   serverExternalPackages: ["ffmpeg-static"],
-  outputFileTracingIncludes: { "/api/video/**": ["./node_modules/ffmpeg-static/ffmpeg*"] },
+  outputFileTracingIncludes: { "/api/video/transcode": ["./node_modules/ffmpeg-static/ffmpeg*"], "/api/video/subtitles": ["./node_modules/ffmpeg-static/ffmpeg*"] },
   outputFileTracingExcludes: {
     "/api/cron/**": ["./node_modules/ffmpeg-static/**"],
     "/api/push/**": ["./node_modules/ffmpeg-static/**"],

@@ -98,6 +98,9 @@ export function InfiniteFeed({
             initial={cascade ? { opacity: 0, y: 8 } : false}
             animate={{ opacity: 1, y: 0 }}
             transition={reduced ? { duration: 0 } : { ...SPRING, delay: cascade ? Math.min(i, 8) * 0.04 : 0 }}
+            // Cartes hors écran non peintes (content-visibility) : défilement léger sur un long fil ;
+            // la hauteur réservée évite tout saut, les surfaces fixes sont en portail
+            style={{ contentVisibility: "auto", containIntrinsicSize: "auto 480px" }}
           >
             <PostCard post={p} canModerate={canModerate} priority={i < 2} />
           </motion.div>

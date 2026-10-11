@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getStorage } from "@/lib/storage";
 import { extensionFor, mediaKeys } from "@/lib/media/keys";
-import { makeImageVariants } from "@/lib/media/variants";
+import { remoteImageVariants } from "@/lib/media/remote-variants";
 import { faststart } from "@/lib/media/faststart";
 import { ACCEPTED_IMAGE_MIMES, LIMITS } from "@/lib/config";
 import type { MediaItem } from "@/lib/feed/types";
@@ -168,20 +168,8 @@ export async function finalizeMedia(mediaId: string): Promise<{ ok: true; media:
   try {
     if (row.kind === "image") {
       await supabase.from("media").update({ status: "processing" }).eq("id", mediaId);
-      const original = await storage.getObject(row.original_key);
-      const { variants, width, height, lqip } = await makeImageVariants(original);
-      const keys = {
-        thumb: mediaKeys.variant(mediaId, "thumb"),
-        small: mediaKeys.variant(mediaId, "small"),
-        medium: mediaKeys.variant(mediaId, "medium"),
-        full: mediaKeys.variant(mediaId, "full"),
-      };
-      await Promise.all([
-        storage.putObject(keys.thumb, variants.thumb, "image/webp"),
-        storage.putObject(keys.small, variants.small, "image/webp"),
-        storage.putObject(keys.medium, variants.medium, "image/webp"),
-        storage.putObject(keys.full, variants.full, "image/webp"),
-      ]);
+      // Variantes produites par la route /api/media/variants (seule fonction à embarquer sharp)
+      const { variants: keys, width, height, lqip } = await remoteImageVariants(mediaId, row.original_key);
       const { data, error: updateError } = await supabase
         .from("media")
         .update({ status: "ready", variants: keys, width, height, error: null, lqip })

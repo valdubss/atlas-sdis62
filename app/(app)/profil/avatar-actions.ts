@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getStorage } from "@/lib/storage";
-import { makeAvatar } from "@/lib/media/variants";
+import { remoteAvatar } from "@/lib/media/remote-variants";
 import { mediaKeys } from "@/lib/media/keys";
 
 type Result = { ok: true; avatar_key: string | null } | { ok: false; error: string };
@@ -29,19 +29,16 @@ export async function updateAvatar(formData: FormData): Promise<Result> {
 
   const { data: me } = await supabase.from("profiles").select("avatar_key").eq("id", user.id).maybeSingle();
 
-  let webp: Buffer;
-  try {
-    webp = await makeAvatar(Buffer.from(await file.arrayBuffer()));
-  } catch {
-    return { ok: false, error: "Image illisible." };
-  }
   const key = mediaKeys.avatar(user.id, Date.now());
   const storage = getStorage();
   try {
-    await storage.putObject(key, webp, "image/webp");
+    // Original déposé sous une clé temporaire, recadré en 256 px WebP par la route /api/media/variants
+    const tempKey = `avatars/tmp-${user.id}-${Date.now()}.bin`;
+    await storage.putObject(tempKey, Buffer.from(await file.arrayBuffer()), file.type || "application/octet-stream");
+    await remoteAvatar(tempKey, key);
   } catch (e) {
-    console.error("avatar putObject", e);
-    return { ok: false, error: "Stockage indisponible. Réessayez." };
+    console.error("avatar", e);
+    return { ok: false, error: e instanceof Error && /illisible|unsupported|Input/.test(e.message) ? "Image illisible." : "Stockage indisponible. Réessayez." };
   }
   const { error } = await supabase.from("profiles").update({ avatar_key: key }).eq("id", user.id);
   if (error) {

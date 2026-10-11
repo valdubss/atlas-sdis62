@@ -7,16 +7,10 @@ import { getStorage } from "@/lib/storage";
 import { mediaKeys } from "@/lib/media/keys";
 import { probe, rmDir, runFfmpeg, tmpDir } from "./ffmpeg";
 import type { TranscodeResult, VideoProvider } from "./provider";
+import { LADDER, pendingRenditions, type Rendition } from "./ladder";
 
-/** Rendus cibles (hauteur → débit vidéo). Jamais au-dessus de la source. */
-const LADDER: { height: number; bitrateK: number; audioK: number }[] = [
-  { height: 1080, bitrateK: 2600, audioK: 96 },
-  { height: 720, bitrateK: 1500, audioK: 64 },
-  { height: 360, bitrateK: 600, audioK: 64 },
-];
 const SEGMENT_S = 4;
 
-type Rendition = { height: number; bandwidth: number; key: string; width?: number };
 
 function admin() {
   return createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
@@ -165,13 +159,7 @@ async function run(mediaId: string, budgetMs: number): Promise<TranscodeResult> 
   }
 }
 
-/** Rendus encore à produire pour une ligne média (selon la hauteur de la source). */
-export function pendingRenditions(row: { renditions: unknown; height: number | null }): { height: number; bitrateK: number; audioK: number }[] {
-  const done = new Set(((row.renditions as Rendition[]) ?? []).map((r) => r.height));
-  const srcHeight = Math.min(row.height ?? 1080, 1080);
-  if (done.size === 0) return LADDER.filter((l) => l.height <= srcHeight);
-  return LADDER.filter((l) => l.height < srcHeight && !done.has(l.height) && l.height < Math.max(...done));
-}
+export { pendingRenditions };
 
 async function withSource<T>(mediaId: string, fn: (src: string, dir: string) => Promise<T>): Promise<T> {
   const db = admin();

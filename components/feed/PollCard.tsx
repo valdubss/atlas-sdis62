@@ -27,10 +27,16 @@ export function PollCard({ postId, poll: initial, preview = false }: { postId: s
   function vote(optionId: string) {
     if (preview || voted || closed || pending) return;
     haptic();
+    // Réponse immédiate : le vote s'affiche tout de suite, le serveur confirme (ou rétablit)
+    const before = poll;
+    setPoll({ ...poll, my_option_id: optionId, total_votes: poll.total_votes + 1, options: poll.options.map((o) => (o.id === optionId ? { ...o, votes: o.votes + 1 } : o)) });
     start(async () => {
       const res = await votePoll(postId, optionId);
       if (res.ok) setPoll(res.poll);
-      else toast(res.error);
+      else {
+        setPoll(before);
+        toast(res.error);
+      }
     });
   }
 
