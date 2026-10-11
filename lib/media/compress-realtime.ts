@@ -5,9 +5,14 @@ import { encodingPlan } from "./compress";
 /**
  * Compression vidéo de secours, en temps réel : pour les appareils qui lisent la vidéo mais
  * n'ont pas d'encodeur audio WebCodecs (iPhone et iPad sous iOS 16.4 à 18). La vidéo est
- * rejouée en sourdine à vitesse normale, redessinée sur un canvas (1080p au plus) et
- * ré-enregistrée par MediaRecorder en MP4 H.264 + AAC, l'audio étant décodé à part et
- * rejoué en synchronisation. Dure autant que la vidéo ; l'application doit rester ouverte.
+ * rejouée à vitesse normale, redessinée sur un canvas (1080p au plus, 720p si longue) et
+ * ré-enregistrée par MediaRecorder en MP4 H.264 + AAC. Le son suit l'une de deux voies :
+ *  - « buffer » : piste décodée à part (decodeAudioData) et rejouée en synchronisation,
+ *    la vidéo restant en sourdine (lecture autorisée sans geste) ;
+ *  - « element » : à défaut, le son de l'élément vidéo lui-même, routé vers l'enregistreur
+ *    sans passer par les haut-parleurs (lecture non muette, qui peut exiger un geste).
+ * À la fin, la présence du son est vérifiée quand l'appareil sait l'indiquer : une vidéo
+ * sonore ne doit jamais partir muette. Dure autant que la vidéo ; l'app doit rester ouverte.
  * Jamais utilisée quand la compression WebCodecs complète est disponible.
  */
 export type RealtimeResult = { blob: Blob; width: number; height: number; duration: number; poster?: Blob };
@@ -20,7 +25,7 @@ function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
   const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctor) return null;
-  if (!audioCtx) audioCtx = new Ctor();
+  if (!audioCtx || audioCtx.state === "closed") audioCtx = new Ctor();
   return audioCtx;
 }
 
@@ -30,7 +35,7 @@ function getAudioContext(): AudioContext | null {
  */
 export function unlockAudio() {
   const ctx = getAudioContext();
-  if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+  if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
 }
 
 function mimeType(): string | null {
@@ -52,7 +57,32 @@ export function canCompressRealtime(): boolean {
   return mimeType() !== null;
 }
 
-function loadVideo(file: File): Promise<{ video: HTMLVideoElement; url: string }> {
+function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
+/** Présence d'une piste audio d'après l'élément (Safari : audioTracks ; Chrome : octets décodés) ; null si inconnu. */
+function hasAudioTrack(media: HTMLMediaElement): boolean | null {
+  const m = media as HTMLMediaElement & { audioTracks?: { length: number }; webkitAudioDecodedByteCount?: number; mozHasAudio?: boolean };
+  if (m.audioTracks && typeof m.audioTracks.length === "number") return m.audioTracks.length > 0;
+  if (typeof m.mozHasAudio === "boolean") return m.mozHasAudio;
+  if (typeof m.webkitAudioDecodedByteCount === "number") return m.webkitAudioDecodedByteCount > 0;
+  return null;
+}
+
+function loadVideo(file: File | Blob): Promise<{ video: HTMLVideoElement; url: string }> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const video = document.createElement("video");
@@ -76,22 +106,6 @@ function loadVideo(file: File): Promise<{ video: HTMLVideoElement; url: string }
   });
 }
 
-function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(message)), ms);
-    p.then(
-      (v) => {
-        clearTimeout(timer);
-        resolve(v);
-      },
-      (e) => {
-        clearTimeout(timer);
-        reject(e);
-      },
-    );
-  });
-}
-
 /** Piste audio décodée, ou null si la vidéo n'en a pas (ou si l'appareil ne sait pas la lire). */
 async function decodeAudio(file: File, ctx: AudioContext): Promise<AudioBuffer | null> {
   try {
@@ -110,6 +124,7 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
   const { video, url } = await loadVideo(file);
   const duration = Number.isFinite(video.duration) ? video.duration : 0;
   if (!duration) throw new Error("Durée de la vidéo inconnue.");
+  const sourceHasAudio = hasAudioTrack(video);
 
   const { width, height, kbps } = encodingPlan(duration, video.videoWidth, video.videoHeight);
   const canvas = document.createElement("canvas");
@@ -118,23 +133,35 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
   const ctx2d = canvas.getContext("2d", { alpha: false });
   if (!ctx2d) throw new Error("Canvas indisponible.");
 
-  // Audio : décodé à part (la vidéo reste en sourdine, ce qui autorise la lecture sans geste)
+  // --- Son : voie « buffer » (décodé à part), sinon voie « element »
   const actx = getAudioContext();
-  onProgress?.(0, "Décodage du son…");
-  const audioBuffer = actx ? await decodeAudio(file, actx) : null;
   const tracks: MediaStreamTrack[] = [];
+  let strategy: "buffer" | "element" | "none" = "none";
   let audioSource: AudioBufferSourceNode | null = null;
+  let elementSource: MediaElementAudioSourceNode | null = null;
   let dest: MediaStreamAudioDestinationNode | null = null;
-  if (actx && audioBuffer) {
+  let audioBuffer: AudioBuffer | null = null;
+  if (actx && sourceHasAudio !== false) {
+    onProgress?.(0, "Décodage du son…");
+    audioBuffer = await decodeAudio(file, actx);
     // iOS : resume() hors d'un geste peut ne jamais répondre, on n'attend pas plus de 2 s
     if (actx.state !== "running") await withTimeout(actx.resume(), 2000, "son").catch(() => {});
     if (actx.state !== "running") {
       throw new Error("Le son n'a pas pu être activé par l'appareil : touchez l'écran, puis relancez l'envoi de la vidéo.");
     }
     dest = actx.createMediaStreamDestination();
-    audioSource = actx.createBufferSource();
-    audioSource.buffer = audioBuffer;
-    audioSource.connect(dest);
+    if (audioBuffer && audioBuffer.duration > 0) {
+      strategy = "buffer";
+      audioSource = actx.createBufferSource();
+      audioSource.buffer = audioBuffer;
+      audioSource.connect(dest);
+    } else {
+      strategy = "element";
+      video.muted = false;
+      video.volume = 1;
+      elementSource = actx.createMediaElementSource(video);
+      elementSource.connect(dest);
+    }
     tracks.push(...dest.stream.getAudioTracks());
   }
   const canvasStream = canvas.captureStream(30);
@@ -167,7 +194,8 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
       posterCtx.drawImage(video, 0, 0, posterCanvas.width, posterCanvas.height);
       posterCanvas.toBlob((b) => (poster = b ?? undefined), "image/jpeg", 0.85);
     }
-    onProgress?.(Math.min(0.99, video.currentTime / duration), `Compression ${Math.round((video.currentTime / duration) * 100)} % — gardez l'app ouverte`);
+    const f = Math.min(0.99, video.currentTime / duration);
+    onProgress?.(f, `Compression ${Math.round(f * 100)} % — gardez l'app ouverte`);
     const v = video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number };
     if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(draw);
     else requestAnimationFrame(draw);
@@ -181,6 +209,7 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
       /* déjà arrêté */
     }
     audioSource?.disconnect();
+    elementSource?.disconnect();
     dest?.disconnect();
     stream.getTracks().forEach((t) => t.stop());
     video.pause();
@@ -223,11 +252,19 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
       const start = () => {
         ctx2d.drawImage(video, 0, 0, width, height);
         recorder.start(1000);
-        audioSource?.start();
         video
           .play()
-          .then(() => draw())
-          .catch(() => fail("Lecture de la vidéo refusée par l'appareil."));
+          .then(() => {
+            audioSource?.start();
+            draw();
+          })
+          .catch((e) =>
+            fail(
+              strategy === "element"
+                ? "Lecture avec son refusée par l'appareil : touchez l'écran, puis relancez l'envoi de la vidéo."
+                : "Lecture de la vidéo refusée par l'appareil : " + (e instanceof Error ? e.message : String(e)),
+            ),
+          );
       };
       if (video.readyState >= 2) start();
       else video.onloadeddata = start;
@@ -241,6 +278,25 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
   }
   const blob = new Blob(chunks, { type: "video/mp4" });
   if (!blob.size) throw new Error("La compression n'a rien produit.");
+
+  // Contrôle : une vidéo sonore ne part jamais muette (quand l'appareil sait le dire)
+  if (sourceHasAudio) {
+    onProgress?.(0.99, "Vérification du son…");
+    let outHasAudio: boolean | null = null;
+    try {
+      const check = await loadVideo(blob);
+      outHasAudio = hasAudioTrack(check.video);
+      check.video.remove();
+      URL.revokeObjectURL(check.url);
+    } catch {
+      outHasAudio = null;
+    }
+    if (outHasAudio === false) {
+      throw new Error(
+        `la vidéo compressée a perdu le son (voie ${strategy}, son décodé : ${audioBuffer ? `oui, ${Math.round(audioBuffer.duration)} s` : "non"}, pistes : ${tracks.length}, contexte : ${actx?.state ?? "absent"}). Réessayez ; si le problème persiste, envoyez la vidéo depuis un ordinateur.`,
+      );
+    }
+  }
   onProgress?.(1);
   return { blob, width, height, duration, poster };
 }
