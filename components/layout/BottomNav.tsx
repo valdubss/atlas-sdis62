@@ -47,28 +47,51 @@ export function BottomNav() {
 
   const items: { href: string; label: string; icon: keyof typeof ICONS }[] = NAV_ITEMS.map((it) => (canMessage && it.href === "/annuaire" ? { href: "/messages", label: "Messages", icon: "messages" } : it));
 
-  // Clavier ouvert (champ de saisie actif ou fenêtre visuelle réduite) : la barre se cache
-  // au lieu de remonter au-dessus du clavier.
+  // Clavier ouvert : la barre se cache au lieu de remonter au-dessus du clavier.
+  // Signal = un champ de saisie actif ET une fenêtre visuelle réduite (le focus seul ne
+  // suffit pas : une feuille qui place le focus dans un champ puis se ferme ne déclenche
+  // pas de « focusout », et la barre restait cachée).
   const [keyboard, setKeyboard] = useState(false);
   useEffect(() => {
     const vv = window.visualViewport;
-    const check = () => {
+    // Hauteur de référence sans clavier (mise à jour lors d'un redimensionnement hors saisie)
+    let base = window.innerHeight;
+    const isTyping = () => {
       const el = document.activeElement as HTMLElement | null;
-      const typing = Boolean(el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable) && !["checkbox", "radio", "file", "range", "date", "datetime-local"].includes((el as HTMLInputElement).type));
-      const shrunk = vv ? window.innerHeight - vv.height > 140 : false;
-      setKeyboard(typing && (shrunk || "ontouchstart" in window));
+      return Boolean(el && el !== document.body && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable) && !["checkbox", "radio", "file", "range", "date", "datetime-local", "submit", "button"].includes((el as HTMLInputElement).type));
     };
+    const check = () => {
+      const typing = isTyping();
+      const shrunk = (vv ? vv.height < base - 140 : false) || window.innerHeight < base - 140;
+      setKeyboard(typing && shrunk);
+    };
+    const onWindowResize = () => {
+      if (!isTyping()) base = window.innerHeight;
+      check();
+    };
+    const onBlur = () => setTimeout(check, 50);
     check();
     document.addEventListener("focusin", check);
-    const onBlur = () => setTimeout(check, 50);
     document.addEventListener("focusout", onBlur);
     vv?.addEventListener("resize", check);
+    window.addEventListener("resize", onWindowResize);
+    window.addEventListener("orientationchange", onWindowResize);
+    // Feuille ouverte ou fermée : le champ actif a pu disparaître sans « focusout »
+    const mo = new MutationObserver(() => setTimeout(check, 50));
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-sheet-open"] });
     return () => {
       document.removeEventListener("focusin", check);
       document.removeEventListener("focusout", onBlur);
       vv?.removeEventListener("resize", check);
+      window.removeEventListener("resize", onWindowResize);
+      window.removeEventListener("orientationchange", onWindowResize);
+      mo.disconnect();
     };
   }, []);
+  // Changement de page : le champ de la page précédente n'existe plus
+  useEffect(() => {
+    setKeyboard(false);
+  }, [pathname]);
 
   // Écran de conversation : plein écran avec son composeur, sans barre basse
   if (/^\/messages\/[^/]+$/.test(pathname) || keyboard) return null;
