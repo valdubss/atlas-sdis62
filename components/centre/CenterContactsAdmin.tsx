@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/Toast";
 type Contacts = { chief_name: string | null; chief_email: string | null; com_name: string | null; com_email: string | null };
 
 /**
- * Bloc réservé aux administrateurs sur la page d'un centre : qui valide les
+ * Bloc réservé au service communication sur la page d'un centre : qui valide les
  * demandes de rattachement (chef de centre, responsable communication). Les
  * adresses saisies donnent aussi à ces personnes, si elles ont un compte, les
  * droits de validation et de création d'événements dans l'app.
@@ -39,7 +39,7 @@ export function CenterContactsAdmin({ centerId, contacts, fallbackEmail }: { cen
       <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center gap-2 text-left" aria-expanded={open}>
         <ShieldCheck size={18} strokeWidth={1.75} className="shrink-0 text-text-2" aria-hidden="true" />
         <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-semibold text-text-1">Validation des arrivées (administrateur)</span>
+          <span className="block text-[15px] font-semibold text-text-1">Chef de centre et responsable com (service communication)</span>
           <span className="block truncate text-[13px] text-text-3">Les demandes partent à : {recipient}</span>
         </span>
         {open ? <ChevronUp size={18} strokeWidth={1.75} className="text-text-3" aria-hidden="true" /> : <ChevronDown size={18} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />}
@@ -52,7 +52,7 @@ export function CenterContactsAdmin({ centerId, contacts, fallbackEmail }: { cen
             <Field label="Responsable communication" name="com_name" value={form.com_name} onChange={set("com_name")} maxLength={120} placeholder="Sergent Martin" />
             <Field label="E-mail du responsable com" name="com_email" type="email" inputMode="email" value={form.com_email} onChange={set("com_email")} maxLength={160} placeholder="prenom.nom@sdis62.fr" />
           </div>
-          <p className="text-[13px] text-text-3">Le chef reçoit les demandes ; à défaut le responsable com ; à défaut le service communication. Ces deux personnes, si elles ont un compte ATLAS avec la même adresse, peuvent aussi valider dans l&apos;app et créer les événements du centre.</p>
+          <p className="text-[13px] text-text-3">L&apos;agent dont l&apos;adresse correspond est rattaché d&apos;office à ce centre dès sa première connexion : il y publie les notes de service et les événements, valide les arrivées, et reste simple lecteur du fil départemental. Changer une adresse transfère ces droits aussitôt. Le chef reçoit les demandes de rattachement ; à défaut le responsable com ; à défaut le service communication.</p>
           <Button type="button" size="md" loading={pending} onClick={save}>
             Enregistrer
           </Button>

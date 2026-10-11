@@ -787,6 +787,8 @@ export type Database = {
       is_center_com: { Args: { p_center: string }; Returns: boolean };
       can_manage_center: { Args: { p_center: string }; Returns: boolean };
       center_notes_list: { Args: { p_center: string; p_limit?: number }; Returns: Json[] };
+      center_for_contact_email: { Args: { p_email: string }; Returns: string | null };
+      attach_center_contacts: { Args: { p_center: string; p_notify?: boolean }; Returns: undefined };
       center_author_role: { Args: { p_center: string; p_profile: string }; Returns: string | null };
       is_post_coeditor: { Args: { p_post: string }; Returns: boolean };
       request_membership: { Args: { p_center?: string | null; p_service?: string | null }; Returns: Json };

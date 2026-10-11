@@ -119,6 +119,7 @@ redirige vers `/login`.
 | `0034_messaging_v2.sql` | messagerie v2 : `edited_at` (modification 15 min), `message_by_id`, `channel_messages_since` (rattrapage après coupure), `channel_reads_state` (coches « lu »), `channel_reads` publié en temps réel, identité de réplication complète, membres implicites signalés dans `channel_info`, pushs : une par minute et par conversation, une mention passe toujours |
 | `0035_storage_mime_fix.sql` | correctif du bucket `media` (régression 0032) : familles `image/*`, `video/*`, `audio/*` en joker, HLS, sous-titres, PDF / Word ; sans lui, transcodage vidéo, messages vocaux et fichiers de la messagerie étaient refusés (415) |
 | `0036_center_notes.sql` | notes de service (fil interne du centre) : table `center_notes` (PDF ou image, épinglage), lecture réservée aux membres du centre et aux responsables, écriture par le chef de centre, le responsable com et le service communication (`can_manage_center`), `center_notes_list`, `center_author_role`, notification `note` (cloche + push « mon centre ») |
+| `0037_center_contacts_attach.sql` | chefs de centre et responsables com rattachés d'office : `center_for_contact_email`, `attach_center_contacts`, trigger sur `centers` (adresses saisies ou modifiées) et sur `profiles` (première connexion), demandes en attente annulées, notification « Vous êtes chef de centre » ; profils existants rattachés sans notification |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -731,12 +732,19 @@ $$);
   par le service communication, visibles de tous) et « Notes de service », fil interne
   réservé aux membres du centre (et au service communication). Un agent d'un autre centre
   ne voit pas l'onglet. Lien profond : `/centre/<slug>?onglet=notes`.
-- **Qui publie** : le chef de centre et le responsable communication du centre (contacts
-  saisis par un administrateur sur la page du centre, ou référent désigné), directement et
-  sans relecture, mais seulement dans leur centre ; le service communication publie dans
+- **Qui publie** : le chef de centre et le responsable communication du centre (adresses
+  saisies par le service communication sur la page du centre, ou référent désigné), directement
+  et sans relecture, mais seulement dans leur centre ; le service communication publie dans
   le fil départemental et peut aussi publier une note dans n'importe quel centre. Le rôle
   est rappelé au responsable en haut de la page (« Chef de centre · vous publiez les notes
   de service du centre »).
+- **Rôle automatique** (migration `0037`) : le service communication saisit l'adresse du chef
+  et du responsable com sur la page de chaque CIS. L'agent dont l'adresse correspond est
+  rattaché d'office à ce centre, qu'il existe déjà ou qu'il se connecte pour la première fois
+  (aucune demande, aucune validation), et prévenu dans la cloche. Les droits sont recalculés
+  à chaque requête à partir des adresses : changer une adresse transfère aussitôt le rôle,
+  l'ancien responsable redevient membre ordinaire. Dans tous les cas, la personne reste simple
+  lecteur du fil départemental. Le rôle est rappelé dans Profil → Mon centre et à l'accueil.
 - **Une note** = un document PDF (≤ 25 Mo) ou une image (réduite sur l'appareil), un titre,
   un texte facultatif, épinglage en tête. Ni réactions ni commentaires. Les fichiers sont
   envoyés directement au stockage sous `notes/<centre>/…`. Menu « ⋯ » (épingler, retirer).

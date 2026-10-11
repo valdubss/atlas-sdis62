@@ -90,7 +90,7 @@ export default async function CenterPage({ params, searchParams }: { params: Pro
               <span className="font-semibold text-text-1">{roleLabel}</span> · vous publiez les notes de service du centre, visibles de ses seuls membres.
             </p>
           )}
-          {isAdmin && <CenterContactsAdmin centerId={center.id} contacts={{ chief_name: center.chief_name, chief_email: center.chief_email, com_name: center.com_name, com_email: center.com_email }} fallbackEmail={fallback} />}
+          {canModerate && <CenterContactsAdmin centerId={center.id} contacts={{ chief_name: center.chief_name, chief_email: center.chief_email, com_name: center.com_name, com_email: center.com_email }} fallbackEmail={fallback} />}
           {canManage && <MembershipRequests requests={requests} targetName={center.name} />}
           <CenterWeek events={week} />
           <CenterNewcomers people={newcomers} />

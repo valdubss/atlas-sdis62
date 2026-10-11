@@ -85,7 +85,7 @@ const contactsSchema = z.object({
   com_email: z.string().trim().toLowerCase().max(160).transform((s) => s || null).refine((s) => s === null || z.email().safeParse(s).success, "Adresse invalide."),
 });
 
-/** Administrateur : qui valide les arrivées dans ce centre (page du centre, annuaire). */
+/** Service communication : chef de centre et responsable com du centre (droits, validation des arrivées, rattachement d'office). */
 export async function saveCenterContacts(centerId: string, input: unknown): Promise<Result> {
   if (!z.uuid().safeParse(centerId).success) return { ok: false, error: "Centre invalide." };
   const parsed = contactsSchema.safeParse(input);
@@ -93,7 +93,7 @@ export async function saveCenterContacts(centerId: string, input: unknown): Prom
   const { supabase, user } = await me();
   if (!user) return { ok: false, error: "Session expirée." };
   const { data: meRow } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (meRow?.role !== "admin") return { ok: false, error: "Réservé aux administrateurs." };
+  if (meRow?.role !== "admin" && meRow?.role !== "editor") return { ok: false, error: "Réservé au service communication." };
   const { error } = await supabase.from("centers").update(parsed.data).eq("id", centerId);
   if (error) return { ok: false, error: humanError(error.message) };
   revalidatePath("/centre");

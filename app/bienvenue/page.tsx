@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/supabase/server";
+import { createClient, getCurrentUser } from "@/lib/supabase/server";
+import { NOTE_ROLE_LABELS } from "@/lib/centres/notes";
 import { fetchDirectory } from "@/lib/centres/public";
 import { Onboarding } from "./Onboarding";
 
@@ -21,13 +22,19 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
   // Première connexion par lien ou code : le mot de passe est proposé (facultatif)
   const offerPassword = mdp === "1" || !profile.onboarded_at;
 
-  const directory = await fetchDirectory();
+  const supabase = await createClient();
+  const [directory, presetRole] = await Promise.all([
+    fetchDirectory(),
+    // Chef de centre ou responsable com : déjà rattaché d'office par le trigger, l'accueil le dit
+    profile.center_id ? supabase.rpc("center_author_role", { p_center: profile.center_id, p_profile: profile.id }).then((r) => (r.data === "chief" || r.data === "com" ? NOTE_ROLE_LABELS[r.data] : null)) : Promise.resolve(null),
+  ]);
 
   return (
     <Onboarding
       firstName={profile.first_name}
       lastName={profile.last_name}
       centerId={profile.center_id}
+      presetRole={presetRole}
       directory={directory}
       needPassword={offerPassword}
       startAtForm={Boolean(profile.onboarded_at)}

@@ -7,6 +7,7 @@ import { AvatarUploader } from "@/components/profile/AvatarUploader";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { createClient, getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { ROLE_LABELS } from "@/lib/config";
+import { NOTE_ROLE_LABELS } from "@/lib/centres/notes";
 import { ProfileForm } from "./ProfileForm";
 import { PasswordForm } from "./PasswordForm";
 import { NotificationCenter } from "@/components/profile/NotificationCenter";
@@ -22,7 +23,7 @@ export default async function ProfilPage() {
   const { profile } = current;
 
   const supabase = await createClient();
-  const [{ data: settings }, { count: subCount }, home, { count: sharedCount }] = await Promise.all([
+  const [{ data: settings }, { count: subCount }, home, { count: sharedCount }, centerRole] = await Promise.all([
     supabase.from("user_settings").select("push_new_posts, push_pinned, push_center, push_agenda, push_messages, quiet_start, quiet_end, hide_preview, digest_email, theme").eq("user_id", profile.id).maybeSingle(),
     supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id),
     profile.center_id
@@ -31,6 +32,8 @@ export default async function ProfilPage() {
         ? supabase.from("services").select("name").eq("id", profile.service_id).maybeSingle().then((r) => r.data?.name ?? null)
         : Promise.resolve(null),
     supabase.from("post_editors").select("post_id", { count: "exact", head: true }).eq("profile_id", profile.id),
+    // Chef de centre ou responsable com (adresse saisie par le service communication) : rappelé sous « Mon centre »
+    profile.center_id ? supabase.rpc("center_author_role", { p_center: profile.center_id, p_profile: profile.id }).then((r) => (r.data === "chief" || r.data === "com" ? NOTE_ROLE_LABELS[r.data] : null)) : Promise.resolve(null),
   ]);
   const prefs = {
     push_new_posts: settings?.push_new_posts ?? true,
@@ -77,7 +80,10 @@ export default async function ProfilPage() {
             <Flame size={20} strokeWidth={1.75} className="shrink-0 text-text-3" aria-hidden="true" />
             <span className="min-w-0">
               <span className="block">Mon centre</span>
-              <span className="block truncate text-[13px] text-text-3">{home ?? "Rattachement à renseigner"}</span>
+              <span className="block truncate text-[13px] text-text-3">
+                {home ?? "Rattachement à renseigner"}
+                {centerRole && <span className="text-text-2"> · {centerRole}</span>}
+              </span>
             </span>
           </span>
           <ChevronRight size={20} strokeWidth={1.75} className="shrink-0 text-text-3" />

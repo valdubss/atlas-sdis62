@@ -28,7 +28,7 @@ const initial: OnboardingState = { status: "idle" };
  * Accueil de première connexion : trois écrans plein cadre, puis profil
  * (prénom, nom, centre, mot de passe si arrivée par lien) et activation des push.
  */
-export function Onboarding({ firstName, lastName, centerId, directory, needPassword, startAtForm = false }: { firstName: string; lastName: string; centerId: string | null; directory: Directory; needPassword: boolean; startAtForm?: boolean }) {
+export function Onboarding({ firstName, lastName, centerId, directory, needPassword, startAtForm = false, presetRole = null }: { firstName: string; lastName: string; centerId: string | null; directory: Directory; needPassword: boolean; startAtForm?: boolean; /** Chef de centre ou responsable com déjà rattaché d'office */ presetRole?: string | null }) {
   const [step, setStep] = useState(startAtForm ? SLIDES.length : 0);
   const [picker, setPicker] = useState(false);
   const [choice, setChoice] = useState<{ center_id: string | null; service_id: string | null; name: string } | null>(() => {
@@ -114,7 +114,7 @@ export function Onboarding({ firstName, lastName, centerId, directory, needPassw
                   <span className={choice ? "text-text-1" : "text-text-3"}>{choice?.name ?? "Choisir mon centre…"}</span>
                   <ChevronRight size={18} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
                 </button>
-                <p className="text-[13px] text-text-3">{fields.center_id ?? "Votre chef de centre reçoit une demande et confirme votre arrivée. En attendant, vous avez accès au fil."}</p>
+                <p className="text-[13px] text-text-3">{fields.center_id ?? (presetRole && choice?.center_id === centerId ? `${presetRole} de ${choice?.name ?? "votre centre"} : vous êtes rattaché d'office, sans validation.` : "Votre chef de centre reçoit une demande et confirme votre arrivée. En attendant, vous avez accès au fil.")}</p>
               </div>
               <Sheet open={picker} onClose={() => setPicker(false)} title="Choisir un centre ou un service" tall>
                 <div className="px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
