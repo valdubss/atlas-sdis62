@@ -62,6 +62,19 @@ try {
   await dst.query("alter table public.profiles disable trigger profiles_contact_attach");
   // Comptes de test (e2e-…, ui-test-…) jamais copiés depuis la production
   const notTest = "where email not like 'e2e-%' and email not like 'ui-test-%' and email not like 'mdp-%' and email not like 'frag-%' and email not like 'csp-%' and email not like 'adm-%' and email not like 'lb-test-%' and email not like 'nav-test-%' and email not like 'map-test-%' and email not like 'rattach-%'";
+  // Un compte créé directement sur le projet de test avec la même adresse qu'un compte de
+  // production (autre identifiant) ferait échouer la copie (adresse unique) : il est remplacé,
+  // ses données de test (profil, réglages, contenus en cascade) disparaissent avec lui.
+  const { rows: srcUsers } = await src.query(`select id, lower(email) as email from auth.users ${notTest}`);
+  const { rows: dstUsers } = await dst.query("select id, lower(email) as email from auth.users where email is not null");
+  const srcById = new Map(srcUsers.map((u) => [u.id, u.email]));
+  const srcByEmail = new Map(srcUsers.map((u) => [u.email, u.id]));
+  const collisions = dstUsers.filter((u) => srcByEmail.has(u.email) && srcByEmail.get(u.email) !== u.id && !srcById.has(u.id));
+  for (const u of collisions) {
+    await dst.query("delete from public.profiles where id = $1", [u.id]);
+    await dst.query("delete from auth.users where id = $1", [u.id]);
+    console.log(`compte de test remplacé par celui de la production : ${u.email}`);
+  }
   await mirror("auth", "users", { where: notTest });
   await mirror("auth", "identities", { where: "where user_id in (select id from auth.users " + notTest + ")" });
   await mirror("public", "profiles", { where: notTest });
