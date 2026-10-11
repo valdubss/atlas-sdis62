@@ -903,8 +903,10 @@ Avec `VIDEO_PROVIDER=bunny` (et `NEXT_PUBLIC_VIDEO_PROVIDER=bunny`,
   routes `/api/video/*`.
 - **Suppression** : retrait dans un éditeur ou purge des orphelins → `DELETE` chez Bunny.
 - **Réglages Bunny conseillés** : Webhook URL (ci-dessus), MP4 Fallback activé, zones de
-  réplication Europe seulement ; aucune authentification par jeton sur le CDN (les vidéos
-  sont internes mais leurs URL ne sont connues que des agents connectés).
+  réplication Europe seulement ; pas d'authentification par jeton sur le CDN. Le CDN
+  n'accepte que les requêtes portant le Referer du site (accès direct bloqué) : les
+  navigateurs l'envoient d'eux-mêmes, ffmpeg le pose explicitement (`lib/video/bunny.ts`),
+  et un `curl` sans `-H "Referer: https://<site>/"` reçoit 403.
 
 ### 8.2 Passage à un bucket S3 (Scaleway Object Storage ou Cloudflare R2)
 
