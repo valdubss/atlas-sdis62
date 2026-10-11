@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrayBufferTarget, Muxer } from "mp4-muxer";
+import { LIMITS } from "@/lib/config";
 
 /**
  * Compression vidéo sur l'appareil, façon Instagram : la vidéo est relue par
@@ -41,14 +42,32 @@ export function canCompressVideo(): Promise<boolean> {
   return supportCache;
 }
 
-export function targetSize(w: number, h: number) {
+export function targetSize(w: number, h: number, maxLong = MAX_LONG_SIDE, maxShort = MAX_SHORT_SIDE) {
   const long = Math.max(w, h);
   const short = Math.min(w, h);
-  const scale = Math.min(1, MAX_LONG_SIDE / long, MAX_SHORT_SIDE / short);
+  const scale = Math.min(1, maxLong / long, maxShort / short);
   // Dimensions paires (exigées par H.264)
   const tw = Math.round((w * scale) / 2) * 2;
   const th = Math.round((h * scale) / 2) * 2;
   return { width: tw, height: th };
+}
+
+/**
+ * Dimensions et débit qui tiennent dans la limite d'envoi : 1080p au débit nominal pour
+ * les vidéos courtes ; dès que le budget par seconde se resserre (vidéo longue), passage
+ * en 720p et débit réduit, de sorte qu'une vidéo de la durée maximale autorisée passe
+ * encore sous la limite. Marge de 8 % pour le conteneur et les en-têtes.
+ */
+export function encodingPlan(durationS: number, w: number, h: number) {
+  const budget = durationS > 0 ? Math.floor((LIMITS.videoMaxBytes * 8 * 0.92) / durationS / 1000) - AUDIO_KBPS : Infinity;
+  let size = targetSize(w, h);
+  let is1080 = Math.max(size.width, size.height) > 1300;
+  if (is1080 && budget < VIDEO_KBPS_1080 * 0.7) {
+    size = targetSize(w, h, 1280, 720);
+    is1080 = false;
+  }
+  const nominal = is1080 ? VIDEO_KBPS_1080 : VIDEO_KBPS_720;
+  return { ...size, kbps: Math.max(500, Math.min(nominal, budget)) };
 }
 
 function loadVideo(file: File): Promise<HTMLVideoElement> {
@@ -91,8 +110,7 @@ export async function compressVideo(file: File, onProgress?: (fraction: number) 
   const duration = Number.isFinite(video.duration) ? video.duration : 0;
   if (!duration) throw new Error("Durée de la vidéo inconnue.");
 
-  const { width, height } = targetSize(video.videoWidth, video.videoHeight);
-  const is1080 = Math.max(width, height) > 1300;
+  const { width, height, kbps } = encodingPlan(duration, video.videoWidth, video.videoHeight);
   const audio = await decodeAudio(file);
 
   const muxer = new Muxer({
@@ -114,7 +132,7 @@ export async function compressVideo(file: File, onProgress?: (fraction: number) 
     codec: "avc1.640028",
     width,
     height,
-    bitrate: (is1080 ? VIDEO_KBPS_1080 : VIDEO_KBPS_720) * 1000,
+    bitrate: kbps * 1000,
     framerate: TARGET_FPS,
     latencyMode: "quality",
     avc: { format: "avc" },

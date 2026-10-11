@@ -1,6 +1,6 @@
 "use client";
 
-import { targetSize } from "./compress";
+import { encodingPlan } from "./compress";
 
 /**
  * Compression vidéo de secours, en temps réel : pour les appareils qui lisent la vidéo mais
@@ -12,8 +12,6 @@ import { targetSize } from "./compress";
  */
 export type RealtimeResult = { blob: Blob; width: number; height: number; duration: number; poster?: Blob };
 
-const VIDEO_KBPS_1080 = 2600;
-const VIDEO_KBPS_720 = 1600;
 const AUDIO_KBPS = 96;
 
 let audioCtx: AudioContext | null = null;
@@ -93,7 +91,7 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
   const duration = Number.isFinite(video.duration) ? video.duration : 0;
   if (!duration) throw new Error("Durée de la vidéo inconnue.");
 
-  const { width, height } = targetSize(video.videoWidth, video.videoHeight);
+  const { width, height, kbps } = encodingPlan(duration, video.videoWidth, video.videoHeight);
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -116,10 +114,9 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
   }
   const canvasStream = canvas.captureStream(30);
   const stream = new MediaStream([...canvasStream.getVideoTracks(), ...tracks]);
-  const is1080 = Math.max(width, height) > 1300;
   const recorder = new MediaRecorder(stream, {
     mimeType: mime,
-    videoBitsPerSecond: (is1080 ? VIDEO_KBPS_1080 : VIDEO_KBPS_720) * 1000,
+    videoBitsPerSecond: kbps * 1000,
     audioBitsPerSecond: AUDIO_KBPS * 1000,
   });
   const chunks: Blob[] = [];

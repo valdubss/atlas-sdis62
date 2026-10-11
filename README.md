@@ -866,11 +866,14 @@ Supabase Storage. Il est créé automatiquement au premier usage, ou à la main 
 > Limite de taille par fichier : **50 Mo** sur l'offre gratuite Supabase
 > (réglable jusqu'à 500 Go sur l'offre Pro : Storage → Settings → *Global file size
 > limit*, puis `file_size_limit` du bucket et `NEXT_PUBLIC_UPLOAD_MAX_MB` sur Vercel).
-> Les vidéos plus lourdes sont compressées sur l'appareil avant l'envoi : WebCodecs
-> (Chrome, Android, iOS 26) ou, à défaut, ré-enregistrement en temps réel par
-> MediaRecorder (`lib/media/compress-realtime.ts`, iPhone sous iOS 16.4 à 18 : dure
-> autant que la vidéo, l'app doit rester ouverte). Refus explicite seulement si le
-> résultat dépasse encore la limite.
+> Les vidéos plus lourdes (fichier source jusqu'à 400 Mo) sont compressées sur
+> l'appareil avant l'envoi : WebCodecs (Chrome, Android, iOS 26) ou, à défaut,
+> ré-enregistrement en temps réel par MediaRecorder (`lib/media/compress-realtime.ts`,
+> iPhone sous iOS 16.4 à 18 : dure autant que la vidéo, l'app doit rester ouverte).
+> Le débit s'adapte à la durée (`encodingPlan` : 1080p à 2,6 Mbit/s pour une vidéo
+> courte, 720p et débit réduit pour une vidéo longue) de sorte que la durée maximale
+> d'une publication, 5 min, tienne encore sous la limite. Refus explicite seulement si
+> le résultat dépasse encore la limite.
 
 ### 8.2 Passage à un bucket S3 (Scaleway Object Storage ou Cloudflare R2)
 
