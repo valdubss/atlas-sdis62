@@ -19,7 +19,8 @@ export default async function MessagesPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Messages" />
-      <ConversationList initial={list} canCreate={isEditorRole(current.profile.role)} />
+      {/* Tout agent admis à la messagerie peut ouvrir une conversation (limitée à son centre en base) */}
+      <ConversationList initial={list} canCreate={isEditorRole(current.profile.role) || Boolean(allowed)} />
     </div>
   );
 }

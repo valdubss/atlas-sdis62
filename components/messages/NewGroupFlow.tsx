@@ -20,7 +20,11 @@ import { cn } from "@/lib/cn";
  * Service communication / Référents par groupement / Autres personnels),
  * 2) informations (photo carrée, nom 40, objet 120, date de fin, médias autorisés).
  */
-export function NewGroupFlow({ initialPeople }: { initialPeople: DirectoryPerson[] }) {
+/**
+ * `scope="center"` (agent) : les personnes proposées sont celles de son centre, et le nom et
+ * l'objet de la conversation sont proposés d'office à partir des personnes choisies.
+ */
+export function NewGroupFlow({ initialPeople, scope = "all" }: { initialPeople: DirectoryPerson[]; scope?: "all" | "center" }) {
   const router = useRouter();
   const toast = useToast();
   const [step, setStep] = useState<1 | 2>(1);
@@ -115,7 +119,7 @@ export function NewGroupFlow({ initialPeople }: { initialPeople: DirectoryPerson
                           <span className="block truncate text-[15px] text-text-1">
                             {p.first_name} {p.last_name}
                           </span>
-                          <span className="block truncate text-[13px] text-text-3">{[p.center, p.is_referent ? "Référent" : null].filter(Boolean).join(" · ")}</span>
+                          <span className="block truncate text-[13px] text-text-3">{[p.center, p.is_chief ? "Chef de centre" : p.is_com ? "Responsable com" : p.is_referent ? "Référent" : null].filter(Boolean).join(" · ")}</span>
                         </span>
                         <span className={cn("flex h-6 w-6 items-center justify-center rounded-full border", on ? "border-text-1 bg-text-1 text-bg-0" : "border-line text-transparent")} aria-hidden="true">
                           <Check size={14} strokeWidth={2.2} />
@@ -129,7 +133,18 @@ export function NewGroupFlow({ initialPeople }: { initialPeople: DirectoryPerson
           ))
         )}
         <div className="sticky bottom-[calc(max(env(safe-area-inset-bottom),12px)+72px)] flex justify-end">
-          <Button type="button" disabled={selected.length === 0} onClick={() => setStep(2)}>
+          <Button
+            type="button"
+            disabled={selected.length === 0}
+            onClick={() => {
+              if (scope === "center") {
+                // Conversation de centre : nom et objet proposés, modifiables à l'étape suivante
+                if (!name.trim()) setName(selected.length <= 3 ? selected.map((p) => p.first_name).join(", ") : `${selected[0].first_name} et ${selected.length - 1} collègues`);
+                if (!subject.trim()) setSubject("Discussion entre collègues du centre");
+              }
+              setStep(2);
+            }}
+          >
             Suivant ({selected.length})
           </Button>
         </div>

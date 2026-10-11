@@ -1028,6 +1028,16 @@ de notification visible par les agents.
   leurs images, galerie plein écran et « Télécharger » l'album en ZIP
   (`/api/albums/<post>`, variantes 2 400 px, 60 photos et 150 Mo au plus, `fflate`).
 
+### 12.1 quinquies Messagerie de centre
+
+Migration `0042` : tout agent rattaché à un centre accède à la messagerie (`can_use_messaging`)
+et peut ouvrir une conversation, mais la liste proposée (`messaging_directory`), la création
+du groupe et l'ajout de membres (`channel_members_insert`, fonction `same_center`) ne
+permettent que des agents de son propre centre, chef de centre et responsable com compris.
+Le service communication conserve l'accès à tout le SDIS. Le créateur d'un groupe peut en
+modifier les informations. Dans la barre basse, l'onglet Messages remplace l'Annuaire pour
+tous les agents admis (l'annuaire reste dans Profil et dans la page du centre).
+
 ### 12.2 Surveillance
 
 `.github/workflows/monitor.yml` appelle `/api/health` toutes les dix minutes (trois

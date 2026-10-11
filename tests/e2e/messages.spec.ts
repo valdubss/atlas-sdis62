@@ -74,13 +74,17 @@ test("messagerie : groupe, message, réaction, accusé et cloisonnement", async 
     expect((await asOutsider.from("channels").select("id")).data).toEqual([]);
     expect((await asOutsider.from("channel_messages").select("id").eq("channel_id", channelId)).data).toEqual([]);
     expect((await asOutsider.rpc("can_use_messaging")).data).toBe(false);
-    // Référent : accès au général, mais création de groupe refusée
+    // Référent : peut ouvrir une conversation (messagerie de centre, migration 0042), mais
+    // n'y ajoute que des agents de son centre : l'agent sans centre est refusé par la base
     const asReferent = anon();
     await asReferent.auth.signInWithPassword({ email: referent.email, password: referent.password });
     // Aucun canal d'office : le référent ne voit rien tant qu'il n'est pas invité dans un groupe
     expect((await asReferent.from("channels").select("id")).data).toEqual([]);
-    const { error: createErr } = await asReferent.from("channels").insert({ type: "group", name: "Interdit", subject: "x", created_by: referent.id });
-    expect(createErr).not.toBeNull();
+    const { data: ownGroup, error: createErr } = await asReferent.from("channels").insert({ type: "group", name: "Mon centre", subject: "x", created_by: referent.id }).select("id").single();
+    expect(createErr).toBeNull();
+    const { error: addErr } = await asReferent.from("channel_members").insert({ channel_id: ownGroup!.id, profile_id: outsider.id, added_by: referent.id, role: "member" });
+    expect(addErr).not.toBeNull();
+    await admin.from("channels").delete().eq("id", ownGroup!.id);
     // Membre invité : ne peut pas ajouter quelqu'un ni retirer un membre
     const asGuest = anon();
     await asGuest.auth.signInWithPassword({ email: guest.email, password: guest.password });

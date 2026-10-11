@@ -114,6 +114,9 @@ export type DirectoryPerson = {
   center: string | null;
   grouping: string | null;
   is_referent: boolean;
+  /** Chef de centre / responsable communication du centre (messagerie de centre) */
+  is_chief?: boolean;
+  is_com?: boolean;
 };
 
 export type SeenBy = { id: string; name: string; avatar_key: string | null; at: string }[];
