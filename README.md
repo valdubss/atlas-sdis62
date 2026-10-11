@@ -214,11 +214,12 @@ where key = 'allowed_emails';
   l'écran d'accueil où il renseigne prénom, nom et **choisit son mot de passe**. Tant
   qu'un compte n'a pas de mot de passe, le proxy le renvoie vers cet écran
   (`profiles.password_set_at`, recopié dans le jeton `password_set`, migration `0038`).
-- **Transport e-mail obligatoire** : `RESEND_API_KEY` et `EMAIL_FROM` (par exemple
-  `ATLAS SDIS 62 <atlas@sdis62.fr>`, domaine vérifié chez Resend) doivent être renseignés
-  sur Vercel. Sans transport, aucun e-mail ne part : l'écran de connexion l'indique et
-  Supabase n'envoie jamais son e-mail standard. Les modèles Supabase (Authentication →
-  Email Templates) ne servent donc pas.
+- **Transport e-mail** : avec `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` /
+  `EMAIL_FROM` (serveur de messagerie du SDIS, ou tout SMTP) ou `RESEND_API_KEY`, les
+  e-mails partent d'ATLAS : expéditeur, objet (« ATLAS · votre accès », « ATLAS · nouveau
+  mot de passe ») et contenu en français, lien + code. Sans transport, Supabase envoie son
+  e-mail standard (modèle anglais non modifiable sans SMTP, quelques envois par heure) :
+  acceptable pour tester, pas pour ouvrir à tous les agents.
 - Renforcement possible : **Authentication → Providers → Email → Password requirements**
   et détection des mots de passe compromis (offre Pro).
 

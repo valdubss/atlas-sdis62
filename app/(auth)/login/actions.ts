@@ -7,7 +7,7 @@ import { isAllowedEmail, getAllowedDomains } from "@/lib/auth/domains";
 import { loginSchema, passwordLoginSchema } from "@/lib/validation/auth";
 import { getAuthSettings } from "@/lib/auth/settings";
 import { azureOAuthOptions } from "@/lib/auth/providers";
-import { appMailConfigured, sendLoginEmailFor } from "@/lib/auth/invite";
+import { sendLoginEmailFor } from "@/lib/auth/invite";
 
 export type LoginState =
   | { status: "idle" }
@@ -45,9 +45,8 @@ export async function sendMagicLink(
 
   const next = safeNext(formData.get("next") as string | null);
 
-  // Les e-mails partent par le transport d'ATLAS (Resend ou SMTP) : expéditeur, objet et
-  // contenu sont ceux d'ATLAS. Jamais d'e-mail standard Supabase.
-  if (!appMailConfigured()) return { status: "error", message: "L'envoi d'e-mails n'est pas encore configuré. Contactez le service communication." };
+  // Transport d'ATLAS (Resend ou SMTP) : expéditeur, objet et contenu d'ATLAS. À défaut,
+  // sendLoginEmailFor laisse Supabase envoyer son e-mail standard (provisoire, README § 3.5).
   const r = await sendLoginEmailFor(email);
   if (!r.ok) return { status: "error", message: r.error };
   return { status: "sent", email, next };

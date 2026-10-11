@@ -91,7 +91,13 @@ export async function sendAccountEmail(kind: LinkKind, email: string, opts: { fi
   const text = `${copy.title}\n\n${copy.intro.replace(/<[^>]+>/g, "")}\n\nLien : ${url}\nCode : ${email_otp ?? "(voir le lien)"}\n\nValable quinze minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`;
   const html = layout({ title: copy.title, intro: copy.intro, code: email_otp ?? undefined, buttons: [{ label: copy.button, href: url }], footer: "Valable quinze minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail." });
   const sent = await sendMail({ to: email, subject: copy.subject, html, text });
-  // Jamais d'e-mail standard Supabase : sans transport ATLAS, rien ne part et l'appelant le dit
-  if (!sent) return { ok: false, error: "L'envoi d'e-mails n'est pas encore configuré (RESEND_API_KEY). Aucun e-mail n'a été envoyé." };
+  if (!sent) {
+    // Pas de transport ATLAS (RESEND_API_KEY ou SMTP_HOST) : Supabase envoie son e-mail standard
+    // (modèle anglais non modifiable, quelques envois par heure). Provisoire : voir README § 3.5.
+    const fallback = kind === "recovery"
+      ? await admin.auth.resetPasswordForEmail(email, { redirectTo: `${base}/auth/callback?next=${encodeURIComponent(next)}` })
+      : await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${base}/auth/callback?next=${encodeURIComponent(next)}` });
+    if (fallback.error) return { ok: false, error: "Envoi impossible pour le moment. Réessayez dans quelques minutes." };
+  }
   return { ok: true };
 }
