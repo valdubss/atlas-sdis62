@@ -1057,12 +1057,27 @@ récapitulative (chronologie, photos) est générée et publiée. Au lancement :
 file (`lives_announce`, charge utile `push_flash`) et notification « live ». Dans le fil : bandeau
 « EN DIRECT » collé sous l'en-tête avec le nombre d'agents présents (présence Realtime sur
 `live:<id>`) et carte épinglée en première position ; entrées et clôture propagées en temps réel
-(tables dans la publication `supabase_realtime`). Vidéo en direct : canal Bunny Stream en RTMP,
-variables `LIVE_RTMP_URL`, `LIVE_STREAM_KEY` (montrées aux seuls éditeurs, bouton Copier) et
-`NEXT_PUBLIC_LIVE_HLS_URL` (lecteur hls.js, attente du flux avec nouvel essai toutes les 10 s) ;
-l'hôte HLS est ajouté à la CSP. Depuis un téléphone : Larix Broadcaster ; depuis un ordinateur :
-OBS. L'enregistrement produit par Bunny reste dans la bibliothèque (à rattacher au récapitulatif
-comme une vidéo classique).
+(tables dans la publication `supabase_realtime`). Clips vidéo de 90 s filmés depuis l'app dans
+le fil (lecteur en ligne, dernier clip en tête de la carte).
+
+**Vidéo en direct depuis le téléphone** (migration `0044`, Cloudflare Stream Live). À la
+création d'un direct « vidéo », `createLive` crée une entrée en direct Cloudflare
+(`lib/direct/cloudflare.ts`) : les adresses de lecture publiques (`whep_url`, `hls_url`) vont
+dans `lives`, les secrets de diffusion (`whip_url`, `rtmp_url`, `stream_key`) dans
+`live_inputs`, lisibles par le seul service communication (`liveStreamConfig(liveId)`).
+Workflow : Studio → Direct → créer → Lancer → « Ouvrir la caméra » → « Démarrer la diffusion »
+(`LiveBroadcaster` : caméra arrière, bascule, micro, écran maintenu allumé, envoi WebRTC WHIP
+en H.264 720p). Les agents lisent en WebRTC (`WhepPlayer`, WHEP, moins d'une seconde de retard,
+muet par défaut, son et plein écran, nouvel essai toutes les 10 s tant que personne ne diffuse).
+Le même direct accepte un encodeur externe (OBS, caméra) en RTMP : adresse et clé dans un
+volet repliable ; un flux RTMP est en plus enregistré automatiquement par Cloudflare et lisible
+en HLS. L'entrée Cloudflare est supprimée à la clôture du direct. Variables Vercel :
+`CF_ACCOUNT_ID`, `CF_STREAM_API_TOKEN` (jeton « Stream : modifier »), `CF_STREAM_CUSTOMER_CODE`
+(facultatif, adresses HLS). Tarif Cloudflare Stream : 1 $ pour 1 000 minutes vues, 5 $ pour
+1 000 minutes stockées (la lecture WebRTC est facturée à partir du 15 octobre 2026). Sans ces
+variables, la case « vidéo » refuse la création et le direct fonctionne avec texte, photos et
+clips. Les anciennes variables `LIVE_*` (canal HLS fixe, Bunny) restent lues par `LivePlayer`
+comme solution de repli.
 
 ### 12.2 Surveillance
 

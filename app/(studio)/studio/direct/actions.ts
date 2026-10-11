@@ -9,6 +9,7 @@ import { dispatchNotifications } from "@/lib/notifications/dispatch";
 import { friendlyDbError } from "@/lib/validation/comment";
 import { fetchLiveEntries } from "@/lib/direct/queries";
 import { LIVE_LIMITS, type LiveEntry } from "@/lib/direct/types";
+import { cloudflareLiveConfigured, createLiveInput, deleteLiveInput } from "@/lib/direct/cloudflare";
 
 type Result<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -37,12 +38,29 @@ export async function createLive(input: unknown): Promise<Result<{ id: string }>
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Vérifiez les champs." };
   const { current, supabase } = await editor();
   if (!current) return { ok: false, error: "Réservé au service communication." };
+  // Vidéo : une entrée en direct Cloudflare par Direct (WebRTC depuis l'app, RTMP en plus)
+  let cf: Awaited<ReturnType<typeof createLiveInput>> | null = null;
+  if (parsed.data.video) {
+    if (!cloudflareLiveConfigured()) return { ok: false, error: "Vidéo en direct non configurée sur ce déploiement (CF_ACCOUNT_ID, CF_STREAM_API_TOKEN)." };
+    try {
+      cf = await createLiveInput(parsed.data.title);
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Service vidéo indisponible." };
+    }
+  }
   const { data, error } = await supabase
     .from("lives")
-    .insert({ title: parsed.data.title, location: parsed.data.location, center_id: parsed.data.center_id ?? null, video: parsed.data.video, created_by: current.user.id })
+    .insert({ title: parsed.data.title, location: parsed.data.location, center_id: parsed.data.center_id ?? null, video: parsed.data.video, created_by: current.user.id, cf_input_id: cf?.uid ?? null, whep_url: cf?.whepUrl ?? null, hls_url: cf?.hlsUrl ?? null })
     .select("id")
     .single();
-  if (error || !data) return { ok: false, error: friendlyDbError(error?.message) };
+  if (error || !data) {
+    if (cf) await deleteLiveInput(cf.uid);
+    return { ok: false, error: friendlyDbError(error?.message) };
+  }
+  if (cf) {
+    const { error: inErr } = await supabase.from("live_inputs").insert({ live_id: data.id, whip_url: cf.whipUrl, rtmp_url: cf.rtmpUrl, stream_key: cf.streamKey });
+    if (inErr) console.error("live_inputs", inErr.message);
+  }
   revalidate();
   return { ok: true, id: data.id };
 }
@@ -150,6 +168,9 @@ export async function endLive(id: string): Promise<Result<{ postId: string | nul
   }
   const { error } = await supabase.from("lives").update({ status: "ended", ended_at: new Date().toISOString(), recap_post_id: postId }).eq("id", id);
   if (error) return { ok: false, error: friendlyDbError(error.message) };
+  // L'entrée Cloudflare est libérée (l'enregistrement d'un flux RTMP, s'il existe, reste dans Stream)
+  const { data: cf } = await supabase.from("lives").select("cf_input_id").eq("id", id).maybeSingle();
+  if (cf?.cf_input_id) await deleteLiveInput(cf.cf_input_id);
   after(async () => {
     try {
       await dispatchNotifications(50);
@@ -172,14 +193,15 @@ export async function deleteLive(id: string): Promise<Result> {
   return { ok: true };
 }
 
-export type LiveStreamConfig = { configured: boolean; rtmpUrl: string | null; streamKey: string | null; hlsUrl: string | null };
+export type LiveStreamConfig = { configured: boolean; whipUrl: string | null; rtmpUrl: string | null; streamKey: string | null; hlsUrl: string | null };
 
-/** Paramètres de diffusion Bunny (RTMP, clé) : service communication seulement, jamais exposés aux agents. */
-export async function liveStreamConfig(): Promise<LiveStreamConfig> {
-  const { current } = await editor();
-  if (!current) return { configured: false, rtmpUrl: null, streamKey: null, hlsUrl: null };
-  const rtmpUrl = process.env.LIVE_RTMP_URL ?? null;
-  const streamKey = process.env.LIVE_STREAM_KEY ?? null;
-  const hlsUrl = process.env.NEXT_PUBLIC_LIVE_HLS_URL ?? null;
-  return { configured: Boolean(rtmpUrl && streamKey && hlsUrl), rtmpUrl, streamKey, hlsUrl };
+/** Secrets de diffusion d'un Direct (WHIP pour l'app, RTMP et clé pour un encodeur) : service communication seulement. */
+export async function liveStreamConfig(liveId: string): Promise<LiveStreamConfig> {
+  const none = { configured: false, whipUrl: null, rtmpUrl: null, streamKey: null, hlsUrl: null };
+  if (!z.uuid().safeParse(liveId).success) return none;
+  const { current, supabase } = await editor();
+  if (!current) return none;
+  const [{ data: input }, { data: live }] = await Promise.all([supabase.from("live_inputs").select("whip_url, rtmp_url, stream_key").eq("live_id", liveId).maybeSingle(), supabase.from("lives").select("hls_url").eq("id", liveId).maybeSingle()]);
+  if (!input) return none;
+  return { configured: Boolean(input.whip_url), whipUrl: input.whip_url, rtmpUrl: input.rtmp_url, streamKey: input.stream_key, hlsUrl: live?.hls_url ?? null };
 }

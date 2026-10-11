@@ -6,6 +6,7 @@ import { getCurrentUser, isEditorRole } from "@/lib/supabase/server";
 import { fetchLive, fetchLiveEntries } from "@/lib/direct/queries";
 import { TopBar } from "@/components/layout/TopBar";
 import { LivePlayer } from "@/components/direct/LivePlayer";
+import { WhepPlayer } from "@/components/direct/WhepPlayer";
 import { LiveTimeline } from "@/components/direct/LiveTimeline";
 import { LiveComposer } from "@/components/direct/LiveComposer";
 import { LiveControls } from "@/components/direct/LiveControls";
@@ -41,9 +42,7 @@ export default async function LivePage({ params }: { params: Promise<{ id: strin
         }
       />
       {live.video && live.status !== "draft" && (
-        <div className="-mx-3 sm:mx-0">
-          <LivePlayer active={active} />
-        </div>
+        <div className="-mx-3 sm:mx-0">{live.whep_url ? <WhepPlayer whepUrl={live.whep_url} active={active} lazy={canEdit} /> : <LivePlayer active={active} />}</div>
       )}
       <LiveHeader live={live} userId={current.profile.id} />
       <div className="px-1">

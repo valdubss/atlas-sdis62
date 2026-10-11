@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react";
 import type { LiveEntry, LiveItem } from "@/lib/direct/types";
 import { imageSrc } from "@/lib/media/url";
 import { LivePlayer } from "./LivePlayer";
+import { WhepPlayer } from "./WhepPlayer";
 import { LiveClip } from "./LiveClip";
 
 const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
@@ -15,7 +16,9 @@ export function LiveCard({ live, entries }: { live: LiveItem; entries: LiveEntry
   const latest = entries.slice(0, 3);
   return (
     <article className="overflow-hidden rounded-[22px] bg-bg-1 ring-1 ring-red-fill/40" aria-label={`En direct : ${live.title}`}>
-      {live.video ? (
+      {live.video && live.whep_url ? (
+        <WhepPlayer whepUrl={live.whep_url} active compact />
+      ) : live.video ? (
         <LivePlayer active compact />
       ) : entries.find((e) => e.media?.kind === "video") ? (
         <LiveClip media={entries.find((e) => e.media?.kind === "video")!.media!} />

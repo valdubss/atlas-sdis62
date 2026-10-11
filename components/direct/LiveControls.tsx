@@ -8,6 +8,7 @@ import type { LiveItem } from "@/lib/direct/types";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { useConfirm } from "@/components/ui/Confirm";
+import { LiveBroadcaster } from "./LiveBroadcaster";
 
 /**
  * Commandes du service communication sur un Direct : lancer, terminer (récapitulatif généré),
@@ -22,8 +23,8 @@ export function LiveControls({ live }: { live: LiveItem }) {
   const confirm = useConfirm();
 
   useEffect(() => {
-    if (live.video) liveStreamConfig().then(setConfig);
-  }, [live.video]);
+    if (live.video) liveStreamConfig(live.id).then(setConfig);
+  }, [live.video, live.id]);
 
   function copy(label: string, value: string) {
     navigator.clipboard?.writeText(value).then(
@@ -77,18 +78,18 @@ export function LiveControls({ live }: { live: LiveItem }) {
         {live.status === "ended" && <p className="text-[15px] text-text-2">Direct terminé{live.ended_at ? ` le ${new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" }).format(new Date(live.ended_at))}` : ""}.</p>}
       </div>
 
-      {live.video && live.status !== "ended" && (
-        <div className="space-y-2 border-t border-line pt-3">
-          <p className="text-[13px] font-semibold text-text-2">Diffusion vidéo (Bunny Stream)</p>
-          {config && !config.configured && <p className="text-[13px] text-red-text">Clé de diffusion non configurée : variables LIVE_RTMP_URL, LIVE_STREAM_KEY et NEXT_PUBLIC_LIVE_HLS_URL sur Vercel (voir README).</p>}
-          {config?.configured && (
-            <>
-              <Row label="Adresse RTMP" value={config.rtmpUrl!} onCopy={() => copy("Adresse", config.rtmpUrl!)} />
-              <Row label="Clé de diffusion" value={showKey ? config.streamKey! : "••••••••••••••••"} onCopy={() => copy("Clé", config.streamKey!)} extra={<button type="button" onClick={() => setShowKey((v) => !v)} aria-label={showKey ? "Masquer la clé" : "Afficher la clé"} className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-bg-2 text-text-2">{showKey ? <EyeOff size={16} strokeWidth={1.75} /> : <Eye size={16} strokeWidth={1.75} />}</button>} />
-              <p className="text-[13px] text-text-3">Depuis un téléphone : appli Larix Broadcaster (gratuite), connexion RTMP avec l&apos;adresse et la clé. Depuis un ordinateur ou une caméra : OBS, vMix, encodeur. La vidéo apparaît dans ATLAS quelques secondes après le début de la diffusion.</p>
-            </>
-          )}
-        </div>
+      {live.video && live.status === "live" && config?.whipUrl && <LiveBroadcaster whipUrl={config.whipUrl} />}
+      {live.video && live.status === "draft" && <p className="text-[13px] text-text-3">Lancez le direct, puis « Ouvrir la caméra » pour diffuser depuis ce téléphone.</p>}
+      {live.video && live.status !== "ended" && config && !config.configured && <p className="text-[13px] text-red-text">Entrée vidéo absente pour ce direct (service Cloudflare Stream non configuré au moment de la création).</p>}
+      {live.video && live.status !== "ended" && config?.configured && config.rtmpUrl && (
+        <details className="border-t border-line pt-3">
+          <summary className="cursor-pointer text-[13px] font-semibold text-text-2">Encodeur externe (OBS, caméra) : adresse RTMP et clé</summary>
+          <div className="mt-2 space-y-2">
+            <Row label="Adresse RTMP" value={config.rtmpUrl} onCopy={() => copy("Adresse", config.rtmpUrl!)} />
+            <Row label="Clé de diffusion" value={showKey ? config.streamKey! : "••••••••••••••••"} onCopy={() => copy("Clé", config.streamKey!)} extra={<button type="button" onClick={() => setShowKey((v) => !v)} aria-label={showKey ? "Masquer la clé" : "Afficher la clé"} className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-bg-2 text-text-2">{showKey ? <EyeOff size={16} strokeWidth={1.75} /> : <Eye size={16} strokeWidth={1.75} />}</button>} />
+            <p className="text-[13px] text-text-3">Un flux envoyé par encodeur est enregistré automatiquement par Cloudflare Stream.</p>
+          </div>
+        </details>
       )}
     </section>
   );

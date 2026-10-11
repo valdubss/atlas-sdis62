@@ -14,6 +14,9 @@ export type LiveItem = {
   created_at: string;
   center: { id: string; name: string; slug: string } | null;
   recap_slug?: string | null;
+  /** Lecture WebRTC (Cloudflare Stream) et HLS (encodeur RTMP) du direct vidéo */
+  whep_url?: string | null;
+  hls_url?: string | null;
 };
 
 export type LiveEntry = {

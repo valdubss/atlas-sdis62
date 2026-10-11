@@ -631,9 +631,15 @@ export type Database = {
         Relationships: [];
       };
       lives: {
-        Row: { id: string; title: string; location: string | null; center_id: string | null; status: "draft" | "live" | "ended"; video: boolean; started_at: Timestamp | null; ended_at: Timestamp | null; recap_post_id: string | null; created_by: string | null; created_at: Timestamp; updated_at: Timestamp; deleted_at: Timestamp | null };
-        Insert: { id?: string; title: string; location?: string | null; center_id?: string | null; status?: "draft" | "live" | "ended"; video?: boolean; created_by?: string | null };
-        Update: Partial<{ title: string; location: string | null; center_id: string | null; status: "draft" | "live" | "ended"; video: boolean; started_at: Timestamp | null; ended_at: Timestamp | null; recap_post_id: string | null; deleted_at: Timestamp | null }>;
+        Row: { id: string; title: string; location: string | null; center_id: string | null; status: "draft" | "live" | "ended"; video: boolean; started_at: Timestamp | null; ended_at: Timestamp | null; recap_post_id: string | null; created_by: string | null; created_at: Timestamp; updated_at: Timestamp; deleted_at: Timestamp | null; cf_input_id: string | null; whep_url: string | null; hls_url: string | null };
+        Insert: { id?: string; title: string; location?: string | null; center_id?: string | null; status?: "draft" | "live" | "ended"; video?: boolean; created_by?: string | null; cf_input_id?: string | null; whep_url?: string | null; hls_url?: string | null };
+        Update: Partial<{ title: string; location: string | null; center_id: string | null; status: "draft" | "live" | "ended"; video: boolean; started_at: Timestamp | null; ended_at: Timestamp | null; recap_post_id: string | null; deleted_at: Timestamp | null; cf_input_id: string | null; whep_url: string | null; hls_url: string | null }>;
+        Relationships: [];
+      };
+      live_inputs: {
+        Row: { live_id: string; whip_url: string | null; rtmp_url: string | null; stream_key: string | null; created_at: Timestamp };
+        Insert: { live_id: string; whip_url?: string | null; rtmp_url?: string | null; stream_key?: string | null };
+        Update: Partial<{ whip_url: string | null; rtmp_url: string | null; stream_key: string | null }>;
         Relationships: [];
       };
       live_entries: {

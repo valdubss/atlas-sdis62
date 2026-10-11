@@ -72,8 +72,8 @@ export function DirectAdmin({ lives, centers, videoConfigured }: { lives: LiveIt
           </SelectField>
         </div>
         <p className="text-[13px] text-text-3">Depuis l&apos;app : texte, photos et clips vidéo de 90 s filmés sur place, visibles dans le direct une minute après l&apos;envoi, sans rien installer.</p>
-        <CheckboxField label="Flux vidéo continu en plus (encodeur externe ou caméra, clé RTMP Bunny)" name="video" checked={video} onChange={(e) => setVideo(e.target.checked)} />
-        {video && !videoConfigured && <p className="text-[13px] text-red-text">Flux continu non configuré sur ce déploiement (variables LIVE_* sur Vercel, voir README). Le direct fonctionnera avec texte, photos et clips.</p>}
+        <CheckboxField label="Vidéo en direct depuis le téléphone (Cloudflare Stream, WebRTC)" name="video" checked={video} onChange={(e) => setVideo(e.target.checked)} />
+        {video && !videoConfigured && <p className="text-[13px] text-red-text">Vidéo en direct non configurée sur ce déploiement (CF_ACCOUNT_ID, CF_STREAM_API_TOKEN sur Vercel, voir README). Le direct fonctionnera avec texte, photos et clips.</p>}
         <Button type="button" size="md" loading={pending} disabled={!title.trim()} onClick={create}>
           Créer le direct
         </Button>

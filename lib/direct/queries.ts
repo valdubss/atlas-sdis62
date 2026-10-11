@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { MediaItem } from "@/lib/feed/types";
 import type { LiveEntry, LiveItem } from "./types";
 
-const LIVE = "id, title, location, status, video, started_at, ended_at, recap_post_id, created_at, center:centers!lives_center_id_fkey(id, name, slug), recap:posts!lives_recap_post_id_fkey(slug)";
+const LIVE = "id, title, location, status, video, started_at, ended_at, recap_post_id, created_at, whep_url, hls_url, center:centers!lives_center_id_fkey(id, name, slug), recap:posts!lives_recap_post_id_fkey(slug)";
 const ENTRY = "id, live_id, body, pinned, created_at, author:profiles!live_entries_author_id_fkey(first_name, last_name), media:media!live_entries_media_id_fkey(id, kind, variants, poster_key, width, height, alt, mime, original_key, hls_key, video_status, lqip)";
 
 type LiveRow = Omit<LiveItem, "center" | "recap_slug"> & { center: LiveItem["center"]; recap: { slug: string } | null };
