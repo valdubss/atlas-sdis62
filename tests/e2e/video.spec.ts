@@ -85,7 +85,15 @@ test("vidéo : publication, HLS, sous-titres, paliers de lecture", async ({ brow
     if (postId) {
       const { data: pm } = await admin.from("post_media").select("media_id").eq("post_id", postId);
       await admin.from("posts").delete().eq("id", postId);
-      for (const m of pm ?? []) await admin.from("media").delete().eq("id", m.media_id);
+      for (const m of pm ?? []) {
+        // Vidéo chez Bunny Stream : supprimée aussi chez Bunny (la ligne est effacée sans passer par l'app)
+        const { data: row } = await admin.from("media").select("hls_key").eq("id", m.media_id).maybeSingle();
+        const guid = row?.hls_key?.match(/\/([0-9a-f-]{36})\//i)?.[1];
+        if (guid && env.BUNNY_LIBRARY_ID && env.BUNNY_API_KEY) {
+          await fetch(`https://video.bunnycdn.com/library/${env.BUNNY_LIBRARY_ID}/videos/${guid}`, { method: "DELETE", headers: { AccessKey: env.BUNNY_API_KEY } }).catch(() => null);
+        }
+        await admin.from("media").delete().eq("id", m.media_id);
+      }
     }
     await admin.from("notifications").delete().ilike("body", `%${stamp}%`);
     const { data: queue } = await admin.from("notification_queue").select("id, payload").in("status", ["pending", "processing"]);
