@@ -18,7 +18,7 @@ const input = "h-11 w-full rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1
  * un e-mail d'ATLAS avec le lien (et un code à six chiffres) pour définir le
  * mot de passe.
  */
-export function LoginForm({ next, auth }: { next: string; domains?: string[]; auth: AuthSettings }) {
+export function LoginForm({ next, auth, mailFromApp = true }: { next: string; domains?: string[]; auth: AuthSettings; /** E-mails envoyés par ATLAS (lien + code) ; sinon e-mail standard Supabase (lien seul) */ mailFromApp?: boolean }) {
   const [mode, setMode] = useState<Mode>(auth.passwordEnabled ? "password" : "link");
   const [pwdState, pwdAction, pwdPending] = useActionState(signInWithPassword, initial);
   const [linkState, linkAction, linkPending] = useActionState(sendMagicLink, initial);
@@ -33,9 +33,10 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
         <div className="space-y-1">
           <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">E-mail envoyé</p>
           <p className="text-[15px] text-text-2">
-            Sur <span className="text-text-1">{sent.email}</span> : touchez le lien pour définir votre mot de passe, ou saisissez ici le code à six chiffres qui figure dans l&apos;e-mail. Valable quinze minutes.
+            Sur <span className="text-text-1">{sent.email}</span> : touchez le lien pour définir votre mot de passe{mailFromApp ? ", ou saisissez ici le code à six chiffres qui figure dans l'e-mail" : ""}. Valable {mailFromApp ? "quinze minutes" : "une heure"}.
           </p>
         </div>
+        {mailFromApp && (
         <form action={codeAction} className="space-y-3" noValidate>
           <input type="hidden" name="email" value={sent.email} />
           <input type="hidden" name="next" value={sent.next} />
@@ -60,7 +61,8 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
             Valider le code
           </Button>
         </form>
-        <p className="text-[13px] text-text-3">Rien reçu ? Vérifiez vos indésirables. Le code et le lien arrivent dans le même e-mail ; si la messagerie du SDIS a déjà « ouvert » le lien, le code fonctionne quand même.</p>
+        )}
+        <p className="text-[13px] text-text-3">{mailFromApp ? "Rien reçu ? Vérifiez vos indésirables. Le code et le lien arrivent dans le même e-mail ; si la messagerie du SDIS a déjà « ouvert » le lien, le code fonctionne quand même." : "Rien reçu ? Vérifiez vos indésirables. Ouvrez le lien depuis l'appareil où vous avez fait la demande."}</p>
       </div>
     );
   }

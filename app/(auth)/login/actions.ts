@@ -7,7 +7,7 @@ import { isAllowedEmail, getAllowedDomains } from "@/lib/auth/domains";
 import { loginSchema, passwordLoginSchema } from "@/lib/validation/auth";
 import { getAuthSettings } from "@/lib/auth/settings";
 import { azureOAuthOptions } from "@/lib/auth/providers";
-import { sendLoginEmailFor } from "@/lib/auth/invite";
+import { appMailConfigured, sendLoginEmailFor } from "@/lib/auth/invite";
 
 export type LoginState =
   | { status: "idle" }
@@ -45,10 +45,28 @@ export async function sendMagicLink(
 
   const next = safeNext(formData.get("next") as string | null);
 
-  // Transport d'ATLAS (Resend ou SMTP) : expéditeur, objet et contenu d'ATLAS. À défaut,
-  // sendLoginEmailFor laisse Supabase envoyer son e-mail standard (provisoire, README § 3.5).
-  const r = await sendLoginEmailFor(email);
-  if (!r.ok) return { status: "error", message: r.error };
+  // Transport d'ATLAS (Resend ou SMTP) : expéditeur, objet et contenu d'ATLAS, lien + code.
+  if (appMailConfigured()) {
+    const r = await sendLoginEmailFor(email);
+    if (!r.ok) return { status: "error", message: r.error };
+    return { status: "sent", email, next };
+  }
+
+  // Sans transport : e-mail standard Supabase (lien seul). Le compte est créé à la demande
+  // (domaine vérifié par le trigger) et l'agent arrive sur l'écran qui lui fait choisir son
+  // mot de passe. Flux PKCE : ce navigateur détient le code vérificateur, le retour porte ?code=.
+  const h = await headers();
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? h.get("origin") ?? `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent("/bienvenue?mdp=1")}`, shouldCreateUser: true },
+  });
+  if (error) {
+    if (error.message.includes("DOMAINE_NON_AUTORISE") || error.message.includes("Database error")) return { status: "error", message: "Cette adresse n'est pas autorisée." };
+    if (error.status === 429) return { status: "error", message: "Trop de demandes. Patientez quelques minutes avant de réessayer." };
+    return { status: "error", message: "Envoi impossible pour le moment. Réessayez." };
+  }
   return { status: "sent", email, next };
 }
 

@@ -5,7 +5,9 @@ import { Logo } from "@/components/brand/Logo";
 import { APP_NAME } from "@/lib/config";
 import { getAllowedDomains } from "@/lib/auth/domains";
 import { getAuthSettings } from "@/lib/auth/settings";
+import { appMailConfigured } from "@/lib/auth/invite";
 import { LoginForm } from "./LoginForm";
+import { HashRelay } from "@/components/auth/HashRelay";
 
 export const metadata: Metadata = { title: "Connexion" };
 
@@ -33,6 +35,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="relative flex min-h-dvh flex-col bg-bg-0">
+      <HashRelay />
       {HAS_BG && (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element -- photo de fond statique */}
@@ -57,7 +60,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
               {ERRORS[erreur]}
             </p>
           )}
-          <LoginForm next={next} domains={domains} auth={auth} />
+          <LoginForm mailFromApp={appMailConfigured()} next={next} domains={domains} auth={auth} />
         </section>
       </div>
     </main>
