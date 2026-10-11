@@ -21,14 +21,21 @@ export function buildCsp(nonce: string): string {
   // Bunny Stream : envoi TUS direct vers l'API, lecture HLS et vignettes depuis le CDN de la bibliothèque
   const bunnyCdn = process.env.BUNNY_CDN_HOST ? `https://${process.env.BUNNY_CDN_HOST.replace(/^https?:\/\//, "").replace(/\/$/, "")}` : "";
   const bunnyApi = process.env.VIDEO_PROVIDER === "bunny" ? "https://video.bunnycdn.com" : "";
+  // Direct vidéo (Bunny Stream live) : hôte de la playlist HLS
+  let liveHost = "";
+  try {
+    if (process.env.NEXT_PUBLIC_LIVE_HLS_URL) liveHost = new URL(process.env.NEXT_PUBLIC_LIVE_HLS_URL).origin;
+  } catch {
+    // URL invalide : ignorée
+  }
   const directives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src 'self' data: blob: ${supabase} ${map} ${bunnyCdn}`,
-    `media-src 'self' blob: data: ${supabase} ${bunnyCdn}`,
+    `media-src 'self' blob: data: ${supabase} ${bunnyCdn} ${liveHost}`,
     "font-src 'self' data:",
-    `connect-src 'self' ${supabase} ${supabaseWs} ${map} ${bunnyCdn} ${bunnyApi}${dev ? " ws://localhost:* http://localhost:*" : ""}`,
+    `connect-src 'self' ${supabase} ${supabaseWs} ${map} ${bunnyCdn} ${bunnyApi} ${liveHost}${dev ? " ws://localhost:* http://localhost:*" : ""}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "frame-src 'none'",

@@ -33,7 +33,7 @@ export type EditorMedia = MediaItem & {
   caption?: string | null;
 };
 
-type Accept = "images" | "video" | "cover" | "center_cover" | "story" | "screenshot";
+type Accept = "images" | "video" | "cover" | "center_cover" | "story" | "screenshot" | "live";
 
 const LABELS: Record<Accept, { title: string; hint: string; max: number; kinds: ("image" | "video")[] }> = {
   images: { title: "Photos", hint: `Glissez vos photos ou touchez pour choisir, jusqu'à ${LIMITS.imagesPerPost}. JPG, PNG, WebP, HEIC.`, max: LIMITS.imagesPerPost, kinds: ["image"] },
@@ -46,6 +46,7 @@ const LABELS: Record<Accept, { title: string; hint: string; max: number; kinds: 
     kinds: ["video"],
   },
   cover: { title: "Image de couverture (facultatif)", hint: "Une image affichée en tête de l'article.", max: 1, kinds: ["image"] },
+  live: { title: "Photo (facultatif)", hint: "Une photo prise sur place, envoyée en quelques secondes.", max: 1, kinds: ["image"] },
   center_cover: { title: "Photo de couverture (facultatif)", hint: "Photo de la caserne ou de l'équipe, format paysage conseillé.", max: 1, kinds: ["image"] },
   screenshot: { title: "Capture d'écran (facultatif)", hint: "Une image pour illustrer le problème.", max: 1, kinds: ["image"] },
   story: { title: "Média de la story", hint: `Une photo ou une vidéo de ${LIMITS.storyVideoMaxSeconds} s au plus, format vertical conseillé.`, max: 1, kinds: ["image", "video"] },

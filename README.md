@@ -1048,6 +1048,22 @@ Le service communication conserve l'accès à tout le SDIS. Le créateur d'un gr
 modifier les informations. Dans la barre basse, l'onglet Messages remplace l'Annuaire pour
 tous les agents admis (l'annuaire reste dans Profil et dans la page du centre).
 
+### 12.1 sexies Le Direct
+
+Migration `0043` (`lives`, `live_entries`). Studio → Direct : le service communication crée un
+direct (titre, lieu, centre, vidéo), le lance depuis sa page `/direct/<id>` (un seul actif à la
+fois, index unique), publie des entrées texte et photo, et le termine : une publication
+récapitulative (chronologie, photos) est générée et publiée. Au lancement : push à tous via la
+file (`lives_announce`, charge utile `push_flash`) et notification « live ». Dans le fil : bandeau
+« EN DIRECT » collé sous l'en-tête avec le nombre d'agents présents (présence Realtime sur
+`live:<id>`) et carte épinglée en première position ; entrées et clôture propagées en temps réel
+(tables dans la publication `supabase_realtime`). Vidéo en direct : canal Bunny Stream en RTMP,
+variables `LIVE_RTMP_URL`, `LIVE_STREAM_KEY` (montrées aux seuls éditeurs, bouton Copier) et
+`NEXT_PUBLIC_LIVE_HLS_URL` (lecteur hls.js, attente du flux avec nouvel essai toutes les 10 s) ;
+l'hôte HLS est ajouté à la CSP. Depuis un téléphone : Larix Broadcaster ; depuis un ordinateur :
+OBS. L'enregistrement produit par Bunny reste dans la bibliothèque (à rattacher au récapitulatif
+comme une vidéo classique).
+
 ### 12.2 Surveillance
 
 `.github/workflows/monitor.yml` appelle `/api/health` toutes les dix minutes (trois

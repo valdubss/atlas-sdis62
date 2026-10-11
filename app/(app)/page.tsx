@@ -14,6 +14,9 @@ import { StoryBar } from "@/components/stories/StoryBar";
 import { AgendaChip } from "@/components/feed/AgendaChip";
 import { ScrollRestore } from "@/components/feed/ScrollRestore";
 import { fetchNextEvent } from "@/lib/agenda/queries";
+import { fetchActiveLive, fetchLiveEntries } from "@/lib/direct/queries";
+import { LiveBanner } from "@/components/direct/LiveBanner";
+import { LiveCard } from "@/components/direct/LiveCard";
 import { PublishedToast } from "@/components/feed/PublishedToast";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +35,7 @@ export default async function FeedPage({
   };
   const filtered = Boolean(params.category || params.center || params.q || params.tag);
 
-  const [current, categories, centers, pinned, posts, storyBar, flashes, unread, nextEvent] = await Promise.all([
+  const [current, categories, centers, pinned, posts, storyBar, flashes, unread, nextEvent, live] = await Promise.all([
     getCurrentUser(),
     FEATURES.categories ? fetchCategories() : Promise.resolve([]),
     FEATURES.centers ? fetchCenters() : Promise.resolve([]),
@@ -42,7 +45,9 @@ export default async function FeedPage({
     filtered ? Promise.resolve([]) : fetchActiveFlashes(),
     fetchUnreadCount(),
     filtered ? Promise.resolve(null) : fetchNextEvent(),
+    filtered ? Promise.resolve(null) : fetchActiveLive(),
   ]);
+  const liveEntries = live ? await fetchLiveEntries(live.id, 3) : [];
   const canModerate = isEditorRole(current?.profile.role);
   const pinnedIds = new Set(pinned.map((p) => p.id));
 
@@ -62,8 +67,10 @@ export default async function FeedPage({
 
       {!filtered && <FeedCache posts={[...pinned, ...posts.filter((p) => !pinnedIds.has(p.id))]} />}
       <ScrollRestore />
+      {live && <LiveBanner live={live} userId={current?.profile.id ?? null} />}
       <PullToRefresh>
         <div className="space-y-3">
+          {live && <LiveCard live={live} entries={liveEntries} />}
           <FlashBanner flashes={flashes} />
           <StoryBar bar={storyBar} canEdit={canModerate} />
           {!filtered && <AgendaChip next={nextEvent} />}

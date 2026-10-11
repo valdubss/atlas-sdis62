@@ -630,6 +630,18 @@ export type Database = {
         Update: { title?: string; service?: string; started_at?: Timestamp; resolved_at?: Timestamp | null; note?: string | null };
         Relationships: [];
       };
+      lives: {
+        Row: { id: string; title: string; location: string | null; center_id: string | null; status: "draft" | "live" | "ended"; video: boolean; started_at: Timestamp | null; ended_at: Timestamp | null; recap_post_id: string | null; created_by: string | null; created_at: Timestamp; updated_at: Timestamp; deleted_at: Timestamp | null };
+        Insert: { id?: string; title: string; location?: string | null; center_id?: string | null; status?: "draft" | "live" | "ended"; video?: boolean; created_by?: string | null };
+        Update: Partial<{ title: string; location: string | null; center_id: string | null; status: "draft" | "live" | "ended"; video: boolean; started_at: Timestamp | null; ended_at: Timestamp | null; recap_post_id: string | null; deleted_at: Timestamp | null }>;
+        Relationships: [];
+      };
+      live_entries: {
+        Row: { id: string; live_id: string; author_id: string | null; body: string | null; media_id: string | null; pinned: boolean; created_at: Timestamp; deleted_at: Timestamp | null };
+        Insert: { id?: string; live_id: string; author_id?: string | null; body?: string | null; media_id?: string | null; pinned?: boolean };
+        Update: Partial<{ body: string | null; media_id: string | null; pinned: boolean; deleted_at: Timestamp | null }>;
+        Relationships: [];
+      };
       documents: {
         Row: { id: string; title: string; category: string; description: string | null; kind: "pdf" | "image"; file_key: string; file_name: string | null; file_size: number; sort_order: number; published: boolean; author_id: string | null; created_at: Timestamp; updated_at: Timestamp; deleted_at: Timestamp | null };
         Insert: { id?: string; title: string; category?: string; description?: string | null; kind: "pdf" | "image"; file_key: string; file_name?: string | null; file_size?: number; sort_order?: number; published?: boolean; author_id?: string | null };
