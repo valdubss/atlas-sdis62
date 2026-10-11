@@ -23,7 +23,7 @@ test("fil : position restaurée, recherche globale, lecture qualifiée", async (
   // Quelques publications de plus pour que le fil soit assez haut à défiler
   const { data: fillers } = await admin
     .from("posts")
-    .insert(Array.from({ length: 6 }, (_, i) => ({ type: "article", title: `Remplissage ${i + 1} ${stamp}`, excerpt: "Texte de remplissage pour donner de la hauteur au fil.", body: "Contenu.", status: "published", published_at: new Date(Date.now() - (i + 1) * 60_000).toISOString(), author_id: adminProfile?.id ?? agent.id })))
+    .insert(Array.from({ length: 12 }, (_, i) => ({ type: "article", title: `Remplissage ${i + 1} ${stamp}`, excerpt: "Texte de remplissage pour donner de la hauteur au fil.", body: "Contenu.", status: "published", published_at: new Date(Date.now() - (i + 1) * 60_000).toISOString(), author_id: adminProfile?.id ?? agent.id })))
     .select("id");
   const fillerIds = (fillers ?? []).map((f) => f.id);
 

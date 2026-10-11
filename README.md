@@ -935,6 +935,12 @@ de notification visible par les agents.
   services et centres (sans donnée personnelle) de la production vers le projet de test,
   pose la liste blanche d'adresses et crée le compte administrateur initial ; chaque push sur
   `main` déploie aussi le site de test.
+- **Comptes identiques** : `.github/workflows/sync-users.yml` copie chaque heure (et à la
+  demande) les comptes de la production vers le projet de test, mot de passe chiffré compris
+  (`auth.users`, `auth.identities`, `profiles`, `user_settings`), sans jamais rien supprimer ni
+  écrire en production ; les comptes de test (`e2e-…`, `ui-test-…`) ne sont pas copiés. Secrets
+  du dépôt : `SUPABASE_DB_PASSWORD` (production) et `SUPABASE_TEST_DB_PASSWORD` (test). En
+  local : `SUPABASE_DB_PASSWORD` dans `.env.local` puis `npm run comptes:sync-test`.
 - **Tests sur le site de test déployé** :
   `npx cross-env E2E_ENV_FILE=.env.test.local E2E_BASE_URL=https://atlas-test-sdis62.vercel.app playwright test`.
 

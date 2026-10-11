@@ -1,0 +1,34 @@
+# Comptes identiques entre production et projet de test : toutes les heures, auth.users
+# (mot de passe chiffré compris), auth.identities, profiles et user_settings sont copiés de la
+# production vers atlas-test (jamais l'inverse, aucune suppression). Secrets du dépôt :
+#   SUPABASE_DB_PASSWORD        mot de passe de la base de production
+#   SUPABASE_TEST_DB_PASSWORD   mot de passe de la base du projet de test
+name: Synchronisation des comptes vers le test
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Copie production → test
+        env:
+          PROD_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          TEST_DB_PASSWORD: ${{ secrets.SUPABASE_TEST_DB_PASSWORD }}
+        run: |
+          test -n "$PROD_DB_PASSWORD" || { echo "::error::Secret SUPABASE_DB_PASSWORD manquant"; exit 1; }
+          test -n "$TEST_DB_PASSWORD" || { echo "::error::Secret SUPABASE_TEST_DB_PASSWORD manquant"; exit 1; }
+          node scripts/sync-users-test.mjs

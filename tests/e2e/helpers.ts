@@ -44,7 +44,8 @@ export async function createTestUser(admin: SupabaseClient, label: string) {
   const password = crypto.randomBytes(12).toString("base64url") + "Aa1";
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { first_name: "Test", last_name: label } });
   if (error) throw error;
-  await admin.from("profiles").update({ onboarded_at: new Date().toISOString() }).eq("id", data.user.id);
+  // Accueil déjà passé et mot de passe considéré comme défini (sinon le proxy renvoie vers /bienvenue?mdp=1)
+  await admin.from("profiles").update({ onboarded_at: new Date().toISOString(), password_set_at: new Date().toISOString() }).eq("id", data.user.id);
   return { id: data.user.id, email, password, stamp };
 }
 
