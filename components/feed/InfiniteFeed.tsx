@@ -48,6 +48,16 @@ export function InfiniteFeed({
     firstIds.current = new Set(initial.map((p) => p.id));
   }, [initial, key, more]);
 
+  // Après le premier défilement, la page suivante est demandée deux écrans avant le bas ;
+  // au montage on reste à 600 px pour ne pas gêner la restauration de la position
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    if (armed) return;
+    const on = () => setArmed(true);
+    window.addEventListener("scroll", on, { passive: true, once: true });
+    return () => window.removeEventListener("scroll", on);
+  }, [armed]);
+
   useEffect(() => {
     const el = sentinel.current;
     if (!el || done) return;
@@ -63,11 +73,11 @@ export function InfiniteFeed({
           if (more.length < PAGE) setDone(true);
         });
       },
-      { rootMargin: "600px 0px" },
+      { rootMargin: armed ? "1400px 0px" : "600px 0px" },
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [posts, done, pending, params]);
+  }, [posts, done, pending, params, armed]);
 
   // Première photo du post suivant préchargée (une seule balise, hors flux)
   const nextCover = posts.length > 1 ? (posts[1].cover ?? posts[1].media.find((m) => m.kind === "image")) : null;

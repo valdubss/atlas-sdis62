@@ -79,8 +79,7 @@ export default async function CenterPage({ params, searchParams }: { params: Pro
         <div className="space-y-3">
           <CenterHero center={center} />
           {!isHome && (
-            <div className="flex items-center justify-between gap-3 px-1">
-              <p className="text-[13px] text-text-3">{following ? "Vous suivez ce centre." : "Suivez ce centre pour le retrouver dans vos onglets."}</p>
+            <div className="px-1">
               <FollowButton centerId={center.id} following={following} />
             </div>
           )}

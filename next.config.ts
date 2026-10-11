@@ -35,6 +35,9 @@ const nextConfig: NextConfig = {
     // Logo image présent dans public/ ? (évalué au démarrage et à la construction)
     NEXT_PUBLIC_HAS_LOGO: existsSync(path.join(process.cwd(), "public", "logo-atlas.png")) ? "1" : "0",
     NEXT_PUBLIC_APP_VERSION: (JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as { version: string }).version,
+    // Identifiant de déploiement (commit sur Vercel) : change l'adresse du service worker à
+    // chaque mise en ligne, ce qui déclenche la bulle « Nouvelle version » sur les appareils
+    NEXT_PUBLIC_BUILD_ID: (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7) || String(Date.now()),
   },
   reactStrictMode: true,
   // ffmpeg embarqué (transcodage HLS) : binaire hors bundle, inclus dans les seules fonctions

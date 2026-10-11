@@ -82,6 +82,15 @@ export function PostOverlay({
         className="absolute inset-0 overflow-y-auto overscroll-contain bg-bg-0"
         initial={reduced ? false : { x: "100%" }}
         animate={{ x: 0 }}
+        // Glisser vers la droite pour revenir (comme le geste système), sans gêner le défilement vertical
+        drag="x"
+        dragDirectionLock
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={{ left: 0, right: 0.6 }}
+        dragSnapToOrigin
+        onDragEnd={(_, info) => {
+          if (info.offset.x > 90 || info.velocity.x > 600) requestClose();
+        }}
         variants={{
           exit: (instant: boolean) =>
             instant

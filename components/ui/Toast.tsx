@@ -6,18 +6,18 @@ import { SPRING } from "@/lib/motion";
 
 type Toast = { id: number; text: string };
 
-const ToastContext = createContext<(text: string) => void>(() => {});
+const ToastContext = createContext<(text: string, durationMs?: number) => void>(() => {});
 
-/** Toast en verre, 44 px, une ligne, glisse depuis le haut, disparaît en 2,5 s. */
+/** Toast en verre, 44 px, une ligne, glisse depuis le haut, disparaît en 2,5 s (durée ajustable). */
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reduced = useReducedMotion();
 
-  const show = useCallback((text: string) => {
+  const show = useCallback((text: string, durationMs = 2500) => {
     if (timer.current) clearTimeout(timer.current);
     setToast({ id: Date.now(), text });
-    timer.current = setTimeout(() => setToast(null), 2500);
+    timer.current = setTimeout(() => setToast(null), durationMs);
   }, []);
 
   useEffect(() => () => {

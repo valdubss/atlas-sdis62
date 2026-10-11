@@ -15,6 +15,9 @@ function resumeKey(id: string) {
   return `atlas:video:${id}`;
 }
 
+/** Lecteur en cours de lecture automatique dans le fil : un seul à la fois. */
+let activeVideo: HTMLVideoElement | null = null;
+
 /**
  * Lecteur vidéo : HLS (hls.js, natif sur Safari) avec repli MP4, lecture au tap,
  * muet par défaut avec bouton son visible, sous-titres activés quand le son est
@@ -95,6 +98,24 @@ export function VideoPlayer({
   const hlsUrl = media.hls_key && media.video_status === "ready" ? mediaUrl(media.hls_key) : null;
   const subtitlesUrl = media.subtitles_key ? mediaUrl(media.subtitles_key) : null;
 
+  // Source chargée seulement à l'approche de l'écran (un écran et demi) : le fil reste léger
+  const [near, setNear] = useState(!autoplay);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || near) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setNear(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "150% 0px" },
+    );
+    io.observe(v);
+    return () => io.disconnect();
+  }, [near]);
+
   // Source : hls.js, HLS natif (iPhone), sinon MP4
   useEffect(() => {
     const v = ref.current;
@@ -102,7 +123,7 @@ export function VideoPlayer({
     let hls: { destroy: () => void } | null = null;
     let cancelled = false;
     const mp4 = videoSrc(media);
-    if (processing) return; // rien à charger tant que l'encodage en ligne n'est pas fini
+    if (processing || !near) return; // rien à charger tant que l'encodage n'est pas fini ou que la carte est loin
     if (!hlsUrl) {
       v.src = mp4;
       return;
@@ -133,22 +154,32 @@ export function VideoPlayer({
       cancelled = true;
       hls?.destroy();
     };
-  }, [hlsUrl, media, autoplay, processing]);
+  }, [hlsUrl, media, autoplay, processing, near]);
 
-  // Lecture automatique muette quand visible, pause hors écran
+  // Lecture automatique muette quand visible, pause hors écran ; un seul lecteur actif à la fois
   useEffect(() => {
     const v = ref.current;
     if (!v || !autoplay) return;
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry.intersectionRatio >= 0.6) v.play().catch(() => {});
-        else v.pause();
+        if (entry.intersectionRatio >= 0.6) {
+          if (activeVideo && activeVideo !== v && !activeVideo.paused) activeVideo.pause();
+          activeVideo = v;
+          v.play().catch(() => {});
+        } else {
+          v.pause();
+          if (activeVideo === v) activeVideo = null;
+        }
       },
       { threshold: [0, 0.6] },
     );
     io.observe(v);
-    return () => io.disconnect();
+    return () => {
+      io.disconnect();
+      if (activeVideo === v) activeVideo = null;
+    };
   }, [autoplay]);
+
 
   // Reprise à la position (au-delà de 3 s, avant la fin)
   useEffect(() => {

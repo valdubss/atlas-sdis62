@@ -104,6 +104,12 @@ dans l'espace d'administration), A2 (sélection multiple et actions groupées su
 R10 (statistiques et journal en cartes sous 640 px ; le calendrier éditorial garde sa grille,
 outil d'ordinateur) sont livrés.
 
-**Reporté (1)** :
+**Complément du 12 octobre 2026** : F9 livré (`FollowButton` : état et phrase basculent au
+toucher, confirmation serveur et rafraîchissement des onglets en arrière-plan, bouton jamais
+grisé). Fluidité : bulle « Nouvelle version disponible · Recharger » (`PwaRegister`, adresse du
+worker versionnée par déploiement), transition en fondu entre les pages (`app/(app)/template.tsx`),
+squelette de l'administration, page suivante du fil demandée deux écrans avant le bas, lecteur
+vidéo : un seul actif à la fois et source chargée à l'approche de l'écran, surcouche de
+publication fermée d'un glissement vers la droite.
 
-- F9 `FollowButton` : `router.refresh()` conservé, les onglets suivis dépendent du serveur.
+**Reporté** : aucun.

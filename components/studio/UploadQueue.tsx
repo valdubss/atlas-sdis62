@@ -6,8 +6,11 @@ import { installUnloadGuard, useUploadQueue } from "@/lib/media/queue";
 /** Bandeau des envois en cours (studio), au-dessus de la barre basse sur mobile. */
 export function UploadQueue() {
   const items = useUploadQueue();
-  useEffect(() => installUnloadGuard(), []);
   const active = items.filter((i) => i.status !== "ready");
+  // Garde « quitter la page ? » posée seulement pendant un envoi : un écouteur beforeunload
+  // permanent priverait les pages du cache arrière-avant (retour instantané au fil)
+  const guarded = active.some((i) => i.status === "uploading" || i.status === "preparing");
+  useEffect(() => (guarded ? installUnloadGuard() : undefined), [guarded]);
   if (active.length === 0) return null;
   const overall = active.reduce((n, i) => n + (i.status === "error" ? 1 : i.progress), 0) / active.length;
   return (

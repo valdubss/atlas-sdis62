@@ -20,7 +20,8 @@ export function PublishedToast({ kind }: { kind: string }) {
   useEffect(() => {
     const text = TEXTS[kind];
     if (!text) return;
-    toast(text);
+    // Confirmation importante : affichée 4 s, le temps que le fil se mette en place
+    toast(text, 4000);
     try {
       const url = new URL(window.location.href);
       url.searchParams.delete("publie");

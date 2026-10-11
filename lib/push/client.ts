@@ -3,7 +3,7 @@
 /** Utilitaires navigateur pour l'abonnement Web Push. */
 
 /** URL du service worker, versionnée : un déploiement = un nouveau worker. */
-export const SW_URL = `/sw.js?v=${process.env.NEXT_PUBLIC_APP_VERSION ?? "dev"}`;
+export const SW_URL = `/sw.js?v=${process.env.NEXT_PUBLIC_APP_VERSION ?? "dev"}-${process.env.NEXT_PUBLIC_BUILD_ID ?? "dev"}`;
 
 export function pushSupported() {
   return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
