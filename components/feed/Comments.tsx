@@ -237,10 +237,11 @@ export function Comments({
             {replyTo && (
               <motion.div
                 key="reply"
-                initial={reduced ? false : { opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="overflow-hidden"
+                // Opacité et translation seulement (compositeur, 120 Hz) : jamais de hauteur animée
+                initial={reduced ? false : { opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
               >
                 <div className="mb-1.5 flex items-center justify-between gap-3 rounded-[10px] bg-bg-1 px-3 py-1.5 text-[13px]">
                   <span className="min-w-0 truncate text-text-2">
@@ -455,10 +456,10 @@ function CommentRow({
           {reporting && (
             <motion.form
               key="report"
-              initial={reduced ? false : { opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
+              initial={reduced ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+              transition={{ duration: 0.16, ease: [0.2, 0.8, 0.2, 1] }}
               onSubmit={(e) => {
                 e.preventDefault();
                 startTransition(async () => {

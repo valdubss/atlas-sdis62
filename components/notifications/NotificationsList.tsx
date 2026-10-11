@@ -85,7 +85,7 @@ export function NotificationsList({ items: initialItems, unread }: { items: Noti
             key={n.id}
             layout={!reduced}
             initial={false}
-            exit={reduced ? { opacity: 0 } : { opacity: 0, height: 0, x: -80, transition: { duration: 0.18 } }}
+            exit={reduced ? { opacity: 0 } : { opacity: 0, x: -80, transition: { duration: 0.18 } }}
             className="relative overflow-hidden"
           >
             {/* Fond révélé par le balayage : corbeille à droite */}

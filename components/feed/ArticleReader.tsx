@@ -52,7 +52,12 @@ export function ArticleReader({ slug, postId, body, children }: { slug: string; 
       const current = hs.filter((h) => h.getBoundingClientRect().top <= 120).pop();
       setActive(current?.id ?? null);
     };
+    // Au plus une mesure tous les 80 ms : à 120 Hz, mesurer chaque image coûterait plus que l'affichage
+    let last = 0;
     const onScroll = () => {
+      const now = performance.now();
+      if (now - last < 80) return;
+      last = now;
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(update);
     };

@@ -434,3 +434,11 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]) {
   box-shadow: 0 0 0 2px var(--text-1);
   transition: box-shadow 0.4s ease;
 }
+
+/* 120 Hz (iPhone ProMotion, écrans rapides) : les animations ne touchent que transform et
+   opacity (compositeur), jamais la hauteur ou la largeur ; les ressorts framer-motion sont
+   joués par le navigateur (WAAPI, easing linear()) ; le tap répond sans délai ni halo. */
+:where(button, [role="button"], a, input, select, textarea, .pressable) {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
