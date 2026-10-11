@@ -101,6 +101,8 @@ async function prepareVideo(file: File, options: PrepareOptions): Promise<Prepar
   // Compression sur l'appareil (façon Instagram) quand le navigateur le permet :
   // n'importe quel format lisible (HEVC d'iPhone compris) ressort en MP4 H.264
   // 1080p, léger et lisible partout. Sinon, chemin historique : H.264 exigé.
+  // Détail d'un échec de la compression rapide, repris dans le message si le secours échoue aussi
+  let fastError: string | null = null;
   if (file.size <= SOURCE_MAX_BYTES && (await canCompressVideo())) {
     options.onProgress?.(0, "Analyse de la vidéo…");
     if (options.maxDurationS) {
@@ -128,6 +130,7 @@ async function prepareVideo(file: File, options: PrepareOptions): Promise<Prepar
     } catch (e) {
       // Compression impossible sur cet appareil : on retombe sur l'envoi direct si le fichier s'y prête
       if (e instanceof Error && /dépasse|raccourcissez|au plus ici/.test(e.message)) throw e;
+      fastError = e instanceof Error ? e.message : String(e);
       console.warn("compression vidéo impossible, envoi direct", e);
     }
   }
@@ -135,8 +138,9 @@ async function prepareVideo(file: File, options: PrepareOptions): Promise<Prepar
   // Secours sans WebCodecs complet (iPhone sous iOS 16.4 à 18) : ré-enregistrement en
   // temps réel, uniquement quand le fichier ne passe pas tel quel (trop lourd ou pas en H.264)
   const realtime = async (why: string): Promise<PreparedFile> => {
+    const detail = fastError ? ` (compression rapide : ${fastError})` : "";
     if (file.size > SOURCE_MAX_BYTES || !canCompressRealtime()) {
-      throw new Error(why);
+      throw new Error(why + detail);
     }
     if (options.maxDurationS) {
       const d = await quickDuration(file);
@@ -144,8 +148,13 @@ async function prepareVideo(file: File, options: PrepareOptions): Promise<Prepar
         throw new Error(`Cette vidéo dure ${Math.round(d)} s : ${options.maxDurationS} s au plus ici.`);
       }
     }
-    options.onProgress?.(0, "Compression (durée de la vidéo)…");
-    const out = await compressVideoRealtime(file, (f) => options.onProgress?.(f, `Compression ${Math.round(f * 100)} % — gardez l'app ouverte`));
+    options.onProgress?.(0, "Préparation de la compression…");
+    let out: Awaited<ReturnType<typeof compressVideoRealtime>>;
+    try {
+      out = await compressVideoRealtime(file, (f, label) => options.onProgress?.(f, label ?? `Compression ${Math.round(f * 100)} %`));
+    } catch (e) {
+      throw new Error(`Compression impossible : ${e instanceof Error ? e.message : String(e)}${detail}`);
+    }
     if (out.blob.size > LIMITS.videoMaxBytes) {
       throw new Error(`Même compressée, la vidéo dépasse ${mb(LIMITS.videoMaxBytes)} : raccourcissez-la.`);
     }

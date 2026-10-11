@@ -76,17 +76,37 @@ function loadVideo(file: File): Promise<{ video: HTMLVideoElement; url: string }
   });
 }
 
+function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
+/** Piste audio décodée, ou null si la vidéo n'en a pas (ou si l'appareil ne sait pas la lire). */
 async function decodeAudio(file: File, ctx: AudioContext): Promise<AudioBuffer | null> {
   try {
-    return await ctx.decodeAudioData(await file.arrayBuffer());
-  } catch {
+    const bytes = await withTimeout(file.arrayBuffer(), 60_000, "Lecture du fichier trop longue.");
+    return await withTimeout(ctx.decodeAudioData(bytes), 120_000, "Décodage du son trop long.");
+  } catch (e) {
+    if (e instanceof Error && /trop long/.test(e.message)) throw e;
     return null;
   }
 }
 
-export async function compressVideoRealtime(file: File, onProgress?: (fraction: number) => void): Promise<RealtimeResult> {
+export async function compressVideoRealtime(file: File, onProgress?: (fraction: number, label?: string) => void): Promise<RealtimeResult> {
   const mime = mimeType();
   if (!mime) throw new Error("Enregistrement MP4 indisponible sur cet appareil.");
+  onProgress?.(0, "Lecture de la vidéo…");
   const { video, url } = await loadVideo(file);
   const duration = Number.isFinite(video.duration) ? video.duration : 0;
   if (!duration) throw new Error("Durée de la vidéo inconnue.");
@@ -100,12 +120,17 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
 
   // Audio : décodé à part (la vidéo reste en sourdine, ce qui autorise la lecture sans geste)
   const actx = getAudioContext();
+  onProgress?.(0, "Décodage du son…");
   const audioBuffer = actx ? await decodeAudio(file, actx) : null;
   const tracks: MediaStreamTrack[] = [];
   let audioSource: AudioBufferSourceNode | null = null;
   let dest: MediaStreamAudioDestinationNode | null = null;
   if (actx && audioBuffer) {
-    if (actx.state === "suspended") await actx.resume().catch(() => {});
+    // iOS : resume() hors d'un geste peut ne jamais répondre, on n'attend pas plus de 2 s
+    if (actx.state !== "running") await withTimeout(actx.resume(), 2000, "son").catch(() => {});
+    if (actx.state !== "running") {
+      throw new Error("Le son n'a pas pu être activé par l'appareil : touchez l'écran, puis relancez l'envoi de la vidéo.");
+    }
     dest = actx.createMediaStreamDestination();
     audioSource = actx.createBufferSource();
     audioSource.buffer = audioBuffer;
@@ -142,7 +167,7 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
       posterCtx.drawImage(video, 0, 0, posterCanvas.width, posterCanvas.height);
       posterCanvas.toBlob((b) => (poster = b ?? undefined), "image/jpeg", 0.85);
     }
-    onProgress?.(Math.min(0.99, video.currentTime / duration));
+    onProgress?.(Math.min(0.99, video.currentTime / duration), `Compression ${Math.round((video.currentTime / duration) * 100)} % — gardez l'app ouverte`);
     const v = video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number };
     if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(draw);
     else requestAnimationFrame(draw);
@@ -193,6 +218,7 @@ export async function compressVideoRealtime(file: File, onProgress?: (fraction: 
       };
       video.onerror = () => fail("Vidéo illisible pendant la compression.");
       video.currentTime = 0;
+      onProgress?.(0, "Compression 0 % — gardez l'app ouverte");
       // Première image avant le départ pour que l'enregistrement ne commence pas sur du noir
       const start = () => {
         ctx2d.drawImage(video, 0, 0, width, height);
