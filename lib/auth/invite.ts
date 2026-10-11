@@ -44,7 +44,7 @@ export async function sendLoginEmailFor(email: string): Promise<{ ok: true } | {
       return { ok: false, error: "Envoi impossible pour le moment. Réessayez." };
     }
   }
-  return sendAccountEmail(profile?.onboarded_at ? "magiclink" : "invite", email, { firstName: profile?.first_name });
+  return sendAccountEmail(profile?.onboarded_at ? "recovery" : "invite", email, { firstName: profile?.first_name });
 }
 
 /**
@@ -57,7 +57,8 @@ export async function sendLoginEmailFor(email: string): Promise<{ ok: true } | {
 export async function sendAccountEmail(kind: LinkKind, email: string, opts: { firstName?: string; by?: string } = {}): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = createAdminClient();
   const base = siteUrl();
-  const next = kind === "recovery" ? "/profil#mot-de-passe" : "/";
+  // Première connexion et mot de passe oublié arrivent sur l'écran qui fait choisir le mot de passe
+  const next = kind === "magiclink" ? "/" : "/bienvenue?mdp=1";
   const { data, error } = await admin.auth.admin.generateLink({
     type: kind === "invite" ? "magiclink" : kind,
     email,
@@ -71,8 +72,8 @@ export async function sendAccountEmail(kind: LinkKind, email: string, opts: { fi
     invite: {
       subject: `${APP_NAME} · votre accès`,
       title: `Bienvenue sur ${APP_NAME}`,
-      intro: `${hello} ${opts.by ? escapeHtml(opts.by) + " vous a ouvert un accès à " : "un accès vous a été ouvert à "}${APP_NAME}, l'application interne du SDIS 62. Touchez le bouton, ou saisissez le code ci-dessous sur l'écran de connexion.`,
-      button: "Ouvrir ATLAS",
+      intro: `${hello} ${opts.by ? escapeHtml(opts.by) + " vous a ouvert un accès à " : "un accès vous a été ouvert à "}${APP_NAME}, l'application interne du SDIS 62. Touchez le bouton pour définir votre mot de passe et commencer ; vous pouvez aussi saisir le code ci-dessous sur l'écran de connexion.`,
+      button: "Définir mon mot de passe",
     },
     magiclink: {
       subject: `${APP_NAME} · connexion`,
@@ -83,17 +84,14 @@ export async function sendAccountEmail(kind: LinkKind, email: string, opts: { fi
     recovery: {
       subject: `${APP_NAME} · nouveau mot de passe`,
       title: "Nouveau mot de passe",
-      intro: `${hello} touchez le bouton pour vous connecter puis choisir un nouveau mot de passe dans votre profil. Vous pouvez aussi saisir le code ci-dessous sur l'écran de connexion.`,
+      intro: `${hello} touchez le bouton pour choisir un nouveau mot de passe. Vous pouvez aussi saisir le code ci-dessous sur l'écran de connexion.`,
       button: "Choisir un mot de passe",
     },
   }[kind];
   const text = `${copy.title}\n\n${copy.intro.replace(/<[^>]+>/g, "")}\n\nLien : ${url}\nCode : ${email_otp ?? "(voir le lien)"}\n\nValable quinze minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`;
   const html = layout({ title: copy.title, intro: copy.intro, code: email_otp ?? undefined, buttons: [{ label: copy.button, href: url }], footer: "Valable quinze minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail." });
   const sent = await sendMail({ to: email, subject: copy.subject, html, text });
-  if (!sent) {
-    // Pas de transport côté app : on laisse Supabase envoyer son e-mail standard
-    const fallback = kind === "recovery" ? await admin.auth.resetPasswordForEmail(email, { redirectTo: `${base}/auth/callback?next=${encodeURIComponent(next)}` }) : await admin.auth.admin.inviteUserByEmail(email, { redirectTo: `${base}/auth/callback?next=/` });
-    if (fallback.error) return { ok: false, error: "Aucun transport e-mail configuré (RESEND_API_KEY) et l'envoi par Supabase a échoué : " + fallback.error.message };
-  }
+  // Jamais d'e-mail standard Supabase : sans transport ATLAS, rien ne part et l'appelant le dit
+  if (!sent) return { ok: false, error: "L'envoi d'e-mails n'est pas encore configuré (RESEND_API_KEY). Aucun e-mail n'a été envoyé." };
   return { ok: true };
 }

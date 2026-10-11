@@ -120,6 +120,7 @@ redirige vers `/login`.
 | `0035_storage_mime_fix.sql` | correctif du bucket `media` (régression 0032) : familles `image/*`, `video/*`, `audio/*` en joker, HLS, sous-titres, PDF / Word ; sans lui, transcodage vidéo, messages vocaux et fichiers de la messagerie étaient refusés (415) |
 | `0036_center_notes.sql` | notes de service (fil interne du centre) : table `center_notes` (PDF ou image, épinglage), lecture réservée aux membres du centre et aux responsables, écriture par le chef de centre, le responsable com et le service communication (`can_manage_center`), `center_notes_list`, `center_author_role`, notification `note` (cloche + push « mon centre ») |
 | `0037_center_contacts_attach.sql` | chefs de centre et responsables com rattachés d'office : `center_for_contact_email`, `attach_center_contacts`, trigger sur `centers` (adresses saisies ou modifiées) et sur `profiles` (première connexion), demandes en attente annulées, notification « Vous êtes chef de centre » ; profils existants rattachés sans notification |
+| `0038_password_required.sql` | mot de passe obligatoire : `profiles.password_set_at` (posé à l'accueil, dans le profil, par un administrateur), `mark_password_set`, recopie `password_set` dans le jeton ; éditeurs et administrateurs existants considérés comme équipés, les lecteurs le choisissent à leur prochaine visite |
 
 **Option B — Supabase CLI (recommandé à partir du 2ᵉ lot)**
 
@@ -205,14 +206,21 @@ where key = 'allowed_emails';
   `AUTH_OIDC_PROVIDER=azure`. Un administrateur peut rendre le SSO obligatoire dans
   Studio → Paramètres.
 
-- **Connexion** (défaut) : e-mail et mot de passe.
-- **Première connexion ou mot de passe oublié** : l'agent saisit son adresse, reçoit
-  un lien magique (Supabase Auth) et arrive sur `/bienvenue` où il renseigne prénom,
-  nom et mot de passe (10 caractères minimum). Le mot de passe se change ensuite
-  depuis la page Profil. Aucun réglage Supabase supplémentaire n'est nécessaire (le
-  provider Email couvre les deux modes). Pour renforcer
-la sécurité : **Authentication → Providers → Email → Password requirements** et
-activer la détection des mots de passe compromis (offre Pro).
+- **Connexion** : e-mail professionnel et mot de passe. Le mot de passe est obligatoire
+  (10 caractères minimum).
+- **Première connexion ou mot de passe oublié** : l'agent saisit son adresse et reçoit un
+  e-mail d'ATLAS (expéditeur, objet et contenu d'ATLAS, jamais de Supabase) avec un lien
+  et un code à six chiffres. Le lien, ou le code saisi sur l'écran de connexion, ouvre
+  l'écran d'accueil où il renseigne prénom, nom et **choisit son mot de passe**. Tant
+  qu'un compte n'a pas de mot de passe, le proxy le renvoie vers cet écran
+  (`profiles.password_set_at`, recopié dans le jeton `password_set`, migration `0038`).
+- **Transport e-mail obligatoire** : `RESEND_API_KEY` et `EMAIL_FROM` (par exemple
+  `ATLAS SDIS 62 <atlas@sdis62.fr>`, domaine vérifié chez Resend) doivent être renseignés
+  sur Vercel. Sans transport, aucun e-mail ne part : l'écran de connexion l'indique et
+  Supabase n'envoie jamais son e-mail standard. Les modèles Supabase (Authentication →
+  Email Templates) ne servent donc pas.
+- Renforcement possible : **Authentication → Providers → Email → Password requirements**
+  et détection des mots de passe compromis (offre Pro).
 
 ## 4. Créer le premier administrateur
 

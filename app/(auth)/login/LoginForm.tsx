@@ -13,12 +13,13 @@ type Mode = "password" | "link";
 const input = "h-11 w-full rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge";
 
 /**
- * Connexion : SSO Microsoft en premier s'il est configuré, sinon l'e-mail
- * professionnel (lien magique + code à six chiffres dans le même e-mail).
- * Le mot de passe reste une option pour ceux qui en ont défini un.
+ * Connexion : SSO Microsoft en premier s'il est configuré, sinon e-mail
+ * professionnel + mot de passe. Première connexion ou mot de passe oublié :
+ * un e-mail d'ATLAS avec le lien (et un code à six chiffres) pour définir le
+ * mot de passe.
  */
 export function LoginForm({ next, auth }: { next: string; domains?: string[]; auth: AuthSettings }) {
-  const [mode, setMode] = useState<Mode>(auth.magicLinkEnabled ? "link" : "password");
+  const [mode, setMode] = useState<Mode>(auth.passwordEnabled ? "password" : "link");
   const [pwdState, pwdAction, pwdPending] = useActionState(signInWithPassword, initial);
   const [linkState, linkAction, linkPending] = useActionState(sendMagicLink, initial);
   const [ssoState, ssoAction, ssoPending] = useActionState(startSso, initial);
@@ -32,7 +33,7 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
         <div className="space-y-1">
           <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">E-mail envoyé</p>
           <p className="text-[15px] text-text-2">
-            Sur <span className="text-text-1">{sent.email}</span> : touchez le lien, ou saisissez ici le code à six chiffres qui figure dans l&apos;e-mail. Valable quinze minutes.
+            Sur <span className="text-text-1">{sent.email}</span> : touchez le lien pour définir votre mot de passe, ou saisissez ici le code à six chiffres qui figure dans l&apos;e-mail. Valable quinze minutes.
           </p>
         </div>
         <form action={codeAction} className="space-y-3" noValidate>
@@ -125,7 +126,7 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
       {!auth.ssoForced && mode === "link" && auth.magicLinkEnabled && (
         <form action={linkAction} className="space-y-3" noValidate>
           <input type="hidden" name="next" value={next && next !== "/" ? next : "/"} />
-          <p className="text-[15px] text-text-2">Votre adresse @sdis62.fr : vous recevez un e-mail avec un lien et un code de connexion. Aucun mot de passe à retenir.</p>
+          <p className="text-[15px] text-text-2">Première connexion ou mot de passe oublié : saisissez votre adresse @sdis62.fr, vous recevez un e-mail avec un lien pour définir votre mot de passe.</p>
           <input name="email" type="email" autoComplete="email" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail" required className={cn(input, error && "ring-red")} />
           {error && (
             <p className="text-[13px] text-red-text" role="alert">
@@ -133,7 +134,7 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
             </p>
           )}
           <Button type="submit" variant={secondaryVariant} className="w-full" loading={linkPending}>
-            Recevoir mon e-mail de connexion
+            Recevoir le lien
           </Button>
         </form>
       )}
@@ -144,7 +145,7 @@ export function LoginForm({ next, auth }: { next: string; domains?: string[]; au
           onClick={() => setMode((m) => (m === "password" ? "link" : "password"))}
           className="block w-full text-center text-[15px] font-medium text-text-2 hover:text-text-1"
         >
-          {mode === "password" ? "Me connecter par e-mail (sans mot de passe)" : "J'ai un mot de passe"}
+          {mode === "password" ? "Première connexion ou mot de passe oublié ?" : "J'ai déjà un mot de passe"}
         </button>
       )}
     </div>

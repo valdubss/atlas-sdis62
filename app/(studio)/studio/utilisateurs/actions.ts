@@ -137,6 +137,7 @@ export async function setUserPassword(userId: string, password: string): Promise
     if (/should contain|at least|characters|requirements/i.test(m)) return { ok: false, error: "Mot de passe refusé : " + m };
     return { ok: false, error: "Modification impossible : " + m };
   }
+  await admin.from("profiles").update({ password_set_at: new Date().toISOString() }).eq("id", userId);
   // Journal : aucune écriture directe par les utilisateurs (RLS), on passe par la clé service_role
   await admin.from("audit_log").insert({ actor_id: user.id, action: "password_set", entity_type: "profiles", entity_id: userId }).then(() => undefined, () => undefined);
   return { ok: true };
@@ -165,7 +166,7 @@ export type CreateUserState = { status: "idle" } | { status: "created"; email: s
 
 /**
  * Création d'un compte par un administrateur : par défaut une invitation par
- * e-mail (lien + code), sans mot de passe. Un mot de passe initial reste possible
+ * e-mail (lien + code) pour choisir son mot de passe. Un mot de passe initial reste possible
  * pour les cas particuliers. Prénom, nom, rôle et centre sont posés directement.
  */
 export async function createUser(_prev: CreateUserState, formData: FormData): Promise<CreateUserState> {
@@ -205,6 +206,7 @@ export async function createUser(_prev: CreateUserState, formData: FormData): Pr
     return { status: "error", message: "Création impossible : " + msg };
   }
   const patch: Database["public"]["Tables"]["profiles"]["Update"] = {};
+  if (v.password) patch.password_set_at = new Date().toISOString();
   if (v.role !== "reader") patch.role = v.role;
   if (v.center_id) {
     patch.center_id = v.center_id;

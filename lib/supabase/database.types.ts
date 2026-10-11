@@ -44,6 +44,7 @@ type ProfileRow = {
   avatar_key: string | null;
   is_active: boolean;
   onboarded_at: Timestamp | null;
+  password_set_at: Timestamp | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 };
@@ -355,7 +356,7 @@ export type Database = {
     Tables: {
       profiles: {
         Row: ProfileRow;
-        Insert: Optional<ProfileRow, "first_name" | "last_name" | "center_id" | "service_id" | "job_title" | "directory_visible" | "work_phone" | "present_me" | "center_joined_at" | "role" | "avatar_key" | "is_active" | "onboarded_at" | "created_at" | "updated_at">;
+        Insert: Optional<ProfileRow, "first_name" | "last_name" | "center_id" | "service_id" | "job_title" | "directory_visible" | "work_phone" | "present_me" | "center_joined_at" | "role" | "avatar_key" | "is_active" | "onboarded_at" | "password_set_at" | "created_at" | "updated_at">;
         Update: Partial<ProfileRow>;
         Relationships: [];
       };
@@ -787,6 +788,7 @@ export type Database = {
       is_center_com: { Args: { p_center: string }; Returns: boolean };
       can_manage_center: { Args: { p_center: string }; Returns: boolean };
       center_notes_list: { Args: { p_center: string; p_limit?: number }; Returns: Json[] };
+      mark_password_set: { Args: Record<string, never>; Returns: undefined };
       center_for_contact_email: { Args: { p_email: string }; Returns: string | null };
       attach_center_contacts: { Args: { p_center: string; p_notify?: boolean }; Returns: undefined };
       center_author_role: { Args: { p_center: string; p_profile: string }; Returns: string | null };

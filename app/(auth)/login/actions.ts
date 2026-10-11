@@ -26,7 +26,7 @@ function notAllowedMessage() {
     : "Aucun domaine e-mail autorisé n'est configuré (ALLOWED_EMAIL_DOMAINS).";
 }
 
-/** Connexion par lien magique (par défaut). */
+/** Première connexion ou mot de passe oublié : e-mail d'ATLAS avec le lien (et le code) pour définir le mot de passe. */
 export async function sendMagicLink(
   _prev: LoginState,
   formData: FormData,
@@ -43,44 +43,13 @@ export async function sendMagicLink(
     return { status: "error", message: notAllowedMessage() };
   }
 
-  const h = await headers();
-  const origin =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    h.get("origin") ??
-    `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
   const next = safeNext(formData.get("next") as string | null);
 
-  // Transport de l'app (Resend / SMTP) : lien + code dans le même e-mail, sans les
-  // limites d'envoi de Supabase. À défaut, l'e-mail standard de Supabase.
-  if (appMailConfigured()) {
-    const r = await sendLoginEmailFor(email);
-    if (!r.ok) return { status: "error", message: r.error };
-    return { status: "sent", email, next };
-  }
-
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
-      shouldCreateUser: true,
-    },
-  });
-
-  if (error) {
-    // Le trigger SQL refuse les adresses non autorisées (défense en profondeur).
-    if (error.message.includes("DOMAINE_NON_AUTORISE") || error.message.includes("Database error")) {
-      return { status: "error", message: "Cette adresse n'est pas autorisée." };
-    }
-    if (error.status === 429) {
-      return {
-        status: "error",
-        message: "Trop de demandes. Patientez quelques minutes avant de réessayer.",
-      };
-    }
-    return { status: "error", message: "Envoi impossible pour le moment. Réessayez." };
-  }
-
+  // Les e-mails partent par le transport d'ATLAS (Resend ou SMTP) : expéditeur, objet et
+  // contenu sont ceux d'ATLAS. Jamais d'e-mail standard Supabase.
+  if (!appMailConfigured()) return { status: "error", message: "L'envoi d'e-mails n'est pas encore configuré. Contactez le service communication." };
+  const r = await sendLoginEmailFor(email);
+  if (!r.ok) return { status: "error", message: r.error };
   return { status: "sent", email, next };
 }
 
@@ -96,19 +65,17 @@ export async function verifyEmailCode(_prev: LoginState, formData: FormData): Pr
   if (!parsed.success) return { status: "error", message: "Adresse invalide." };
   if (code.length < 6) return { status: "sent", email: parsed.data.email, next };
   const supabase = await createClient();
-  const { error } = await supabase.auth.verifyOtp({ email: parsed.data.email, token: code, type: "email" });
+  const { data, error } = await supabase.auth.verifyOtp({ email: parsed.data.email, token: code, type: "email" });
   if (error) {
     if (error.status === 429) return { status: "error", message: "Trop de tentatives. Patientez quelques minutes." };
     return { status: "error", message: "Code incorrect ou expiré. Demandez un nouvel e-mail." };
   }
-  redirect(next);
+  // Sans mot de passe (première connexion, mot de passe oublié) : il se choisit tout de suite
+  const passwordSet = (data.user?.app_metadata as { password_set?: boolean } | undefined)?.password_set === true;
+  redirect(passwordSet ? next : "/bienvenue?mdp=1");
 }
 
-/**
- * Connexion par mot de passe (option pour les administrateurs / éditeurs).
- * Le mot de passe se définit depuis la page Profil après une première
- * connexion par lien magique.
- */
+/** Connexion par mot de passe (le mode normal : chaque agent en définit un à sa première connexion). */
 export async function signInWithPassword(
   _prev: LoginState,
   formData: FormData,
@@ -138,7 +105,7 @@ export async function signInWithPassword(
     return {
       status: "error",
       message:
-        "Identifiants incorrects. Si vous n'avez pas encore défini de mot de passe, utilisez le lien magique.",
+        "Identifiants incorrects. Première connexion ou mot de passe oublié ? Demandez un lien ci-dessous.",
     };
   }
 

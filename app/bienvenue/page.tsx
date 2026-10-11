@@ -18,11 +18,16 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
   const current = await getCurrentUser();
   if (!current) redirect("/auth/deconnexion?raison=profil");
   const { profile } = current;
-  if (profile.onboarded_at && mdp !== "1") redirect("/");
-  // Première connexion par lien ou code : le mot de passe est proposé (facultatif)
-  const offerPassword = mdp === "1" || !profile.onboarded_at;
-
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const passwordSet = (user?.app_metadata as { password_set?: boolean } | undefined)?.password_set === true;
+  if (profile.onboarded_at && mdp !== "1" && passwordSet) redirect("/");
+  // Mot de passe obligatoire : exigé à la première connexion, après un lien « mot de passe oublié »,
+  // et pour tout compte qui n'en a pas encore
+  const passwordRequired = !passwordSet || mdp === "1";
+
   const [directory, presetRole] = await Promise.all([
     fetchDirectory(),
     // Chef de centre ou responsable com : déjà rattaché d'office par le trigger, l'accueil le dit
@@ -36,7 +41,8 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
       centerId={profile.center_id}
       presetRole={presetRole}
       directory={directory}
-      needPassword={offerPassword}
+      needPassword={passwordRequired}
+      passwordRequired={passwordRequired}
       startAtForm={Boolean(profile.onboarded_at)}
       key={profile.onboarded_at ? "reset" : "first"}
     />

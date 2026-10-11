@@ -26,8 +26,10 @@ const profileSchema = z.object({
 
 /** Termine l'accueil : profil, centre, mot de passe si demandé, puis onboarded_at. */
 export async function completeOnboarding(_prev: OnboardingState, formData: FormData): Promise<OnboardingState> {
-  // Mot de passe facultatif : proposé à l'arrivée par lien, ignoré si laissé vide
-  const needPassword = formData.get("need_password") === "1" && Boolean(String(formData.get("password") ?? "") || String(formData.get("confirm") ?? ""));
+  // Mot de passe : obligatoire à la première connexion et après un lien « mot de passe oublié » ;
+  // sinon proposé et ignoré s'il est laissé vide
+  const required = formData.get("password_required") === "1";
+  const needPassword = required || (formData.get("need_password") === "1" && Boolean(String(formData.get("password") ?? "") || String(formData.get("confirm") ?? "")));
   const parsedProfile = profileSchema.safeParse({
     first_name: formData.get("first_name"),
     last_name: formData.get("last_name"),
@@ -71,6 +73,7 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
       const weak = /weak|pwned|leaked|compromised/i.test(error.message);
       return { status: "error", message: weak ? "Ce mot de passe est trop faible ou connu dans des fuites de données. Choisissez-en un autre." : "Enregistrement du mot de passe impossible. Reconnectez-vous puis réessayez." };
     }
+    await supabase.rpc("mark_password_set");
   }
 
   // Rafraîchit le jeton pour que le middleware voie « onboarded »

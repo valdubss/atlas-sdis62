@@ -58,7 +58,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const meta = ((claims.app_metadata as Record<string, unknown> | undefined) ?? {}) as { role?: string; is_active?: boolean; onboarded?: boolean };
+  const meta = ((claims.app_metadata as Record<string, unknown> | undefined) ?? {}) as { role?: string; is_active?: boolean; onboarded?: boolean; password_set?: boolean };
 
   if (meta.is_active === false) {
     await supabase.auth.signOut();
@@ -81,6 +81,19 @@ export async function updateSession(request: NextRequest) {
     url.pathname = "/bienvenue";
     url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  // Mot de passe obligatoire : un agent arrivé par lien ou code sans mot de passe le choisit avant tout
+  // (password_set copié dans le jeton par trigger ; rafraîchi une fois au cas où il vient d'être posé)
+  if (meta.password_set === false && !pathname.startsWith("/bienvenue") && !pathname.startsWith("/api/") && !pathname.startsWith("/auth/")) {
+    const { data: refreshed } = await supabase.auth.refreshSession();
+    const fresh = (refreshed.session?.user.app_metadata as { password_set?: boolean } | undefined)?.password_set;
+    if (fresh !== true) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/bienvenue";
+      url.search = "?mdp=1";
+      return NextResponse.redirect(url);
+    }
   }
 
   // Co-rédacteurs (agents ajoutés sur une publication) : accès limité, vérifié en base par la page

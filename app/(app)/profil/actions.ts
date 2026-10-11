@@ -80,6 +80,9 @@ export async function setPassword(
     if (/session|jwt|token|expired/i.test(m)) return { status: "error", message: "Votre session a expiré : reconnectez-vous avec le lien e-mail puis réessayez." };
     return { status: "error", message: "Modification impossible (" + m + "). Reconnectez-vous puis réessayez." };
   }
+  // Noté côté ATLAS puis recopié dans le jeton (rafraîchi tout de suite pour le proxy)
+  await supabase.rpc("mark_password_set");
+  await supabase.auth.refreshSession();
 
   return { status: "saved" };
 }

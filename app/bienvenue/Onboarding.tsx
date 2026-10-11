@@ -28,7 +28,7 @@ const initial: OnboardingState = { status: "idle" };
  * Accueil de première connexion : trois écrans plein cadre, puis profil
  * (prénom, nom, centre, mot de passe si arrivée par lien) et activation des push.
  */
-export function Onboarding({ firstName, lastName, centerId, directory, needPassword, startAtForm = false, presetRole = null }: { firstName: string; lastName: string; centerId: string | null; directory: Directory; needPassword: boolean; startAtForm?: boolean; /** Chef de centre ou responsable com déjà rattaché d'office */ presetRole?: string | null }) {
+export function Onboarding({ firstName, lastName, centerId, directory, needPassword, startAtForm = false, presetRole = null, passwordRequired = false }: { firstName: string; lastName: string; centerId: string | null; directory: Directory; needPassword: boolean; startAtForm?: boolean; /** Chef de centre ou responsable com déjà rattaché d'office */ presetRole?: string | null; /** Mot de passe exigé (première connexion, lien « mot de passe oublié ») */ passwordRequired?: boolean }) {
   const [step, setStep] = useState(startAtForm ? SLIDES.length : 0);
   const [picker, setPicker] = useState(false);
   const [choice, setChoice] = useState<{ center_id: string | null; service_id: string | null; name: string } | null>(() => {
@@ -102,6 +102,7 @@ export function Onboarding({ firstName, lastName, centerId, directory, needPassw
 
             <form action={action} className="mt-6 space-y-4" noValidate>
               <input type="hidden" name="need_password" value={needPassword ? "1" : "0"} />
+              <input type="hidden" name="password_required" value={passwordRequired ? "1" : "0"} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Prénom" name="first_name" defaultValue={firstName} autoComplete="given-name" required error={fields.first_name} />
                 <Field label="Nom" name="last_name" defaultValue={lastName} autoComplete="family-name" required error={fields.last_name} />
@@ -132,8 +133,8 @@ export function Onboarding({ firstName, lastName, centerId, directory, needPassw
               </Sheet>
               {needPassword && (
                 <>
-                  <Field label="Mot de passe (facultatif)" name="password" type="password" autoComplete="new-password" minLength={LIMITS.passwordMinLength} hint={`${LIMITS.passwordMinLength} caractères minimum. Sans mot de passe, vous vous connectez par e-mail (lien ou code).`} error={fields.password} />
-                  <Field label="Confirmer le mot de passe" name="confirm" type="password" autoComplete="new-password" error={fields.confirm} />
+                  <Field label={passwordRequired ? "Mot de passe" : "Mot de passe (facultatif)"} name="password" type="password" autoComplete="new-password" minLength={LIMITS.passwordMinLength} required={passwordRequired} hint={`${LIMITS.passwordMinLength} caractères minimum. Il vous servira à chaque connexion.`} error={fields.password} />
+                  <Field label="Confirmer le mot de passe" name="confirm" type="password" autoComplete="new-password" required={passwordRequired} error={fields.confirm} />
                 </>
               )}
 
