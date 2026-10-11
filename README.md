@@ -882,6 +882,30 @@ Supabase Storage. Il est créé automatiquement au premier usage, ou à la main 
 > d'une publication, 5 min, tienne encore sous la limite. Refus explicite seulement si
 > le résultat dépasse encore la limite.
 
+### 8.1 bis Vidéo « façon réseaux sociaux » : Bunny Stream
+
+Avec `VIDEO_PROVIDER=bunny` (et `NEXT_PUBLIC_VIDEO_PROVIDER=bunny`,
+`NEXT_PUBLIC_UPLOAD_MAX_MB=2048`, `BUNNY_LIBRARY_ID`, `BUNNY_API_KEY`,
+`BUNNY_CDN_HOST=vz-….b-cdn.net`), les vidéos ne passent plus par Supabase ni par ffmpeg :
+
+- **Envoi** : l'original part tel quel depuis le téléphone (HEVC d'iPhone compris, jusqu'à
+  2 Go et 5 min), par TUS signé côté serveur (`lib/video/bunny-api.ts`, `bunnyTusTarget`),
+  avec reprise après coupure. Aucune compression sur l'appareil.
+- **Encodage** : chez Bunny, en ligne, environ une minute ; la ligne `media` est mise à jour
+  par `bunnySyncMedia` (Studio pendant le traitement, lecteur du fil via
+  `/api/video/status`, webhook `/api/video/bunny?token=…` affiché par `npm run bunny:webhook`,
+  cron). Lecture possible dès la première qualité prête.
+- **Lecture** : HLS depuis le CDN de la bibliothèque (`hls_key` absolu), MP4 de repli
+  `play_720p.mp4` (activer **MP4 Fallback** dans la bibliothèque : Settings → Encoding),
+  vignette Bunny comme poster par défaut. Dans le fil, une vidéo encore en traitement
+  affiche « Vidéo en cours de traitement… » et se met à jour seule.
+- **Poster « timecode » et transcription** : ffmpeg lit le flux HLS du CDN depuis les
+  routes `/api/video/*`.
+- **Suppression** : retrait dans un éditeur ou purge des orphelins → `DELETE` chez Bunny.
+- **Réglages Bunny conseillés** : Webhook URL (ci-dessus), MP4 Fallback activé, zones de
+  réplication Europe seulement ; aucune authentification par jeton sur le CDN (les vidéos
+  sont internes mais leurs URL ne sont connues que des agents connectés).
+
 ### 8.2 Passage à un bucket S3 (Scaleway Object Storage ou Cloudflare R2)
 
 Renseignez dans `.env.local` (et sur Vercel) :

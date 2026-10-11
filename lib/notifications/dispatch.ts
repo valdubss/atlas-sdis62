@@ -261,7 +261,15 @@ export async function runMaintenance(): Promise<{ requeued: number; orphanMedia:
   if (messagingError) console.error("entretien messagerie", messagingError.message);
   const messagingKeys = ((messaging as { keys?: string[] } | null)?.keys ?? []).filter(Boolean);
   const { data: orphans } = await admin.rpc("purge_orphan_media");
-  const keys = [...((orphans ?? []) as { id: string; keys: string[] }[]).flatMap((o) => o.keys ?? []), ...messagingKeys];
+  const allKeys = [...((orphans ?? []) as { id: string; keys: string[] }[]).flatMap((o) => o.keys ?? []), ...messagingKeys];
+  // Vidéos chez Bunny Stream (URL absolues) : suppression chez Bunny, pas dans le stockage
+  const remote = allKeys.filter((k) => /^https?:\/\//.test(k));
+  if (remote.length > 0) {
+    const { bunnyGuidOf, bunnyDeleteVideo } = await import("@/lib/video/bunny-api");
+    const guids = new Set(remote.map((k) => bunnyGuidOf({ original_key: k })).filter((g): g is string => Boolean(g)));
+    for (const guid of guids) await bunnyDeleteVideo(guid).catch((e) => console.error("purge Bunny", e));
+  }
+  const keys = allKeys.filter((k) => !/^https?:\/\//.test(k));
   if (keys.length > 0) {
     const { getStorage } = await import("@/lib/storage");
     for (let i = 0; i < keys.length; i += 100) {

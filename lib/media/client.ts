@@ -1,6 +1,6 @@
 "use client";
 
-import { ACCEPTED_IMAGE_MIMES, ACCEPTED_VIDEO_MIMES, LIMITS } from "@/lib/config";
+import { ACCEPTED_IMAGE_MIMES, ACCEPTED_VIDEO_MIMES, LIMITS, VIDEO_DIRECT_UPLOAD } from "@/lib/config";
 import { describeVideoCodec, isH264, readSampleEntryTypes } from "./mp4";
 import { canCompressVideo, compressVideo } from "./compress";
 import { canCompressRealtime, compressVideoRealtime } from "./compress-realtime";
@@ -98,6 +98,70 @@ async function shrinkImage(blob: Blob, width: number, height: number, mime: stri
 }
 
 async function prepareVideo(file: File, options: PrepareOptions): Promise<PreparedFile> {
+  // Envoi direct (Bunny Stream) : l'original part tel quel, tout format que l'appareil a filmé
+  // (HEVC d'iPhone compris) ; l'encodage est fait en ligne. Seuls la durée et le poids sont vérifiés.
+  if (VIDEO_DIRECT_UPLOAD) {
+    if (file.size > LIMITS.videoMaxBytes) {
+      throw new Error(`${file.name} dépasse ${mb(LIMITS.videoMaxBytes)}.`);
+    }
+    if (options.maxDurationS) {
+      const d = await quickDuration(file);
+      if (d && d > options.maxDurationS + 0.5) {
+        throw new Error(`Cette vidéo dure ${Math.round(d)} s : ${options.maxDurationS} s au plus ici.`);
+      }
+    }
+    options.onProgress?.(0.5, "Lecture de la vidéo…");
+    let meta: { width: number; height: number; duration: number; poster?: Blob };
+    try {
+      meta = await videoMetadata(file);
+    } catch {
+      // Format non lisible par ce navigateur (HEVC sur Chrome) : dimensions connues après l'encodage
+      meta = { width: 1280, height: 720, duration: 0 };
+    }
+    return {
+      blob: file,
+      name: file.name,
+      mime: /^video\//.test(file.type) ? file.type : "video/mp4",
+      kind: "video",
+      width: meta.width,
+      height: meta.height,
+      duration: Number.isFinite(meta.duration) && meta.duration > 0 ? meta.duration : undefined,
+      poster: meta.poster,
+      originalBytes: file.size,
+    };
+  }
+  // Envoi direct (Bunny Stream) : l'original part tel quel, tout format que l'appareil a filmé
+  // (HEVC d'iPhone compris) ; l'encodage est fait en ligne. Seuls la durée et le poids sont vérifiés.
+  if (VIDEO_DIRECT_UPLOAD) {
+    if (file.size > LIMITS.videoMaxBytes) {
+      throw new Error(`${file.name} dépasse ${mb(LIMITS.videoMaxBytes)}.`);
+    }
+    if (options.maxDurationS) {
+      const d = await quickDuration(file);
+      if (d && d > options.maxDurationS + 0.5) {
+        throw new Error(`Cette vidéo dure ${Math.round(d)} s : ${options.maxDurationS} s au plus ici.`);
+      }
+    }
+    options.onProgress?.(0.5, "Lecture de la vidéo…");
+    let meta: { width: number; height: number; duration: number; poster?: Blob };
+    try {
+      meta = await videoMetadata(file);
+    } catch {
+      // Format non lisible par ce navigateur (HEVC sur Chrome) : dimensions connues après l'encodage
+      meta = { width: 1280, height: 720, duration: 0 };
+    }
+    return {
+      blob: file,
+      name: file.name,
+      mime: /^video\//.test(file.type) ? file.type : "video/mp4",
+      kind: "video",
+      width: meta.width,
+      height: meta.height,
+      duration: Number.isFinite(meta.duration) && meta.duration > 0 ? meta.duration : undefined,
+      poster: meta.poster,
+      originalBytes: file.size,
+    };
+  }
   // Compression sur l'appareil (façon Instagram) quand le navigateur le permet :
   // n'importe quel format lisible (HEVC d'iPhone compris) ressort en MP4 H.264
   // 1080p, léger et lisible partout. Sinon, chemin historique : H.264 exigé.

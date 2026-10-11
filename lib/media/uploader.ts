@@ -13,7 +13,9 @@ import { LIMITS } from "@/lib/config";
 export type UploadTarget =
   | { mode: "put"; url: string; headers: Record<string, string> }
   | { mode: "tus"; endpoint: string; bucket: string; objectName: string; token: string; mime: string }
-  | { mode: "multipart"; key: string; mime: string; uploadId: string; partSize: number };
+  | { mode: "multipart"; key: string; mime: string; uploadId: string; partSize: number }
+  /** Bunny Stream : TUS signé par le serveur, reprise après coupure, morceaux de 16 Mo */
+  | { mode: "bunny"; endpoint: string; headers: Record<string, string>; metadata: Record<string, string> };
 
 export type MultipartApi = {
   presignPart: (key: string, uploadId: string, partNumber: number) => Promise<{ ok: true; url: string } | { ok: false; error: string }>;
@@ -55,6 +57,29 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
 export async function uploadFile(target: UploadTarget, blob: Blob, onProgress: (fraction: number) => void, api?: MultipartApi, fingerprint?: string | null): Promise<void> {
   if (target.mode === "put") {
     await withRetry(() => putXhr(target.url, target.headers, blob, onProgress));
+    return;
+  }
+
+  if (target.mode === "bunny") {
+    const { Upload } = await import("tus-js-client");
+    await new Promise<void>((resolve, reject) => {
+      const upload = new Upload(blob, {
+        endpoint: target.endpoint,
+        retryDelays: [0, 2000, 5000, 10000, 20000, 30000],
+        chunkSize: 16 * 1024 * 1024,
+        removeFingerprintOnSuccess: true,
+        headers: target.headers,
+        metadata: target.metadata,
+        fingerprint: async () => `atlas-bunny-${target.headers.VideoId}`,
+        onError: (e) => reject(new Error(/401|403/.test(String(e)) ? "Envoi refusé par le service vidéo : reprenez l'envoi." : "Envoi interrompu. Reprenez en rajoutant le même fichier.")),
+        onProgress: (sent, total) => onProgress(total ? sent / total : 0),
+        onSuccess: () => resolve(),
+      });
+      upload.findPreviousUploads().then((prev) => {
+        if (prev.length) upload.resumeFromPreviousUpload(prev[0]);
+        upload.start();
+      });
+    });
     return;
   }
 

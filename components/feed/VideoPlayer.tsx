@@ -21,8 +21,54 @@ function resumeKey(id: string) {
  * coupé, plein écran natif, reprise à la position, vitesse 1× / 1,25× / 1,5×,
  * cadre selon l'orientation (jamais de bandes ajoutées), paliers 25/50/75/100.
  */
+/** Vidéo encodée en ligne (Bunny Stream) pas encore lisible : URL absolue et état non prêt. */
+function isProcessingRemote(m: MediaItem) {
+  return m.kind === "video" && /^https?:/.test(m.original_key ?? "") && m.video_status !== "ready";
+}
+
+/** Suit l'état d'une vidéo en cours d'encodage en ligne (sondage toutes les 6 s, 12 min au plus). */
+function useLiveMedia(initial: MediaItem): MediaItem {
+  const [live, setLive] = useState(initial);
+  // Nouveau média reçu du serveur (rafraîchissement du fil) : on repart de sa version
+  const [source, setSource] = useState(initial);
+  if (source !== initial) {
+    setSource(initial);
+    setLive(initial);
+  }
+  const id = live.id;
+  const status = live.video_status;
+  const remote = isProcessingRemote(live);
+  useEffect(() => {
+    if (!remote || status === "failed") return;
+    let alive = true;
+    let tries = 0;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const tick = async () => {
+      if (!alive) return;
+      try {
+        const res = await fetch(`/api/video/status?id=${id}`, { cache: "no-store" });
+        if (res.ok) {
+          const s = (await res.json()) as Partial<MediaItem>;
+          if (!alive) return;
+          if (s.video_status) setLive((m) => ({ ...m, ...s }));
+          if (s.video_status === "ready" || s.video_status === "failed") return;
+        }
+      } catch {
+        /* réseau : on réessaie */
+      }
+      if (++tries < 120 && alive) timer = setTimeout(tick, 6000);
+    };
+    timer = setTimeout(tick, 4000);
+    return () => {
+      alive = false;
+      if (timer) clearTimeout(timer);
+    };
+  }, [id, status, remote]);
+  return live;
+}
+
 export function VideoPlayer({
-  media,
+  media: initial,
   controls = false,
   autoplay = true,
   onDoubleTap,
@@ -38,6 +84,8 @@ export function VideoPlayer({
   rounded?: boolean;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const media = useLiveMedia(initial);
+  const processing = isProcessingRemote(media);
   const [muted, setMuted] = useState(true);
   const [captionsOn, setCaptionsOn] = useState(true);
   const [playing, setPlaying] = useState(false);
@@ -54,6 +102,7 @@ export function VideoPlayer({
     let hls: { destroy: () => void } | null = null;
     let cancelled = false;
     const mp4 = videoSrc(media);
+    if (processing) return; // rien à charger tant que l'encodage en ligne n'est pas fini
     if (!hlsUrl) {
       v.src = mp4;
       return;
@@ -84,7 +133,7 @@ export function VideoPlayer({
       cancelled = true;
       hls?.destroy();
     };
-  }, [hlsUrl, media, autoplay]);
+  }, [hlsUrl, media, autoplay, processing]);
 
   // Lecture automatique muette quand visible, pause hors écran
   useEffect(() => {
@@ -189,7 +238,14 @@ export function VideoPlayer({
         {subtitlesUrl && <track kind="subtitles" srcLang="fr" label="Français" src={subtitlesUrl} default />}
       </video>
 
-      {!playing && (
+      {processing && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/55 text-white" aria-live="polite">
+          {media.video_status !== "failed" && <span className="h-6 w-6 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden="true" />}
+          <p className="text-[14px] font-medium">{media.video_status === "failed" ? "Vidéo indisponible" : "Vidéo en cours de traitement…"}</p>
+        </div>
+      )}
+
+      {!playing && !processing && (
         <button type="button" onClick={toggle} aria-label="Lire" className="absolute inset-0 flex items-center justify-center">
           <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 text-white">
             <Play size={24} strokeWidth={1.75} fill="currentColor" className="ml-0.5" />

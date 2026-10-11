@@ -18,14 +18,17 @@ export function buildCsp(nonce: string): string {
   const supabase = [...origins].join(" ");
   const supabaseWs = [...origins].filter((o) => o.includes("supabase")).map((o) => o.replace(/^https:/, "wss:")).join(" ");
   const map = "https://tiles.openfreemap.org https://data.geopf.fr";
+  // Bunny Stream : envoi TUS direct vers l'API, lecture HLS et vignettes depuis le CDN de la bibliothèque
+  const bunnyCdn = process.env.BUNNY_CDN_HOST ? `https://${process.env.BUNNY_CDN_HOST.replace(/^https?:\/\//, "").replace(/\/$/, "")}` : "";
+  const bunnyApi = process.env.VIDEO_PROVIDER === "bunny" ? "https://video.bunnycdn.com" : "";
   const directives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: ${supabase} ${map}`,
-    `media-src 'self' blob: data: ${supabase}`,
+    `img-src 'self' data: blob: ${supabase} ${map} ${bunnyCdn}`,
+    `media-src 'self' blob: data: ${supabase} ${bunnyCdn}`,
     "font-src 'self' data:",
-    `connect-src 'self' ${supabase} ${supabaseWs} ${map}${dev ? " ws://localhost:* http://localhost:*" : ""}`,
+    `connect-src 'self' ${supabase} ${supabaseWs} ${map} ${bunnyCdn} ${bunnyApi}${dev ? " ws://localhost:* http://localhost:*" : ""}`,
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "frame-src 'none'",

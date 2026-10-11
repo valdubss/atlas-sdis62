@@ -10,7 +10,7 @@ import { uploadFile } from "@/lib/media/uploader";
 import { fingerprintFile } from "@/lib/media/fingerprint";
 import { uploadQueue } from "@/lib/media/queue";
 import type { MediaItem } from "@/lib/feed/types";
-import { LIMITS } from "@/lib/config";
+import { VIDEO_DIRECT_UPLOAD, LIMITS } from "@/lib/config";
 import { imageSrc, posterSrc } from "@/lib/media/url";
 import { cn } from "@/lib/cn";
 
@@ -33,7 +33,14 @@ type Accept = "images" | "video" | "cover" | "center_cover" | "story" | "screens
 
 const LABELS: Record<Accept, { title: string; hint: string; max: number; kinds: ("image" | "video")[] }> = {
   images: { title: "Photos", hint: `Glissez vos photos ou touchez pour choisir, jusqu'à ${LIMITS.imagesPerPost}. JPG, PNG, WebP, HEIC.`, max: LIMITS.imagesPerPost, kinds: ["image"] },
-  video: { title: "Vidéo", hint: `Une vidéo MP4 (H.264), ${Math.round(LIMITS.videoMaxBytes / 1048576)} Mo au plus. MOV accepté si H.264.`, max: 1, kinds: ["video"] },
+  video: {
+    title: "Vidéo",
+    hint: VIDEO_DIRECT_UPLOAD
+      ? `Une vidéo de ${Math.round(LIMITS.postVideoMaxSeconds / 60)} min au plus, telle que filmée (iPhone compris) : envoi direct, encodage en ligne.`
+      : `Une vidéo MP4 (H.264), ${Math.round(LIMITS.videoMaxBytes / 1048576)} Mo au plus. MOV accepté si H.264.`,
+    max: 1,
+    kinds: ["video"],
+  },
   cover: { title: "Image de couverture (facultatif)", hint: "Une image affichée en tête de l'article.", max: 1, kinds: ["image"] },
   center_cover: { title: "Photo de couverture (facultatif)", hint: "Photo de la caserne ou de l'équipe, format paysage conseillé.", max: 1, kinds: ["image"] },
   screenshot: { title: "Capture d'écran (facultatif)", hint: "Une image pour illustrer le problème.", max: 1, kinds: ["image"] },

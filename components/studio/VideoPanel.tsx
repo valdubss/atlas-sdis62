@@ -113,7 +113,13 @@ export function VideoPanel({ mediaId }: { mediaId: string }) {
         )}
       </div>
       {state.video_status === "failed" && state.video_error && <p className="rounded-[10px] bg-bg-2 px-3 py-2 text-[13px] text-red-text">{state.video_error}</p>}
-      {state.video_status !== "ready" && state.video_status !== "failed" && <p className="text-[13px] text-text-3">La publication reste possible : le MP4 est servi tel quel, puis les qualités 360p / 720p / 1080p prennent le relais dès qu&apos;elles sont prêtes.</p>}
+      {state.video_status !== "ready" && state.video_status !== "failed" && (
+        <p className="text-[13px] text-text-3">
+          {state.provider === "bunny"
+            ? "La vidéo est encodée en ligne (environ une minute) : la publication reste possible, la lecture démarre dès la première qualité prête."
+            : "La publication reste possible : le MP4 est servi tel quel, puis les qualités 360p / 720p / 1080p prennent le relais dès qu\u2019elles sont prêtes."}
+        </p>
+      )}
 
       <div className="grid gap-5 sm:grid-cols-[200px_minmax(0,1fr)]">
         <div className="space-y-2">

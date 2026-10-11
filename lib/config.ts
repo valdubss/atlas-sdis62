@@ -19,8 +19,14 @@ export const FEATURES = {
   authorChoice: true, // choix « Service Communication » / nom de l'éditeur
 } as const;
 
-/** Taille maximale acceptée par l'espace de stockage (Supabase gratuit : 50 Mo). */
+/** Taille maximale acceptée par l'espace de stockage (Supabase gratuit : 50 Mo ; 2048 avec Bunny Stream). */
 const UPLOAD_MAX_MB = Number(process.env.NEXT_PUBLIC_UPLOAD_MAX_MB ?? 50);
+
+/**
+ * Vidéos envoyées telles quelles à Bunny Stream (NEXT_PUBLIC_VIDEO_PROVIDER=bunny) : aucune
+ * compression sur l'appareil, l'encodage se fait en ligne, comme sur les réseaux sociaux.
+ */
+export const VIDEO_DIRECT_UPLOAD = process.env.NEXT_PUBLIC_VIDEO_PROVIDER === "bunny";
 
 export const LIMITS = {
   imagesPerPost: 30,

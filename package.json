@@ -9,6 +9,7 @@
     "referentiel:export": "node --experimental-websocket scripts/export-referentiel.mjs",
     "referentiel:sync-test": "node --experimental-websocket scripts/sync-referentiel-test.mjs",
     "comptes:sync-test": "node scripts/sync-users-test.mjs",
+    "bunny:webhook": "node scripts/bunny-webhook.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

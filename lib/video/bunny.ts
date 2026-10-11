@@ -1,28 +1,51 @@
 import "server-only";
 
+import fs from "node:fs/promises";
+import path from "node:path";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { VideoProvider } from "./provider";
+import { bunnyGuidOf, bunnySyncMedia, bunnyUrls } from "./bunny-api";
 
 /**
- * Bunny Stream — bascule documentée, non activée. Pour l'activer :
- *   VIDEO_PROVIDER=bunny
- *   BUNNY_LIBRARY_ID=…  BUNNY_API_KEY=…  BUNNY_CDN_HOST=vz-xxxx.b-cdn.net
- * Flux : création de la vidéo (POST /library/{id}/videos), envoi de l'original par
- * « fetch » depuis l'URL publique du stockage, puis lecture via
- * https://{CDN_HOST}/{videoId}/playlist.m3u8 et poster https://{CDN_HOST}/{videoId}/thumbnail.jpg.
- * Le champ media.hls_key reçoit l'URL absolue du playlist (mediaUrl la sert telle quelle).
+ * Bunny Stream — fournisseur vidéo (VIDEO_PROVIDER=bunny) : l'encodage est fait chez Bunny,
+ * `run` se contente de relire l'état et de mettre la ligne média à jour (bunny-api.ts).
+ * Poster « timecode » et piste audio (transcription) sont extraits par ffmpeg depuis le
+ * flux HLS du CDN : ce module n'est chargé que par les routes /api/video/*.
  */
+async function hlsSource(mediaId: string): Promise<string> {
+  const db = createAdminClient();
+  const { data: row } = await db.from("media").select("original_key, hls_key, kind").eq("id", mediaId).maybeSingle();
+  if (!row || row.kind !== "video") throw new Error("média vidéo introuvable");
+  const guid = bunnyGuidOf(row);
+  if (!guid) throw new Error("vidéo hors Bunny Stream");
+  return bunnyUrls(guid).hls;
+}
+
 export const bunnyProvider: VideoProvider = {
   name: "bunny",
-  async run() {
-    if (!process.env.BUNNY_LIBRARY_ID || !process.env.BUNNY_API_KEY || !process.env.BUNNY_CDN_HOST) {
-      return { status: "failed", remaining: 0, error: "Bunny Stream : variables BUNNY_* manquantes" };
+  run: (mediaId) => bunnySyncMedia(mediaId),
+  frameAt: async (mediaId, timeS) => {
+    const { runFfmpeg, tmpDir, rmDir } = await import("./ffmpeg");
+    const src = await hlsSource(mediaId);
+    const dir = await tmpDir();
+    try {
+      const out = path.join(dir, "frame.jpg");
+      await runFfmpeg(["-ss", String(Math.max(0, timeS)), "-i", src, "-frames:v", "1", "-vf", "scale=-2:'min(1080,ih)'", "-q:v", "3", out], { timeoutMs: 90_000 });
+      return await fs.readFile(out);
+    } finally {
+      await rmDir(dir);
     }
-    return { status: "failed", remaining: 0, error: "Bunny Stream : intégration à activer (voir lib/video/bunny.ts)" };
   },
-  async frameAt() {
-    throw new Error("Bunny Stream : poster par timecode non disponible (utiliser une image)");
-  },
-  async extractAudio() {
-    throw new Error("Bunny Stream : extraction audio non disponible");
+  extractAudio: async (mediaId) => {
+    const { runFfmpeg, tmpDir, rmDir } = await import("./ffmpeg");
+    const src = await hlsSource(mediaId);
+    const dir = await tmpDir();
+    try {
+      const out = path.join(dir, "audio.wav");
+      await runFfmpeg(["-i", src, "-vn", "-ac", "1", "-ar", "16000", "-f", "wav", out], { timeoutMs: 180_000 });
+      return await fs.readFile(out);
+    } finally {
+      await rmDir(dir);
+    }
   },
 };

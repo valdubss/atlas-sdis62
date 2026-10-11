@@ -9,6 +9,7 @@ import { faststart } from "@/lib/media/faststart";
 import { ACCEPTED_IMAGE_MIMES, LIMITS } from "@/lib/config";
 import type { MediaItem } from "@/lib/feed/types";
 import type { Tables } from "@/lib/supabase/database.types";
+import { bunnyCreateVideo, bunnyDeleteVideo, bunnyEnabled, bunnyGuidOf, bunnySyncMedia, bunnyTusTarget, bunnyUrls } from "@/lib/video/bunny-api";
 
 const createSchema = z.object({
   kind: z.enum(["image", "video"]),
@@ -26,7 +27,8 @@ const createSchema = z.object({
 export type UploadTargetInfo =
   | { mode: "put"; url: string; headers: Record<string, string> }
   | { mode: "tus"; endpoint: string; bucket: string; objectName: string; token: string; mime: string }
-  | { mode: "multipart"; key: string; mime: string; uploadId: string; partSize: number };
+  | { mode: "multipart"; key: string; mime: string; uploadId: string; partSize: number }
+  | { mode: "bunny"; endpoint: string; headers: Record<string, string>; metadata: Record<string, string> };
 
 export type CreateUploadResult =
   | {
@@ -53,7 +55,10 @@ export async function createUpload(input: unknown): Promise<CreateUploadResult> 
     if (!(ACCEPTED_IMAGE_MIMES as readonly string[]).includes(v.mime)) return { ok: false, error: "Format d'image refusé." };
     if (v.size > LIMITS.imageMaxBytes) return { ok: false, error: `Image trop lourde (${Math.round(LIMITS.imageMaxBytes / 1048576)} Mo max).` };
   } else {
-    if (v.mime !== "video/mp4") return { ok: false, error: "Seules les vidéos MP4 H.264 sont acceptées." };
+    if (bunnyEnabled()) {
+      // Envoi direct chez Bunny Stream : tout format vidéo, l'encodage se fait en ligne
+      if (!/^video\//.test(v.mime) && v.mime !== "application/octet-stream") return { ok: false, error: "Fichier vidéo attendu." };
+    } else if (v.mime !== "video/mp4") return { ok: false, error: "Seules les vidéos MP4 H.264 sont acceptées." };
     if (v.size > LIMITS.videoMaxBytes) return { ok: false, error: `Vidéo trop lourde (${Math.round(LIMITS.videoMaxBytes / 1048576)} Mo max).` };
   }
 
@@ -70,7 +75,16 @@ export async function createUpload(input: unknown): Promise<CreateUploadResult> 
   if (!editor && !referent && v.kind !== "image") return { ok: false, error: "Seules les images sont acceptées." };
 
   const id = crypto.randomUUID();
-  const key = v.kind === "video" ? mediaKeys.video(id) : mediaKeys.original(id, extensionFor(v.mime));
+  // Vidéo chez Bunny Stream : objet créé maintenant, envoyé ensuite par TUS depuis le navigateur
+  let guid: string | null = null;
+  if (v.kind === "video" && bunnyEnabled()) {
+    try {
+      guid = await bunnyCreateVideo(`atlas-${id}`);
+    } catch (e) {
+      return { ok: false, error: "Service vidéo indisponible : " + (e instanceof Error ? e.message : String(e)) };
+    }
+  }
+  const key = v.kind === "video" ? (guid ? bunnyUrls(guid).mp4 : mediaKeys.video(id)) : mediaKeys.original(id, extensionFor(v.mime));
   const posterKey = v.kind === "video" && v.hasPoster ? mediaKeys.poster(id) : null;
 
   // Doublon : même empreinte, média prêt (le titre de la publication qui l'utilise, si elle existe)
@@ -91,6 +105,7 @@ export async function createUpload(input: unknown): Promise<CreateUploadResult> 
     mime: v.mime,
     size_bytes: v.size,
     original_key: key,
+    hls_key: guid ? bunnyUrls(guid).hls : null,
     poster_key: posterKey,
     width: v.width,
     height: v.height,
@@ -103,7 +118,9 @@ export async function createUpload(input: unknown): Promise<CreateUploadResult> 
     const storage = getStorage();
     const posterUpload = posterKey ? await storage.presignUpload(posterKey, "image/jpeg", 0) : undefined;
     let upload: UploadTargetInfo;
-    if (storage.name === "supabase" && v.size > 6 * 1024 * 1024) {
+    if (guid) {
+      upload = bunnyTusTarget(guid, v.mime, `atlas-${id}`);
+    } else if (storage.name === "supabase" && v.size > 6 * 1024 * 1024) {
       // Envoi reprenable (TUS) avec le jeton de session de l'éditeur (politiques storage.objects, migration 0021)
       const {
         data: { session },
@@ -177,6 +194,17 @@ export async function finalizeMedia(mediaId: string): Promise<{ ok: true; media:
       return { ok: true, media: toItem(data) };
     }
 
+    // Vidéo chez Bunny Stream : l'original est déjà chez eux, l'encodage démarre seul ;
+    // l'état est relu tout de suite (souvent déjà « en traitement »)
+    if (bunnyGuidOf(row)) {
+      const orientation = row.width && row.height ? (row.width > row.height ? "landscape" : row.width < row.height ? "portrait" : "square") : null;
+      const { error: updateError } = await supabase.from("media").update({ status: "ready", error: null, video_status: "uploaded", orientation }).eq("id", mediaId);
+      if (updateError) throw new Error(updateError.message);
+      await bunnySyncMedia(mediaId).catch((e) => console.error("bunny sync", e));
+      const { data: fresh } = await supabase.from("media").select("*").eq("id", mediaId).single();
+      return { ok: true, media: toItem(fresh ?? { ...row, status: "ready", video_status: "uploaded", orientation }) };
+    }
+
     // Vidéo : l'index (moov) passe en tête de fichier pour une lecture
     // immédiate en flux (les vidéos iPhone le placent en fin de fichier).
     await supabase.from("media").update({ status: "processing" }).eq("id", mediaId);
@@ -232,6 +260,8 @@ export async function discardMedia(mediaId: string) {
 
   const { error } = await supabase.from("media").delete().eq("id", mediaId);
   if (error) return;
+  const guid = bunnyGuidOf(row);
+  if (guid) bunnyDeleteVideo(guid).catch(() => {});
   const variants = (row.variants ?? {}) as Record<string, string>;
   const prefix = new RegExp(`^(originals|variants|posters|videos)/${mediaId}`);
   const keys = [row.original_key, row.poster_key, ...Object.values(variants)].filter((k): k is string => typeof k === "string" && prefix.test(k));

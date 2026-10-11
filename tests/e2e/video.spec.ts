@@ -59,7 +59,7 @@ test("vidéo : publication, HLS, sous-titres, paliers de lecture", async ({ brow
 
     const { data: media } = await admin.from("media").select("video_status, hls_key, poster_key, renditions, orientation").eq("kind", "video").order("created_at", { ascending: false }).limit(1).single();
     expect(media?.video_status).toBe("ready");
-    expect(media?.hls_key).toMatch(/master\.m3u8$/);
+    expect(media?.hls_key).toMatch(/(master|playlist)\.m3u8$/);
     expect(media?.poster_key).toBeTruthy();
     expect(media?.orientation).toBe("landscape");
     expect((media?.renditions as { height: number }[]).length).toBeGreaterThanOrEqual(1);
