@@ -930,7 +930,9 @@ de notification visible par les agents.
   (et sur son adresse d'origine `atlas-sdis62-8tws.vercel.app`), installable sur téléphone
   comme l'application principale. Côté Supabase atlas-test : Site URL
   `https://atlas-test-sdis62.vercel.app`, redirections `…/**` des deux adresses et de
-  `localhost:3000` / `localhost:3100`.
+  `localhost:3000` / `localhost:3100` ; réglages Auth alignés sur la production (code e-mail
+  à six chiffres valable 900 s, mot de passe de 10 caractères, changement sécurisé) ; bucket
+  `media` public, 50 Mo par fichier (offre gratuite).
 - **Référentiel et compte initial** : `npm run referentiel:sync-test` copie groupements,
   services et centres (sans donnée personnelle) de la production vers le projet de test,
   pose la liste blanche d'adresses et crée le compte administrateur initial ; chaque push sur

@@ -50,6 +50,10 @@ test("parcours comptes : nouvel agent par lien et code, accueil, fil ; administr
     }
     await page.getByLabel("Prénom").fill("Nouvel");
     await page.getByLabel("Nom", { exact: true }).fill(`Agent ${stamp}`);
+    // Mot de passe obligatoire à la première connexion
+    const newPassword = `Nouveau-${stamp}-Mdp1`;
+    await page.getByLabel("Mot de passe", { exact: true }).fill(newPassword);
+    await page.getByLabel("Confirmer le mot de passe").fill(newPassword);
     await page.getByRole("button", { name: "Commencer" }).click();
     await page.waitForURL((u) => u.pathname === "/", { timeout: 20_000 });
     await expect(page.getByRole("article", { name: `Bienvenue ${stamp}` })).toBeVisible({ timeout: 20_000 });
@@ -70,7 +74,8 @@ test("parcours comptes : nouvel agent par lien et code, accueil, fil ; administr
     await a.goto("/admin/utilisateurs", { waitUntil: "networkidle" });
     await a.getByLabel("Rechercher").fill(newEmail);
     await a.keyboard.press("Enter");
-    await a.getByRole("button", { name: new RegExp(`Agent ${stamp}`) }).first().click();
+    // La ligne (pas la case « Sélectionner … » des actions groupées) ouvre la fiche
+    await a.getByRole("button", { name: new RegExp(`^Nouvel Agent ${stamp}`) }).first().click();
     await a.getByRole("button", { name: "Éditeur", exact: true }).click();
     await expect.poll(async () => (await admin.from("profiles").select("role").eq("id", newId!).single()).data?.role, { timeout: 15_000 }).toBe("editor");
     // L'agent devenu éditeur voit le bouton « + » (Studio) après rafraîchissement

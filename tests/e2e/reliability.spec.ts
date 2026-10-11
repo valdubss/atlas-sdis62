@@ -31,7 +31,7 @@ test("fiabilité : /api/health, /etat, journal, file hors ligne", async ({ brows
     await e.goto("/etat", { waitUntil: "networkidle" });
     await expect(e.getByText(`Incident test ${stamp}`)).toBeVisible();
     await expect(e.getByText("Base de données")).toBeVisible();
-    const csv = await e.request.get("/studio/journal/export?type=incidents");
+    const csv = await e.request.get("/admin/journal/export?type=incidents");
     expect(csv.headers()["content-type"]).toContain("text/csv");
     expect(await csv.text()).toContain(`Incident test ${stamp}`);
 
