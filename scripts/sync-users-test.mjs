@@ -79,6 +79,10 @@ try {
   await mirror("auth", "identities", { where: "where user_id in (select id from auth.users " + notTest + ")" });
   await mirror("public", "profiles", { where: notTest });
   await mirror("public", "user_settings", { where: "where user_id in (select id from public.profiles " + notTest + ")", conflict: "user_id" });
+  // Seconde passe sur auth.users : à la création d'un compte, le déclencheur on_auth_user_created
+  // remplace les métadonnées du jeton (rôle, is_active, onboarded, password_set) par les valeurs
+  // par défaut ; cette mise à jour (plus d'insertion) rétablit celles de la production
+  await mirror("auth", "users", { where: notTest });
   await dst.query("alter table public.profiles enable trigger profiles_guard");
   await dst.query("alter table public.profiles enable trigger profiles_contact_attach");
   await dst.query("commit");
