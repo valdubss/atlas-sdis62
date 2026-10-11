@@ -37,9 +37,22 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_APP_VERSION: (JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as { version: string }).version,
   },
   reactStrictMode: true,
-  // ffmpeg embarqué (transcodage HLS) : binaire hors bundle, inclus dans le déploiement
+  // ffmpeg embarqué (transcodage HLS) : binaire hors bundle, inclus dans les seules fonctions
+  // /api/video/* ; partout ailleurs il est exclu du traçage (80 Mo par copie, sinon recopié
+  // dans chaque fonction de chaque déploiement : c'est ce qui remplissait le stockage Vercel).
+  // Les autres fonctions passent par lib/video/remote (appel HTTP interne).
   serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: { "/api/video/**": ["./node_modules/ffmpeg-static/ffmpeg*"] },
+  outputFileTracingExcludes: {
+    "/api/cron/**": ["./node_modules/ffmpeg-static/**"],
+    "/api/push/**": ["./node_modules/ffmpeg-static/**"],
+    "/api/health/**": ["./node_modules/ffmpeg-static/**"],
+    "/studio/**": ["./node_modules/ffmpeg-static/**"],
+    "/admin/**": ["./node_modules/ffmpeg-static/**"],
+    "/centre/**": ["./node_modules/ffmpeg-static/**"],
+    "/messages/**": ["./node_modules/ffmpeg-static/**"],
+    "/profil/**": ["./node_modules/ffmpeg-static/**"],
+  },
   // Les pages visitées restent 30 s dans le cache du routeur : changer d'onglet
   // et revenir est instantané ; tirer-pour-actualiser force le rechargement.
   experimental: { staleTimes: { dynamic: 30, static: 180 } },

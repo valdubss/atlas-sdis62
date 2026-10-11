@@ -18,7 +18,7 @@ const BUDGET_MS = (Number(process.env.VIDEO_BUDGET_S) || 240) * 1000;
  * Renvoie `remaining` : nombre de rendus encore à produire (relancer si > 0).
  */
 export async function POST(req: NextRequest) {
-  const body = (await req.json().catch(() => null)) as { mediaId?: string } | null;
+  const body = (await req.json().catch(() => null)) as { mediaId?: string; action?: "run" | "frame"; timeS?: number; budgetMs?: number } | null;
   const mediaId = body?.mediaId;
   if (!mediaId || !z.uuid().safeParse(mediaId).success) return NextResponse.json({ error: "identifiant invalide" }, { status: 400 });
 
@@ -38,6 +38,20 @@ export async function POST(req: NextRequest) {
   }
 
   const provider = await getVideoProvider();
-  const result = await provider.run(mediaId, BUDGET_MS);
+  // Image fixe à un instant donné (poster « timecode »), demandée par le Studio via lib/video/remote
+  if (body?.action === "frame") {
+    if (!byCron) return NextResponse.json({ error: "non autorisé" }, { status: 403 });
+    const t = Number(body.timeS);
+    if (!Number.isFinite(t) || t < 0) return NextResponse.json({ error: "instant invalide" }, { status: 400 });
+    try {
+      const jpeg = await provider.frameAt(mediaId, t);
+      return new NextResponse(new Uint8Array(jpeg), { headers: { "content-type": "image/jpeg", "cache-control": "no-store" } });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "image fixe impossible" }, { status: 500 });
+    }
+  }
+  // Budget réduit à la demande du cron (qui n'a lui-même que 60 s)
+  const budget = byCron && Number.isFinite(Number(body?.budgetMs)) && Number(body?.budgetMs) > 0 ? Math.min(BUDGET_MS, Number(body?.budgetMs)) : BUDGET_MS;
+  const result = await provider.run(mediaId, budget);
   return NextResponse.json(result, { status: result.status === "failed" ? 500 : 200 });
 }

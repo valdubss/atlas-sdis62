@@ -645,6 +645,13 @@ docs/ARCHITECTURE.md       plan d'architecture
   > 10 min, 3 tentatives). États visibles dans le studio : `uploaded`, `processing`,
   `ready`, `failed` (avec la raison, bouton « Relancer »). Vidéos de post ≤ 5 min,
   stories ≤ 30 s. Le MP4 compressé reste servi en repli.
+- **ffmpeg et stockage Vercel** : le binaire (80 Mo) n'est embarqué que dans les fonctions
+  `/api/video/*` (`outputFileTracingIncludes` / `outputFileTracingExcludes` dans
+  `next.config.ts`) ; les actions du Studio (poster « timecode ») et le cron passent par
+  `lib/video/remote.ts` (appel HTTP interne authentifié par `CRON_SECRET`). Vérification après
+  `next build` : `grep -l ffmpeg-static .next/server/app/**/*.nft.json` ne doit lister que ces
+  routes. Sinon chaque fonction de chaque déploiement recopie le binaire et le compteur
+  « Functions Storage » de Vercel se remplit.
 - **Bascule Bunny Stream** : `VIDEO_PROVIDER=bunny` + `BUNNY_*` (contrat identique,
   `lib/video/bunny.ts`), si l'hébergement Vercel ne permettait plus le transcodage.
 - **Poster** : image extraite à 1 s automatiquement ; remplaçable dans le studio par

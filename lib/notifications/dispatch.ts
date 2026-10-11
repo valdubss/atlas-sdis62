@@ -248,8 +248,9 @@ export async function runMaintenance(): Promise<{ requeued: number; orphanMedia:
     .order("updated_at", { ascending: true })
     .limit(1);
   if (pendingVideo?.[0]) {
-    const { getVideoProvider } = await import("@/lib/video/provider");
-    await (await getVideoProvider()).run(pendingVideo[0].id, 40_000).catch((e) => console.error("transcodage", e));
+    // Via la route /api/video/transcode (seule fonction à embarquer ffmpeg), budget 40 s
+    const { runRemoteTranscode } = await import("@/lib/video/remote");
+    await runRemoteTranscode(pendingVideo[0].id, 40_000).catch((e) => console.error("transcodage", e));
   }
   // Demandes de rattachement sans réponse depuis sept jours
   await admin.rpc("expire_membership_requests").then(({ error }) => error && console.error("expiration rattachements", error.message));

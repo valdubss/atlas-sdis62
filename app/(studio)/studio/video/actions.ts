@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getStorage } from "@/lib/storage";
 import { mediaKeys } from "@/lib/media/keys";
-import { getVideoProvider } from "@/lib/video/provider";
+import { remoteFrameAt } from "@/lib/video/remote";
 import { parseVtt, serializeVtt, type Cue } from "@/lib/video/vtt";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -87,8 +87,7 @@ export async function setPoster(mediaId: string, input: { imageMediaId?: string;
       await supabase.from("media").update({ poster_key: mediaKeys.poster(mediaId), poster_source: "upload", poster_time_s: null }).eq("id", mediaId);
     } else if (typeof input.timeS === "number" && Number.isFinite(input.timeS)) {
       const t = Math.max(0, Math.min(input.timeS, Number(media.duration_s ?? 0) || input.timeS));
-      const provider = await getVideoProvider();
-      const jpeg = await provider.frameAt(mediaId, t);
+      const jpeg = await remoteFrameAt(mediaId, t);
       await storage.putObject(mediaKeys.poster(mediaId), jpeg, "image/jpeg");
       await supabase.from("media").update({ poster_key: mediaKeys.poster(mediaId), poster_source: "timecode", poster_time_s: t }).eq("id", mediaId);
     } else return { ok: false, error: "Choisissez une image ou un instant." };
