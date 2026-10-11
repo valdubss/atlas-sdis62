@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, BarChart3, BookOpen, Building2, ChevronDown, Inbox, Settings, Users } from "lucide-react";
+import { ArrowLeft, BarChart3, BookOpen, Building2, ChevronDown, Inbox, Settings, Users, FileText } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -13,6 +13,7 @@ const NAV: Item[] = [
   { href: "/admin/utilisateurs", label: "Utilisateurs", icon: Users, adminOnly: true },
   { href: "/admin/centres", label: "Centres et services", icon: Building2 },
   { href: "/admin/centres/demandes", label: "Rattachements", icon: Inbox, exact: true },
+  { href: "/admin/documents", label: "Documents", icon: FileText },
   { href: "/admin/journal", label: "Journal", icon: BookOpen },
   { href: "/admin/parametres", label: "Paramètres", icon: Settings },
 ];

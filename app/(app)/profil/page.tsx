@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Bookmark, CalendarDays, ChevronRight, Flame, Inbox } from "lucide-react";
+import { Bookmark, CalendarDays, ChevronRight, Flame, Inbox, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AvatarUploader } from "@/components/profile/AvatarUploader";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -112,6 +112,13 @@ export default async function ProfilPage() {
           <span className="flex items-center gap-3">
             <CalendarDays size={20} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
             Agenda
+          </span>
+          <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
+        </Link>
+        <Link href="/documents" className="pressable flex h-12 items-center justify-between px-5 text-[15px] text-text-1">
+          <span className="flex items-center gap-3">
+            <FileText size={20} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
+            Documents
           </span>
           <ChevronRight size={20} strokeWidth={1.75} className="text-text-3" />
         </Link>

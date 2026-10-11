@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUp, MessageCircle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { deleteComment, fetchComments, moderateComment, postComment, reportComment } from "@/app/(app)/feed-actions";
+import { deleteComment, fetchComments, moderateComment, postComment, reportComment, searchMentionable, type MentionCandidate } from "@/app/(app)/feed-actions";
 import type { CommentItem } from "@/lib/feed/types";
 import { formatRelative } from "@/lib/format";
 import { LIMITS } from "@/lib/config";
@@ -47,6 +47,10 @@ export function Comments({
   const [items, setItems] = useState<Item[] | null>(null);
   const [replyTo, setReplyTo] = useState<Item | null>(null);
   const [body, setBody] = useState("");
+  // Mentions « @Prénom Nom » : propositions pendant la saisie, personnes retenues (identifiants)
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<MentionCandidate[]>([]);
+  const [picked, setPicked] = useState<MentionCandidate[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [, startTransition] = useTransition();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -89,6 +93,36 @@ export function Comments({
     if (autoFocus) inputRef.current?.focus();
   }, [autoFocus]);
 
+  // Propositions de mention : deux lettres après « @ », recherche différée de 200 ms
+  useEffect(() => {
+    if (mentionQuery === null || mentionQuery.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    let alive = true;
+    const t = setTimeout(() => {
+      searchMentionable(mentionQuery).then((list) => alive && setSuggestions(list));
+    }, 200);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [mentionQuery]);
+
+  function onBodyChange(value: string) {
+    setBody(value);
+    const m = value.match(/(?:^|\s)@([^@\n]{0,40})$/);
+    setMentionQuery(m ? m[1] : null);
+  }
+
+  function pickMention(p: MentionCandidate) {
+    setBody((b) => b.replace(/@([^@\n]{0,40})$/, `@${p.name} `));
+    setPicked((list) => (list.some((x) => x.id === p.id) ? list : [...list, p]));
+    setMentionQuery(null);
+    setSuggestions([]);
+    inputRef.current?.focus();
+  }
+
   // Hauteur du champ : suit le texte (1 à 5 lignes)
   useEffect(() => {
     const el = inputRef.current;
@@ -130,12 +164,15 @@ export function Comments({
     const temp: Item = { id: `tmp-${Date.now()}`, post_id: postId, parent_id: parentId, body: text, status: "visible", created_at: new Date().toISOString(), edited_at: null, is_mine: true, author: { name: "Vous", center: null, avatar_key: null }, pending: true };
     setItems((prev) => [...(prev ?? []), temp]);
     if (parentId) setExpanded((prev) => new Set(prev).add(parentId));
+    const mentions = picked.filter((p) => text.includes(`@${p.name}`)).map((p) => p.id);
     setBody("");
+    setPicked([]);
+    setMentionQuery(null);
     setReplyTo(null);
     haptic();
     requestAnimationFrame(() => listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: reduced ? "auto" : "smooth" }));
     startTransition(async () => {
-      const res = await postComment({ post_id: postId, parent_id: parentId, body: text });
+      const res = await postComment({ post_id: postId, parent_id: parentId, body: text, mentions });
       if (!res.ok) {
         setItems((prev) => (prev ?? []).filter((c) => c.id !== temp.id));
         setBody(text);
@@ -216,6 +253,21 @@ export function Comments({
               </motion.div>
             )}
           </AnimatePresence>
+          {suggestions.length > 0 && (
+            <ul role="listbox" aria-label="Agents à mentionner" className="mb-1.5 max-h-44 overflow-y-auto rounded-[12px] bg-bg-1 py-1">
+              {suggestions.map((p) => (
+                <li key={p.id} role="option" aria-selected={false}>
+                  <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pickMention(p)} className="flex w-full items-center gap-3 px-3 py-2 text-left">
+                    <Avatar name={p.name} avatarKey={p.avatar_key} size="xs" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[15px] text-text-1">{p.name}</span>
+                      {p.center && <span className="block truncate text-[12px] text-text-3">{p.center}</span>}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
           <form
             className="flex items-end gap-1 rounded-[22px] bg-bg-1 py-1 pl-4 pr-1 ring-1 ring-transparent focus-within:ring-glass-edge"
             onSubmit={(e) => {
@@ -226,7 +278,7 @@ export function Comments({
             <textarea
               ref={inputRef}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => onBodyChange(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault();
@@ -351,7 +403,7 @@ function CommentRow({
           <span className="text-text-3">{comment.pending ? "Envoi…" : formatRelative(comment.created_at)}</span>
           {hidden && <span className="rounded-full bg-red-soft px-1.5 text-[11px] font-medium text-red-text">Masqué</span>}
         </p>
-        <p className="mt-0.5 whitespace-pre-line break-words text-[15px] leading-[1.4] text-text-1">{comment.body}</p>
+        <p className="mt-0.5 whitespace-pre-line break-words text-[15px] leading-[1.4] text-text-1">{renderMentions(comment.body)}</p>
         {!comment.pending && (
           <div className="mt-1 flex flex-wrap items-center gap-x-4 text-[12.5px] font-medium text-text-3">
             {onReply && (
@@ -441,4 +493,11 @@ function CommentRow({
       </div>
     </article>
   );
+}
+
+/** « @Prénom Nom » mis en évidence dans le texte d'un commentaire. */
+function renderMentions(body: string): React.ReactNode {
+  const parts = body.split(/(@\p{L}[\p{L}'’-]*(?: \p{L}[\p{L}'’-]*)?)/u);
+  if (parts.length === 1) return body;
+  return parts.map((part, i) => (i % 2 === 1 ? <span key={i} className="font-medium text-navy-link">{part}</span> : part));
 }

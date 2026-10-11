@@ -6,6 +6,7 @@ import { CalendarPlus, MapPin } from "lucide-react";
 import type { EventItem } from "@/lib/agenda/queries";
 import { eventDayKey, eventDayNumber, eventMonthYear, eventShortTime, eventWeekday, eventWhen, isToday } from "@/lib/agenda/format";
 import { Sheet } from "@/components/ui/Sheet";
+import { EventParticipation } from "./EventParticipation";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 
@@ -112,6 +113,7 @@ function EventRow({ event: e, onOpen }: { event: EventItem; onOpen: () => void }
             {eventShortTime(e)}
             {e.location && ` · ${e.location}`}
             {e.center && ` · ${e.center.name}`}
+            {(e.participants ?? 0) > 0 && ` · ${e.participants} participant${(e.participants ?? 0) > 1 ? "s" : ""}`}
           </span>
         </span>
         <span className="sr-only">{eventDayKey(e.starts_at)}</span>
@@ -131,6 +133,7 @@ export function EventDetail({ event: e }: { event: EventItem }) {
         </p>
       )}
       {e.description && <p className="whitespace-pre-line text-[15px] leading-[1.5] text-text-1">{e.description}</p>}
+      {e.status === "published" && <EventParticipation eventId={e.id} initialCount={e.participants ?? 0} initialMine={e.participating ?? false} canSeeNames />}
       <div className="flex flex-wrap gap-3 pt-2">
         <a
           href={`/api/agenda/${e.id}.ics`}

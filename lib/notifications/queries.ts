@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export type NotificationItem = {
   id: number;
-  kind: "post" | "flash" | "reply" | "event" | "story_reply";
+  kind: "post" | "flash" | "reply" | "event" | "story_reply" | "mention" | string;
   title: string;
   body: string | null;
   url: string | null;

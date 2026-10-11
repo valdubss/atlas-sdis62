@@ -13,7 +13,7 @@ export type IncidentRow = { id: string; title: string; service: string; started_
 export type ClientErrorRow = { id: number; message: string; url: string | null; user_agent: string | null; context: Record<string, unknown> | null; created_at: string; user: { first_name: string | null; last_name: string | null } | null };
 
 const ACTIONS: Record<string, string> = { insert: "création", update: "modification", delete: "suppression" };
-const ENTITIES: Record<string, string> = { posts: "publications", stories: "stories", flashes: "flashs", events: "agenda", centers: "centres", channels: "messagerie", categories: "séries", app_settings: "paramètres", profiles: "comptes", story_highlights: "à la une", incidents: "incidents" };
+const ENTITIES: Record<string, string> = { posts: "publications", stories: "stories", flashes: "flashs", events: "agenda", centers: "centres", channels: "messagerie", categories: "séries", app_settings: "paramètres", profiles: "comptes", story_highlights: "à la une", incidents: "incidents", documents: "documents" };
 const SERVICES = [
   ["app", "Application"],
   ["db", "Base de données"],

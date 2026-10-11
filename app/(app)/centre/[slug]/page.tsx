@@ -104,7 +104,7 @@ export default async function CenterPage({ params, searchParams }: { params: Pro
               emptyDescription={referent ? "Proposez la première : elle sera publiée ici après validation." : "Les actus proposées par les référents du centre apparaîtront ici."}
             />
           </CenterFeeds>
-          <CenterPhotos photos={photos} />
+          <CenterPhotos photos={photos} albumsHref={`/centre/${slug}/photos`} />
         </div>
       </PullToRefresh>
       {(referent || (canManage && !canModerate)) && <ProposeFab centerId={center.id} centerName={center.name} manager={canManage} />}

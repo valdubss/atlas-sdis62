@@ -14,7 +14,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== "atlas-media" && k !== "atlas-shell" && k !== "atlas-directory").map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== "atlas-media" && k !== "atlas-shell" && k !== "atlas-directory" && k !== "atlas-docs").map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -30,6 +30,13 @@ self.addEventListener("fetch", (event) => {
     if (request.destination === "image" && url.pathname.includes("/variants/")) {
       event.respondWith(caches.open("atlas-media").then((c) => c.match(request).then((hit) => hit || fetch(request))));
     }
+    return;
+  }
+
+  // Documents gardés hors ligne par l'agent (cache « atlas-docs », rempli par la page Documents) :
+  // cache d'abord, sinon le serveur redirige vers le fichier du stockage
+  if (url.pathname.startsWith("/documents/f/")) {
+    event.respondWith(caches.open("atlas-docs").then((c) => c.match(url.pathname).then((hit) => hit || fetch(request))));
     return;
   }
 
@@ -51,7 +58,7 @@ self.addEventListener("fetch", (event) => {
 
   // Annuaire hors ligne : données et page, réseau d'abord puis copie en cache
   // (« atlas-directory », conservé d'une version à l'autre)
-  if (url.pathname === "/api/annuaire/data" || (request.mode === "navigate" && (url.pathname === "/annuaire" || url.pathname === "/annuaire/carte"))) {
+  if (url.pathname === "/api/annuaire/data" || (request.mode === "navigate" && (url.pathname === "/annuaire" || url.pathname === "/annuaire/carte" || url.pathname === "/documents"))) {
     event.respondWith(
       fetch(request)
         .then((res) => {

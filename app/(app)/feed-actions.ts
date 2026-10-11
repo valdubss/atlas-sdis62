@@ -87,8 +87,10 @@ export async function postComment(input: {
   post_id: string;
   parent_id: string | null;
   body: string;
+  /** Agents cités par « @Prénom Nom » (identifiants), prévenus par notification */
+  mentions?: string[];
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const parsed = commentSchema.safeParse(input);
+  const parsed = commentSchema.safeParse({ post_id: input.post_id, parent_id: input.parent_id, body: input.body });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Commentaire invalide." };
 
   const supabase = await createClient();
@@ -97,14 +99,49 @@ export async function postComment(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Session expirée. Reconnectez-vous." };
 
-  const { error } = await supabase.from("comments").insert({
-    post_id: parsed.data.post_id,
-    parent_id: parsed.data.parent_id,
-    body: parsed.data.body,
-    user_id: user.id,
-  });
-  if (error) return { ok: false, error: friendlyDbError(error.message) };
+  const { data: created, error } = await supabase
+    .from("comments")
+    .insert({
+      post_id: parsed.data.post_id,
+      parent_id: parsed.data.parent_id,
+      body: parsed.data.body,
+      user_id: user.id,
+    })
+    .select("id")
+    .single();
+  if (error || !created) return { ok: false, error: friendlyDbError(error?.message) };
+  const mentions = [...new Set((input.mentions ?? []).filter((id) => z.uuid().safeParse(id).success && id !== user.id))].slice(0, 10);
+  if (mentions.length > 0) {
+    await supabase
+      .from("comment_mentions")
+      .insert(mentions.map((user_id) => ({ comment_id: created.id, user_id })))
+      .then(({ error: e }) => e && console.error("mentions", e.message));
+  }
   return { ok: true };
+}
+
+export type MentionCandidate = { id: string; name: string; center: string | null; avatar_key: string | null };
+
+/** Agents que l'on peut citer dans un commentaire (comptes actifs, 8 au plus, par début de prénom ou de nom). */
+export async function searchMentionable(q: string): Promise<MentionCandidate[]> {
+  const needle = String(q ?? "").trim().replace(/[%_,()]/g, "");
+  if (needle.length < 2) return [];
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data } = await supabase
+    .from("profiles")
+    .select("id, first_name, last_name, avatar_key, center:centers!profiles_center_id_fkey(name)")
+    .eq("is_active", true)
+    .neq("id", user.id)
+    .or(`first_name.ilike.${needle}%,last_name.ilike.${needle}%`)
+    .order("last_name")
+    .limit(8);
+  return ((data ?? []) as unknown as { id: string; first_name: string | null; last_name: string | null; avatar_key: string | null; center: { name: string } | null }[])
+    .map((p) => ({ id: p.id, name: [p.first_name, p.last_name].filter(Boolean).join(" ").trim(), center: p.center?.name ?? null, avatar_key: p.avatar_key }))
+    .filter((p) => p.name);
 }
 
 /** Supprime son propre commentaire (RLS : user_id = auth.uid()) ; ses réponses sont supprimées avec lui. */

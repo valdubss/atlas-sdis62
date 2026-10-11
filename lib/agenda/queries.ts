@@ -16,6 +16,9 @@ export type EventItem = {
   /** Événement de centre (visible par ses membres) ; null pour tout le SDIS */
   center?: { name: string } | null;
   created_at: string;
+  /** Participants déclarés et participation de l'agent (agenda) */
+  participants?: number;
+  participating?: boolean;
 };
 
 const SELECT = "id, title, description, location, starts_at, ends_at, all_day, status, created_at, post:posts!events_post_id_fkey(id, slug, title)";
@@ -50,7 +53,19 @@ export async function fetchAgenda(): Promise<{ upcoming: EventItem[]; past: Even
   ]);
   const up = (upcoming ?? []) as unknown as EventItem[];
   const ids = new Set(up.map((e) => e.id));
-  return { upcoming: up, past: ((past ?? []) as unknown as EventItem[]).filter((e) => !ids.has(e.id)) };
+  const pastList = ((past ?? []) as unknown as EventItem[]).filter((e) => !ids.has(e.id));
+  // Participants : un seul appel pour tous les événements affichés
+  const all = [...up, ...pastList];
+  if (all.length > 0) {
+    const { data } = await supabase.rpc("events_participation", { p_events: all.map((e) => e.id) });
+    const map = new Map(((data ?? []) as unknown as { event_id: string; count: number; mine: boolean }[]).map((r) => [r.event_id, r]));
+    for (const e of all) {
+      const r = map.get(e.id);
+      e.participants = Number(r?.count ?? 0);
+      e.participating = Boolean(r?.mine);
+    }
+  }
+  return { upcoming: up, past: pastList };
 }
 
 /** Tous les événements pour le Studio (brouillons compris, sans les supprimés). */

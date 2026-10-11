@@ -630,6 +630,24 @@ export type Database = {
         Update: { title?: string; service?: string; started_at?: Timestamp; resolved_at?: Timestamp | null; note?: string | null };
         Relationships: [];
       };
+      documents: {
+        Row: { id: string; title: string; category: string; description: string | null; kind: "pdf" | "image"; file_key: string; file_name: string | null; file_size: number; sort_order: number; published: boolean; author_id: string | null; created_at: Timestamp; updated_at: Timestamp; deleted_at: Timestamp | null };
+        Insert: { id?: string; title: string; category?: string; description?: string | null; kind: "pdf" | "image"; file_key: string; file_name?: string | null; file_size?: number; sort_order?: number; published?: boolean; author_id?: string | null };
+        Update: Partial<{ title: string; category: string; description: string | null; kind: "pdf" | "image"; file_key: string; file_name: string | null; file_size: number; sort_order: number; published: boolean; deleted_at: Timestamp | null }>;
+        Relationships: [];
+      };
+      event_participations: {
+        Row: { event_id: string; user_id: string; created_at: Timestamp };
+        Insert: { event_id: string; user_id: string; created_at?: Timestamp };
+        Update: never;
+        Relationships: [];
+      };
+      comment_mentions: {
+        Row: { comment_id: string; user_id: string };
+        Insert: { comment_id: string; user_id: string };
+        Update: never;
+        Relationships: [];
+      };
       center_changes: {
         Row: { id: string; center_id: string; field: string; old_value: string | null; new_value: string | null; proposed_by: string | null; proposed_at: Timestamp; decided_by: string | null; decided_at: Timestamp | null; decision: "pending" | "accepted" | "declined"; note: string | null };
         Insert: { id?: string; center_id: string; field: string; old_value?: string | null; new_value?: string | null; proposed_by?: string | null; proposed_at?: Timestamp; decided_by?: string | null; decided_at?: Timestamp | null; decision?: "pending" | "accepted" | "declined"; note?: string | null };
@@ -794,6 +812,8 @@ export type Database = {
       is_center_chief: { Args: { p_center: string }; Returns: boolean };
       is_center_com: { Args: { p_center: string }; Returns: boolean };
       can_manage_center: { Args: { p_center: string }; Returns: boolean };
+      events_participation: { Args: { p_events: string[] }; Returns: Json };
+      event_participants: { Args: { p_event: string }; Returns: Json };
       center_notes_list: { Args: { p_center: string; p_limit?: number }; Returns: Json[] };
       mark_password_set: { Args: Record<string, never>; Returns: undefined };
       admin_adoption_stats: { Args: Record<string, never>; Returns: Json };

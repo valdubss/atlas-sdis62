@@ -1008,6 +1008,26 @@ de notification visible par les agents.
   par nom, slug ou commune, sans accents ni « CIS »), puis application ; cellule vide =
   inchangé, « - » = effacé. Les rattachements d'office (migration 0037) s'appliquent.
 
+### 12.1 quater Documents hors ligne, participation à l'agenda, mentions, albums
+
+- **Documents utiles** (migration `0041`, table `documents`) : Administration → Documents
+  (service communication) : PDF jusqu'à 40 Mo ou image, catégorie libre, ordre, visibilité.
+  Agents : Profil → Documents (`/documents`) avec recherche, « Garder hors ligne » par
+  document ou par catégorie (`lib/documents/offline.ts` : le fichier est copié dans le cache
+  `atlas-docs` sous la clé `/documents/f/<id>`, servie par le service worker en priorité ;
+  en ligne, cette adresse redirige vers le fichier du stockage). La page `/documents` est
+  elle-même gardée en cache comme l'annuaire.
+- **Participation aux événements** (`event_participations`) : « Participer » sur la feuille
+  d'un événement, compteur pour tous, liste nominative pour le service communication et le
+  chef / responsable com du centre (fonction `event_participants`), et dans le Studio sous
+  l'événement. L'export `.ics` existait déjà.
+- **Mentions** (`comment_mentions`) : taper « @ » puis deux lettres dans un commentaire
+  propose les agents (`searchMentionable`, comptes actifs) ; la personne citée reçoit une
+  notification « mention » (déclencheur `notify_comment_mention`).
+- **Albums photo** : `/centre/<slug>/photos` liste les publications photo du centre avec
+  leurs images, galerie plein écran et « Télécharger » l'album en ZIP
+  (`/api/albums/<post>`, variantes 2 400 px, 60 photos et 150 Mo au plus, `fflate`).
+
 ### 12.2 Surveillance
 
 `.github/workflows/monitor.yml` appelle `/api/health` toutes les dix minutes (trois
