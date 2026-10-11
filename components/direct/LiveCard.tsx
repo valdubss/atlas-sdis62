@@ -3,6 +3,7 @@ import { MapPin } from "lucide-react";
 import type { LiveEntry, LiveItem } from "@/lib/direct/types";
 import { imageSrc } from "@/lib/media/url";
 import { LivePlayer } from "./LivePlayer";
+import { LiveClip } from "./LiveClip";
 
 const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
 
@@ -16,6 +17,8 @@ export function LiveCard({ live, entries }: { live: LiveItem; entries: LiveEntry
     <article className="overflow-hidden rounded-[22px] bg-bg-1 ring-1 ring-red-fill/40" aria-label={`En direct : ${live.title}`}>
       {live.video ? (
         <LivePlayer active compact />
+      ) : entries.find((e) => e.media?.kind === "video") ? (
+        <LiveClip media={entries.find((e) => e.media?.kind === "video")!.media!} />
       ) : (
         <div className="flex items-center gap-2 bg-red-fill px-4 py-2 text-white">
           <span className="h-2 w-2 animate-pulse rounded-full bg-white" aria-hidden="true" />
@@ -45,6 +48,7 @@ export function LiveCard({ live, entries }: { live: LiveItem; entries: LiveEntry
                     // eslint-disable-next-line @next/next/no-img-element -- variantes WebP maison
                     <img src={imageSrc(e.media, "small")} alt={e.media.alt} loading="lazy" decoding="async" className="mt-1.5 h-20 w-28 rounded-[10px] object-cover" />
                   )}
+                  {e.media?.kind === "video" && <span className="mt-1 block text-[13px] text-text-3">Clip vidéo</span>}
                 </span>
               </li>
             ))}

@@ -15,7 +15,7 @@ export function LiveComposer({ liveId }: { liveId: string }) {
   const [media, setMedia] = useState<EditorMedia[]>([]);
   const [pending, start] = useTransition();
   const toast = useToast();
-  const photo = media.find((m) => m.status === "ready" && m.kind === "image" && !m.id.startsWith("tmp-"));
+  const photo = media.find((m) => m.status === "ready" && (m.kind === "image" || m.kind === "video") && !m.id.startsWith("tmp-"));
   const uploading = media.some((m) => m.status !== "ready" && m.status !== "error");
   const canSend = (body.trim().length > 0 || Boolean(photo)) && !uploading && !pending;
 
@@ -47,7 +47,7 @@ export function LiveComposer({ liveId }: { liveId: string }) {
       />
       <MediaUploader items={media} onChange={setMedia} accept="live" />
       <div className="flex items-center justify-between gap-3">
-        <span className="min-w-0 truncate text-[13px] text-text-3">{body.length > 0 ? `${LIVE_LIMITS.entryMax - body.length} caractères restants` : "Texte, photo, ou les deux."}</span>
+        <span className="min-w-0 truncate text-[13px] text-text-3">{body.length > 0 ? `${LIVE_LIMITS.entryMax - body.length} caractères restants` : "Texte, photo ou clip vidéo."}</span>
         <button
           type="button"
           onClick={send}
@@ -55,7 +55,7 @@ export function LiveComposer({ liveId }: { liveId: string }) {
           className={cn("pressable inline-flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-[12px] px-4 text-[15px] font-semibold", canSend ? "bg-red-fill text-white" : "bg-bg-2 text-text-4")}
         >
           <ArrowUp size={18} strokeWidth={2.25} aria-hidden="true" />
-          {uploading ? "Photo en cours…" : "Publier dans le direct"}
+          {uploading ? "Envoi en cours…" : "Publier dans le direct"}
         </button>
       </div>
     </section>

@@ -7,6 +7,9 @@ import { deleteLiveEntry, listLiveEntries, pinLiveEntry } from "@/app/(studio)/s
 import type { LiveEntry } from "@/lib/direct/types";
 import { imageSrc } from "@/lib/media/url";
 import { Lightbox } from "@/components/feed/Lightbox";
+import dynamic from "next/dynamic";
+
+const VideoPlayer = dynamic(() => import("@/components/feed/VideoPlayer").then((m) => m.VideoPlayer));
 import { useToast } from "@/components/ui/Toast";
 import { useConfirm } from "@/components/ui/Confirm";
 import { cn } from "@/lib/cn";
@@ -100,6 +103,11 @@ export function LiveTimeline({ liveId, initial, canEdit, active }: { liveId: str
             )}
           </div>
           {e.body && <p className="mt-1.5 whitespace-pre-line text-[16px] leading-[1.45] text-text-1">{e.body}</p>}
+          {e.media?.kind === "video" && (
+            <div className="mt-3 overflow-hidden rounded-[12px]">
+              <VideoPlayer media={e.media} autoplay={false} rounded={false} />
+            </div>
+          )}
           {e.media?.kind === "image" && (
             <button type="button" onClick={() => setOpen(e.media!.id)} className="mt-3 block w-full overflow-hidden rounded-[12px] bg-bg-2" aria-label="Agrandir la photo">
               {/* eslint-disable-next-line @next/next/no-img-element -- variantes WebP maison */}

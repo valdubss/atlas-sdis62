@@ -46,7 +46,7 @@ const LABELS: Record<Accept, { title: string; hint: string; max: number; kinds: 
     kinds: ["video"],
   },
   cover: { title: "Image de couverture (facultatif)", hint: "Une image affichée en tête de l'article.", max: 1, kinds: ["image"] },
-  live: { title: "Photo (facultatif)", hint: "Une photo prise sur place, envoyée en quelques secondes.", max: 1, kinds: ["image"] },
+  live: { title: "Photo ou clip vidéo (facultatif)", hint: "Prise sur place depuis l'app : une photo, ou un clip de 90 s au plus, visible dans le direct une minute après l'envoi.", max: 1, kinds: ["image", "video"] },
   center_cover: { title: "Photo de couverture (facultatif)", hint: "Photo de la caserne ou de l'équipe, format paysage conseillé.", max: 1, kinds: ["image"] },
   screenshot: { title: "Capture d'écran (facultatif)", hint: "Une image pour illustrer le problème.", max: 1, kinds: ["image"] },
   story: { title: "Média de la story", hint: `Une photo ou une vidéo de ${LIMITS.storyVideoMaxSeconds} s au plus, format vertical conseillé.`, max: 1, kinds: ["image", "video"] },
@@ -115,7 +115,7 @@ export function MediaUploader({
 
         try {
           const prepared = await prepareFile(file, {
-            maxDurationS: accept === "story" ? LIMITS.storyVideoMaxSeconds : LIMITS.postVideoMaxSeconds,
+            maxDurationS: accept === "story" ? LIMITS.storyVideoMaxSeconds : accept === "live" ? 90 : LIMITS.postVideoMaxSeconds,
             onProgress: (progress, label) => {
               patch(tempId, { progress, label });
               uploadQueue.upsert({ id: tempId, name: file.name, kind: kindGuess, status: "preparing", progress });
