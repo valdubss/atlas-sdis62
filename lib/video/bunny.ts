@@ -21,6 +21,15 @@ async function hlsSource(mediaId: string): Promise<string> {
   return bunnyUrls(guid).hls;
 }
 
+/**
+ * Le CDN de la bibliothèque n'accepte que les requêtes portant le Referer du site
+ * (réglage « Allowed referrers » / accès direct bloqué) : ffmpeg l'envoie explicitement.
+ */
+function referer(): string[] {
+  const site = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+  return ["-headers", `Referer: ${site}/\r\n`];
+}
+
 export const bunnyProvider: VideoProvider = {
   name: "bunny",
   run: (mediaId) => bunnySyncMedia(mediaId),
@@ -30,7 +39,7 @@ export const bunnyProvider: VideoProvider = {
     const dir = await tmpDir();
     try {
       const out = path.join(dir, "frame.jpg");
-      await runFfmpeg(["-ss", String(Math.max(0, timeS)), "-i", src, "-frames:v", "1", "-vf", "scale=-2:'min(1080,ih)'", "-q:v", "3", out], { timeoutMs: 90_000 });
+      await runFfmpeg([...referer(), "-ss", String(Math.max(0, timeS)), "-i", src, "-frames:v", "1", "-vf", "scale=-2:'min(1080,ih)'", "-q:v", "3", out], { timeoutMs: 90_000 });
       return await fs.readFile(out);
     } finally {
       await rmDir(dir);
@@ -42,7 +51,7 @@ export const bunnyProvider: VideoProvider = {
     const dir = await tmpDir();
     try {
       const out = path.join(dir, "audio.wav");
-      await runFfmpeg(["-i", src, "-vn", "-ac", "1", "-ar", "16000", "-f", "wav", out], { timeoutMs: 180_000 });
+      await runFfmpeg([...referer(), "-i", src, "-vn", "-ac", "1", "-ar", "16000", "-f", "wav", out], { timeoutMs: 180_000 });
       return await fs.readFile(out);
     } finally {
       await rmDir(dir);

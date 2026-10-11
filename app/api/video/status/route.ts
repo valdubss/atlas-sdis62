@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { bunnyGuidOf, bunnySyncMedia } from "@/lib/video/bunny-api";
+import { bunnyGuidOf, bunnyStillEncoding, bunnySyncMedia } from "@/lib/video/bunny-api";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -19,10 +19,10 @@ export async function GET(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "non connecté" }, { status: 401 });
-  const read = () => supabase.from("media").select("id, kind, video_status, hls_key, poster_key, width, height, duration_s, orientation, original_key").eq("id", id).maybeSingle();
+  const read = () => supabase.from("media").select("id, kind, video_status, hls_key, poster_key, width, height, duration_s, orientation, original_key, transcode_started_at").eq("id", id).maybeSingle();
   let { data: row } = await read();
   if (!row || row.kind !== "video") return NextResponse.json({ error: "média introuvable" }, { status: 404 });
-  if (bunnyGuidOf(row) && row.video_status !== "ready" && row.video_status !== "failed") {
+  if (bunnyGuidOf(row) && bunnyStillEncoding(row)) {
     await bunnySyncMedia(id).catch(() => null);
     row = (await read()).data ?? row;
   }

@@ -7,7 +7,7 @@ import { getStorage } from "@/lib/storage";
 import { mediaKeys } from "@/lib/media/keys";
 import { remoteFrameAt } from "@/lib/video/remote";
 import { parseVtt, serializeVtt, type Cue } from "@/lib/video/vtt";
-import { bunnyGuidOf, bunnySyncMedia } from "@/lib/video/bunny-api";
+import { bunnyGuidOf, bunnyStillEncoding, bunnySyncMedia } from "@/lib/video/bunny-api";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -49,7 +49,7 @@ export async function getVideoState(mediaId: string): Promise<VideoState | null>
   if (!stored) return null;
   let media = stored;
   const bunny = Boolean(bunnyGuidOf(media));
-  if (bunny && media.video_status !== "ready" && media.video_status !== "failed") {
+  if (bunny && bunnyStillEncoding(media)) {
     await bunnySyncMedia(mediaId).catch(() => null);
     const { data: fresh } = await supabase.from("media").select("*").eq("id", mediaId).maybeSingle();
     if (fresh) media = fresh;
@@ -60,7 +60,7 @@ export async function getVideoState(mediaId: string): Promise<VideoState | null>
     video_status: media.video_status,
     video_error: media.video_error,
     renditions: (media.renditions as { height: number }[]) ?? [],
-    pending: bunny ? 0 : media.video_status === "ready" || media.video_status === "processing" ? pendingRenditions(media).length : 0,
+    pending: bunny ? (bunnyStillEncoding(media) && media.video_status === "ready" ? 1 : 0) : media.video_status === "ready" || media.video_status === "processing" ? pendingRenditions(media).length : 0,
     provider: bunny ? "bunny" : "ffmpeg",
     poster_key: media.poster_key,
     poster_source: media.poster_source,

@@ -132,9 +132,15 @@ export function bunnyWebhookToken(): string {
 export function bunnyState(v: BunnyVideo): "uploaded" | "processing" | "ready" | "failed" {
   const resolutions = (v.availableResolutions ?? "").split(",").filter(Boolean);
   if (v.status === 5 || v.status === 8) return "failed";
-  if ([3, 4, 9, 10].includes(v.status) || (v.encodeProgress >= 100 && resolutions.length > 0)) return "ready";
+  // Lisible dès qu'une qualité existe (le master HLS liste celles disponibles)
+  if (resolutions.length > 0 && ([3, 4, 9, 10].includes(v.status) || v.encodeProgress >= 100)) return "ready";
   if (v.status === 0 && !v.encodeProgress) return "uploaded";
   return "processing";
+}
+
+/** Encodage Bunny encore en cours (d'autres qualités arrivent) : marqué par transcode_started_at. */
+export function bunnyStillEncoding(row: { video_status: string | null; transcode_started_at: string | null }): boolean {
+  return row.video_status !== "failed" && (row.video_status !== "ready" || row.transcode_started_at !== null);
 }
 
 /**
@@ -179,14 +185,15 @@ export async function bunnySyncMedia(mediaId: string): Promise<TranscodeResult> 
     duration_s: v.length ? v.length : row.duration_s,
     orientation,
     transcode_attempts: (row.transcode_attempts ?? 0) + 1,
+    // Marqueur « encodage en cours » : posé tant que Bunny n'a pas fini toutes les qualités
+    transcode_started_at: state === "ready" && v.encodeProgress >= 100 ? null : (row.transcode_started_at ?? new Date().toISOString()),
   };
-  if (state === "processing" && !row.transcode_started_at) update.transcode_started_at = new Date().toISOString();
   // Poster : la vignette Bunny, sauf poster choisi par l'éditeur (image ou instant)
   if (row.poster_source === "auto" && v.thumbnailFileName && (!row.poster_key || row.poster_key.startsWith("https://"))) {
     update.poster_key = urls.thumbnail(v.thumbnailFileName);
   }
   await db.from("media").update(update).eq("id", mediaId);
+  // remaining = 0 : rien à relancer côté app, Bunny poursuit seul (le sondage relit l'état)
   if (state === "failed") return { status: "failed", remaining: 0, error: String(update.video_error) };
-  if (state === "ready") return { status: "ready", remaining: v.encodeProgress < 100 ? 1 : 0 };
-  return { status: "processing", remaining: 1 };
+  return { status: state === "ready" ? "ready" : "processing", remaining: 0 };
 }
