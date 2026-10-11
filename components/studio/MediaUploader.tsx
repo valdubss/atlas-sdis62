@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Upload, X } from "lucide-react";
 import { completeMultipart, createUpload, discardMedia, finalizeMedia, presignMultipartPart } from "@/app/(studio)/studio/media/actions";
 import { altAssistEnabled, suggestAlt } from "@/app/(studio)/studio/media/alt-actions";
 import { prepareFile, uploadWithProgress } from "@/lib/media/client";
+import { unlockAudio } from "@/lib/media/compress-realtime";
 import { uploadFile } from "@/lib/media/uploader";
 import { fingerprintFile } from "@/lib/media/fingerprint";
 import { uploadQueue } from "@/lib/media/queue";
@@ -212,7 +213,10 @@ export function MediaUploader({
         <div
           role="button"
           tabIndex={0}
-          onClick={() => inputRef.current?.click()}
+          onClick={() => {
+            unlockAudio();
+            inputRef.current?.click();
+          }}
           onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
           onDragOver={(e) => {
             e.preventDefault();
@@ -220,6 +224,7 @@ export function MediaUploader({
           }}
           onDragLeave={() => setDragging(false)}
           onDrop={(e) => {
+            unlockAudio();
             e.preventDefault();
             setDragging(false);
             addFiles(e.dataTransfer.files);

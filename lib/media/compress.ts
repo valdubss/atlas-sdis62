@@ -41,7 +41,7 @@ export function canCompressVideo(): Promise<boolean> {
   return supportCache;
 }
 
-function targetSize(w: number, h: number) {
+export function targetSize(w: number, h: number) {
   const long = Math.max(w, h);
   const short = Math.min(w, h);
   const scale = Math.min(1, MAX_LONG_SIDE / long, MAX_SHORT_SIDE / short);

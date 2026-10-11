@@ -3,6 +3,7 @@
 import { ACCEPTED_IMAGE_MIMES, ACCEPTED_VIDEO_MIMES, LIMITS } from "@/lib/config";
 import { describeVideoCodec, isH264, readSampleEntryTypes } from "./mp4";
 import { canCompressVideo, compressVideo } from "./compress";
+import { canCompressRealtime, compressVideoRealtime } from "./compress-realtime";
 
 export type PreparedFile = {
   blob: Blob;
@@ -131,8 +132,38 @@ async function prepareVideo(file: File, options: PrepareOptions): Promise<Prepar
     }
   }
 
+  // Secours sans WebCodecs complet (iPhone sous iOS 16.4 à 18) : ré-enregistrement en
+  // temps réel, uniquement quand le fichier ne passe pas tel quel (trop lourd ou pas en H.264)
+  const realtime = async (why: string): Promise<PreparedFile> => {
+    if (file.size > SOURCE_MAX_BYTES || !canCompressRealtime()) {
+      throw new Error(why);
+    }
+    if (options.maxDurationS) {
+      const d = await quickDuration(file);
+      if (d && d > options.maxDurationS + 0.5) {
+        throw new Error(`Cette vidéo dure ${Math.round(d)} s : ${options.maxDurationS} s au plus ici.`);
+      }
+    }
+    options.onProgress?.(0, "Compression (durée de la vidéo)…");
+    const out = await compressVideoRealtime(file, (f) => options.onProgress?.(f, `Compression ${Math.round(f * 100)} % — gardez l'app ouverte`));
+    if (out.blob.size > LIMITS.videoMaxBytes) {
+      throw new Error(`Même compressée, la vidéo dépasse ${mb(LIMITS.videoMaxBytes)} : raccourcissez-la.`);
+    }
+    return {
+      blob: out.blob,
+      name: file.name.replace(/\.[^.]+$/, "") + ".mp4",
+      mime: "video/mp4",
+      kind: "video",
+      width: out.width,
+      height: out.height,
+      duration: out.duration,
+      poster: out.poster,
+      originalBytes: file.size,
+    };
+  };
+
   if (file.size > LIMITS.videoMaxBytes) {
-    throw new Error(`${file.name} dépasse ${mb(LIMITS.videoMaxBytes)}. Sur ce navigateur, la vidéo ne peut pas être compressée : réduisez-la avant l'envoi.`);
+    return realtime(`${file.name} dépasse ${mb(LIMITS.videoMaxBytes)}. Sur ce navigateur, la vidéo ne peut pas être compressée : réduisez-la avant l'envoi.`);
   }
   // Les atomes MP4 utiles (moov/stsd) sont en tête ou en queue : on ne lit
   // jamais tout le fichier en mémoire sur le téléphone.
@@ -149,7 +180,7 @@ async function prepareVideo(file: File, options: PrepareOptions): Promise<Prepar
     throw new Error(`${file.name} : fichier vidéo illisible (conteneur MP4/MOV attendu).`);
   }
   if (!isH264(types)) {
-    throw new Error(
+    return realtime(
       `${file.name} est encodée en ${describeVideoCodec(types)}. Seul le H.264 est accepté : réexportez la vidéo en MP4 H.264 (sur iPhone : Réglages → Appareil photo → Formats → « Le plus compatible »).`,
     );
   }
