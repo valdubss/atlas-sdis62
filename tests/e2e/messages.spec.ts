@@ -82,8 +82,8 @@ test("messagerie : groupe, message, réaction, accusé et cloisonnement", async 
     expect((await asReferent.from("channels").select("id")).data).toEqual([]);
     const { data: ownGroup, error: createErr } = await asReferent.from("channels").insert({ type: "group", name: "Mon centre", subject: "x", created_by: referent.id }).select("id").single();
     expect(createErr).toBeNull();
-    const { error: addErr } = await asReferent.from("channel_members").insert({ channel_id: ownGroup!.id, profile_id: outsider.id, added_by: referent.id, role: "member" });
-    expect(addErr).not.toBeNull();
+    const { error: addOutsiderErr } = await asReferent.from("channel_members").insert({ channel_id: ownGroup!.id, profile_id: outsider.id, added_by: referent.id, role: "member" });
+    expect(addOutsiderErr).not.toBeNull();
     await admin.from("channels").delete().eq("id", ownGroup!.id);
     // Membre invité : ne peut pas ajouter quelqu'un ni retirer un membre
     const asGuest = anon();
