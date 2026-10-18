@@ -22,7 +22,10 @@ export const metadata: Metadata = {
   applicationName: APP_NAME,
   robots: { index: false, follow: false },
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: APP_NAME },
+  // Barre d'état iOS opaque (couleur = theme-color, suivie par ThemeApplier) : depuis iOS 26,
+  // le mode translucide pose un verre flou système sur la zone de la barre d'état, qui
+  // floutait le logo et les boutons de l'en-tête placés juste dessous
+  appleWebApp: { capable: true, statusBarStyle: "default", title: APP_NAME },
   icons: { apple: "/icons/apple-touch-icon.png" },
 };
 
