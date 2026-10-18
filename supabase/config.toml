@@ -1,0 +1,13 @@
+# Configuration déclarative poussée sur le projet lié par `npx supabase config push`
+# (seules les propriétés déclarées ici sont écrites ; `npx supabase config diff` pour prévisualiser).
+# Projet de production : odinyvswxwjrhfolgivu (recréé le 18/10/2026). Pour le projet de test,
+# relier le CLI à zrwaybfwteagfpaxkqzr et adapter site_url avant de pousser.
+
+[auth]
+site_url = "https://atlas-sdis62.vercel.app"
+additional_redirect_urls = [
+  "https://atlas-sdis62.vercel.app/**",
+  "https://atlas-sdis62.vercel.app/auth/callback",
+  "http://localhost:3000/**",
+  "http://localhost:3000/auth/callback",
+]

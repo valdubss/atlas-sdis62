@@ -1096,6 +1096,23 @@ dépôt et, si le secret `RCLONE_CONFIG` est renseigné, la dépose dans Google 
 (mot de passe de la base de production), `RCLONE_CONFIG` (facultatif : `rclone config`
 une fois sur un poste, remote nommé `gdrive`, contenu de `rclone.conf`).
 
+#### Recréation du projet de production (18/10/2026)
+
+Le projet Supabase de production initial a été supprimé par erreur depuis le tableau de bord ;
+Supabase ne restaure pas un projet supprimé et aucune sauvegarde n'existait (les premiers
+lancements du workflow avaient échoué faute de secrets). Un projet neuf « flash62 »
+(`odinyvswxwjrhfolgivu`, région eu-west-2) a été créé par `npx supabase projects create`,
+les 44 migrations appliquées par `db push`, puis le référentiel, les réglages et les comptes
+(mots de passe compris) recopiés depuis le projet de test avec les scripts de copie rendus
+bidirectionnels : `SYNC_SOURCE_ENV=.env.test.local SYNC_TARGET_ENV=.env.local [SYNC_FULL=1]
+npm run referentiel:sync-test` et `SYNC_SOURCE_REF=<test> SYNC_TARGET_REF=<prod>
+PROD_DB_PASSWORD=<mdp test> TEST_DB_PASSWORD=<mdp prod> npm run comptes:sync-test` (ordre :
+référentiel, comptes, référentiel complet, à cause des clés étrangères centres ↔ profils).
+Les URL Auth (site, redirections) sont déclarées dans `supabase/config.toml` et poussées par
+`npx supabase config push` (seules les propriétés déclarées sont écrites). Perdu : publications,
+photos du bucket `media`, commentaires, notifications ; les vidéos Bunny Stream subsistent.
+Leçon : renseigner les secrets de sauvegarde (12.3) dès la création d'un projet.
+
 ### 12.4 Sécurité
 
 - **Content-Security-Policy** posée par le proxy sur chaque page, avec un nonce par requête
