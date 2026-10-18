@@ -868,7 +868,7 @@ codec dans le navigateur) avec un poster généré côté client.
 
 Sans variables `S3_*`, l'application utilise le bucket public **`media`** de
 Supabase Storage. Il est créé automatiquement au premier usage, ou à la main :
-**Storage → New bucket** : nom `media`, *Public bucket* coché.
+le bucket est créé par la migration `0045_media_bucket.sql` (public, 50 Mo, familles MIME de 0035) ; sur un projet antérieur il avait été créé à la main (**Storage → New bucket** : nom `media`, *Public bucket* coché).
 
 > Limite de taille par fichier : **50 Mo** sur l'offre gratuite Supabase
 > (réglable jusqu'à 500 Go sur l'offre Pro : Storage → Settings → *Global file size
