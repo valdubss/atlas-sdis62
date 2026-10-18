@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 env:
-  PROJECT_REF: fxtqutqtiqgpttqpnouy
+  PROJECT_REF: odinyvswxwjrhfolgivu
   # Le contexte « secrets » n'est pas lisible dans un « if » : on passe par l'environnement
   RCLONE_CONFIG: ${{ secrets.RCLONE_CONFIG }}
 

@@ -10,7 +10,7 @@ de passe. Trois informations sont nécessaires, à créer dans le portail Entra.
    - Nom : `ATLAS SDIS 62`
    - Types de comptes : *Comptes dans cet annuaire organisationnel uniquement*
    - URI de redirection (type **Web**) :
-     `https://fxtqutqtiqgpttqpnouy.supabase.co/auth/v1/callback`
+     `https://odinyvswxwjrhfolgivu.supabase.co/auth/v1/callback`
 2. Dans l'application créée : **Certificats et secrets → Nouveau secret client** (durée
    24 mois, noter la date d'expiration dans le calendrier).
 3. **Autorisations d'API → Microsoft Graph → autorisations déléguées** : `openid`,

@@ -11,9 +11,10 @@ import fs from "node:fs";
 const load = (f) => (fs.existsSync(f) ? Object.fromEntries(fs.readFileSync(f, "utf8").split(/\r?\n/).filter((l) => l.includes("=") && !l.startsWith("#")).map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^"|"$/g, "")]; })) : {});
 const prodEnv = load(".env.local");
 const testEnv = load(".env.test.local");
-// SYNC_SOURCE_REF permet un essai à blanc (source = projet de test lui-même) ; la cible est toujours atlas-test
-const PROD_REF = process.env.SYNC_SOURCE_REF ?? "fxtqutqtiqgpttqpnouy";
-const TEST_REF = "zrwaybfwteagfpaxkqzr";
+// SYNC_SOURCE_REF / SYNC_TARGET_REF permettent un essai à blanc ou une copie dans l'autre sens
+// (restauration de la production depuis le test, 18/10/2026) ; par défaut prod → atlas-test
+const PROD_REF = process.env.SYNC_SOURCE_REF ?? "odinyvswxwjrhfolgivu";
+const TEST_REF = process.env.SYNC_TARGET_REF ?? "zrwaybfwteagfpaxkqzr";
 const POOLER = "aws-0-eu-west-2.pooler.supabase.com";
 const prodPassword = process.env.PROD_DB_PASSWORD ?? prodEnv.SUPABASE_DB_PASSWORD;
 const testPassword = process.env.TEST_DB_PASSWORD ?? testEnv.SUPABASE_TEST_DB_PASSWORD;

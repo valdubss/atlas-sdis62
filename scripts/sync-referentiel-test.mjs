@@ -6,14 +6,17 @@ import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 
 const load = (f) => Object.fromEntries(fs.readFileSync(f, "utf8").split(/\r?\n/).filter((l) => l.includes("=") && !l.startsWith("#")).map((l) => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim().replace(/^"|"$/g, "")]; }));
-const prod = load(".env.local");
-const test = load(".env.test.local");
-if (!/zrwaybfwteagfpaxkqzr/.test(test.NEXT_PUBLIC_SUPABASE_URL ?? "")) throw new Error(".env.test.local ne pointe pas sur atlas-test");
+// SYNC_SOURCE_ENV / SYNC_TARGET_ENV : fichiers d'environnement source et cible (par défaut prod → test) ;
+// SYNC_FULL=1 copie aussi les contacts des centres (chef, responsable com) et tous les réglages
+const prod = load(process.env.SYNC_SOURCE_ENV ?? ".env.local");
+const test = load(process.env.SYNC_TARGET_ENV ?? ".env.test.local");
+const full = process.env.SYNC_FULL === "1";
+if (!process.env.SYNC_TARGET_ENV && !/zrwaybfwteagfpaxkqzr/.test(test.NEXT_PUBLIC_SUPABASE_URL ?? "")) throw new Error(".env.test.local ne pointe pas sur atlas-test");
 if (prod.NEXT_PUBLIC_SUPABASE_URL === test.NEXT_PUBLIC_SUPABASE_URL) throw new Error("source et cible identiques");
 const src = createClient(prod.NEXT_PUBLIC_SUPABASE_URL, prod.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 const dst = createClient(test.NEXT_PUBLIC_SUPABASE_URL, test.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-const EXCLUDE = new Set(["chief_id", "chief_name", "chief_email", "com_name", "com_email", "cover_media_id", "pending_cover_media_id", "manager_id", "created_by", "updated_at", "created_at", "presentation_pending", "headcount"]);
+const EXCLUDE = new Set(full ? ["cover_media_id", "pending_cover_media_id", "created_by", "updated_at", "created_at"] : ["chief_id", "chief_name", "chief_email", "com_name", "com_email", "cover_media_id", "pending_cover_media_id", "manager_id", "created_by", "updated_at", "created_at", "presentation_pending", "headcount"]);
 for (const table of ["groupings", "services", "centers"]) {
   const { data, error } = await src.from(table).select("*");
   if (error) throw new Error(`${table} (prod) : ${error.message}`);
@@ -24,7 +27,8 @@ for (const table of ["groupings", "services", "centers"]) {
 }
 
 // Liste blanche (adresse hors domaine de l'administrateur) et repli des rattachements
-const { data: settings } = await src.from("app_settings").select("key, value").in("key", ["allowed_emails", "allowed_email_domains", "membership_fallback_email"]);
+const settingsQuery = src.from("app_settings").select("key, value");
+const { data: settings } = full ? await settingsQuery : await settingsQuery.in("key", ["allowed_emails", "allowed_email_domains", "membership_fallback_email"]);
 for (const s of settings ?? []) {
   const { error } = await dst.from("app_settings").upsert({ key: s.key, value: s.value }, { onConflict: "key" });
   if (error) throw new Error(`app_settings ${s.key} : ${error.message}`);
