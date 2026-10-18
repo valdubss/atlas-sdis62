@@ -5,6 +5,10 @@
 // déploiement installe un nouveau worker et purge l'ancien cache.
 const VERSION = "atlas-" + (new URL(self.location.href).searchParams.get("v") || "dev");
 const SHELL = ["/offline", "/icons/icon-192.png", "/icons/icon-512.png"];
+// Vignettes du fil : « atlas-media-v2 » (réponses CORS complètes, vérifiées ok) ; l'ancien
+// « atlas-media » pouvait garder des réponses opaques en erreur, servies ensuite à la place
+// des photos (icône « ? ») : purgé à l'activation
+const MEDIA = "atlas-media-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -14,7 +18,7 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== "atlas-media" && k !== "atlas-shell" && k !== "atlas-directory" && k !== "atlas-docs").map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && k !== MEDIA && k !== "atlas-shell" && k !== "atlas-directory" && k !== "atlas-docs").map((k) => caches.delete(k))))
       .then(() => self.clients.claim()),
   );
 });
@@ -24,11 +28,19 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
 
-  // Vignettes des dernières publications (cache « atlas-media », rempli par
-  // l'application et borné) : cache d'abord, réseau ensuite.
+  // Vignettes des dernières publications (cache « atlas-media-v2 », rempli par
+  // l'application et borné) : cache d'abord si la copie est saine, réseau sinon.
   if (url.origin !== self.location.origin) {
     if (request.destination === "image" && url.pathname.includes("/variants/")) {
-      event.respondWith(caches.open("atlas-media").then((c) => c.match(request).then((hit) => hit || fetch(request))));
+      event.respondWith(
+        caches.open(MEDIA).then((c) =>
+          c.match(request).then((hit) => {
+            if (hit && hit.ok) return hit;
+            if (hit) c.delete(request);
+            return fetch(request);
+          }),
+        ),
+      );
     }
     return;
   }

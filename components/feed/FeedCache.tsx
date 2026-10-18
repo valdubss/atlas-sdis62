@@ -5,7 +5,7 @@ import type { FeedPost } from "@/lib/feed/types";
 import { imageSrc } from "@/lib/media/url";
 
 export const FEED_CACHE_KEY = "atlas:feed:v1";
-const MEDIA_CACHE = "atlas-media";
+const MEDIA_CACHE = "atlas-media-v2";
 const MAX_POSTS = 20;
 const MAX_MEDIA = 120;
 
@@ -34,7 +34,10 @@ export function FeedCache({ posts }: { posts: FeedPost[] }) {
       for (const u of urls) {
         if (have.has(u)) continue;
         try {
-          await cache.add(new Request(u, { mode: "no-cors" }));
+          // Réponse CORS complète (le stockage l'autorise) et gardée seulement si elle est bonne :
+          // une réponse opaque ou en erreur mise en cache remplacerait la photo pour de bon
+          const res = await fetch(u, { mode: "cors", credentials: "omit" });
+          if (res.ok) await cache.put(u, res);
         } catch {
           /* réseau ou CORS : la vignette manquera hors ligne */
         }
