@@ -12,7 +12,7 @@ type LinkKind = "invite" | "magiclink" | "recovery";
 
 /** Transport e-mail de l'app configuré (Resend ou SMTP) ? Sinon, Supabase envoie ses e-mails standard. */
 export function appMailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY || process.env.SMTP_HOST);
+  return Boolean(process.env.RESEND_API_KEY || process.env.SMTP_HOST || process.env.EMAIL_CAPTURE_DIR);
 }
 
 /** Identifiant stable dérivé de l'adresse (table rate_limit_events, avant toute session). */

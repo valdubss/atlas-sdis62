@@ -4,7 +4,8 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isAllowedEmail, getAllowedDomains } from "@/lib/auth/domains";
-import { loginSchema, passwordLoginSchema } from "@/lib/validation/auth";
+import { firstAccessSchema, identifierLoginSchema, loginSchema, passwordLoginSchema } from "@/lib/validation/auth";
+import { requestFirstAccess, resolveLoginIdentifier, tempPasswordExpired } from "@/lib/auth/first-access";
 import { getAuthSettings } from "@/lib/auth/settings";
 import { azureOAuthOptions } from "@/lib/auth/providers";
 import { appMailConfigured, sendLoginEmailFor } from "@/lib/auth/invite";
@@ -13,6 +14,31 @@ export type LoginState =
   | { status: "idle" }
   | { status: "sent"; email: string; next: string }
   | { status: "error"; message: string };
+
+export type FirstAccessState = { status: "idle" } | { status: "sent"; email: string; personalEmail: string } | { status: "error"; message: string; fields?: Record<string, string> };
+
+/**
+ * Première connexion par matricule (réglage « registry ») : adresse SDIS + matricule +
+ * adresse personnelle. Le matricule est vérifié dans le référentiel avant tout envoi.
+ */
+export async function requestFirstAccessAction(_prev: FirstAccessState, formData: FormData): Promise<FirstAccessState> {
+  const auth = await getAuthSettings();
+  if (auth.firstAccess !== "registry") return { status: "error", message: "Ce mode de première connexion est désactivé." };
+  const parsed = firstAccessSchema.safeParse({ email: formData.get("email"), matricule: formData.get("matricule"), personalEmail: formData.get("personalEmail") });
+  if (!parsed.success) {
+    const fields: Record<string, string> = {};
+    for (const i of parsed.error.issues) {
+      const k = String(i.path[0] ?? "");
+      if (k && !fields[k]) fields[k] = i.message;
+    }
+    return { status: "error", message: "Vérifiez les champs.", fields };
+  }
+  const h = await headers();
+  const client = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? "";
+  const r = await requestFirstAccess(parsed.data, client);
+  if (!r.ok) return { status: "error", message: r.error, fields: r.field ? { [r.field]: r.error } : undefined };
+  return { status: "sent", email: parsed.data.email, personalEmail: r.personalEmail };
+}
 
 function safeNext(next: string | null): string {
   if (!next || !next.startsWith("/") || /^\/[\/\\]/.test(next)) return "/";
@@ -99,17 +125,28 @@ export async function signInWithPassword(
 ): Promise<LoginState> {
   const auth = await getAuthSettings();
   if (!auth.passwordEnabled) return { status: "error", message: "La connexion par mot de passe est désactivée." };
-  const parsed = passwordLoginSchema.safeParse({
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
-  if (!parsed.success) {
-    return { status: "error", message: parsed.error.issues[0]?.message ?? "Champs invalides." };
+  // Mode « registry » : l'identifiant est l'adresse SDIS ou le matricule
+  let email: string;
+  let password: string;
+  if (formData.has("identifier")) {
+    const parsed = identifierLoginSchema.safeParse({ identifier: formData.get("identifier"), password: formData.get("password") });
+    if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Champs invalides." };
+    const resolved = await resolveLoginIdentifier(parsed.data.identifier);
+    if (!resolved) return { status: "error", message: "Identifiants incorrects. Première connexion ? Utilisez le bouton ci-dessous." };
+    email = resolved;
+    password = parsed.data.password;
+  } else {
+    const parsed = passwordLoginSchema.safeParse({ email: formData.get("email"), password: formData.get("password") });
+    if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Champs invalides." };
+    email = parsed.data.email;
+    password = parsed.data.password;
   }
-  const { email, password } = parsed.data;
 
   if (!isAllowedEmail(email)) {
     return { status: "error", message: notAllowedMessage() };
+  }
+  if (await tempPasswordExpired(email)) {
+    return { status: "error", message: "Votre mot de passe temporaire a expiré. Refaites une première connexion pour en recevoir un nouveau." };
   }
 
   const supabase = await createClient();
@@ -121,8 +158,7 @@ export async function signInWithPassword(
     }
     return {
       status: "error",
-      message:
-        "Identifiants incorrects. Première connexion ou mot de passe oublié ? Demandez un lien ci-dessous.",
+      message: auth.firstAccess === "registry" ? "Identifiants incorrects. Première connexion ou mot de passe oublié ? Utilisez les boutons ci-dessous." : "Identifiants incorrects. Première connexion ou mot de passe oublié ? Demandez un lien ci-dessous.",
     };
   }
 

@@ -70,7 +70,7 @@ export const getCurrentUser = cache(async () => {
 });
 
 /** Colonnes de profiles lisibles par tout agent connecté (tout sauf email). */
-export const PROFILE_COLUMNS = "id, first_name, last_name, center_id, service_id, job_title, directory_visible, work_phone, present_me, center_joined_at, role, avatar_key, is_active, onboarded_at, created_at, updated_at";
+export const PROFILE_COLUMNS = "id, first_name, last_name, center_id, service_id, job_title, directory_visible, work_phone, present_me, center_joined_at, role, avatar_key, is_active, onboarded_at, created_at, updated_at, matricule, status";
 
 /** Identité minimale lue dans le jeton (sub, email), sans aller-retour réseau. */
 function decodeJwtUser(token: string): { id: string; email: string | null } | null {

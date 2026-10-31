@@ -22,6 +22,12 @@ const profileSchema = z.object({
     .trim()
     .transform((v) => (v === "" ? null : v))
     .pipe(z.uuid("Service invalide.").nullable()),
+
+  status: z
+    .string()
+    .trim()
+    .transform((v) => (v === "" ? null : v))
+    .pipe(z.enum(["spv", "spp", "jsp", "pats"], "Choisissez votre statut.").nullable()),
 });
 
 /** Termine l'accueil : profil, centre, mot de passe si demandé, puis onboarded_at. */
@@ -35,6 +41,7 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
     last_name: formData.get("last_name"),
     center_id: formData.get("center_id") ?? "",
     service_id: formData.get("service_id") ?? "",
+    status: formData.get("status") ?? "",
   });
   const parsedPwd = needPassword ? setPasswordSchema.safeParse({ password: formData.get("password"), confirm: formData.get("confirm") }) : null;
 

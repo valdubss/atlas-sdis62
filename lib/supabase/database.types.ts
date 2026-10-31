@@ -45,9 +45,15 @@ type ProfileRow = {
   is_active: boolean;
   onboarded_at: Timestamp | null;
   password_set_at: Timestamp | null;
+  matricule: string | null;
+  personal_email: string | null;
+  status: AgentStatus | null;
+  temp_password_expires_at: Timestamp | null;
   created_at: Timestamp;
   updated_at: Timestamp;
 };
+export type AgentStatus = "spv" | "spp" | "jsp" | "pats";
+type AgentsRegistryRow = { matricule: string; email: string | null; last_name: string | null; first_name: string | null; center_name: string | null; status: AgentStatus | null; note: string | null; imported_at: Timestamp };
 
 type FeedbackRow = {
   id: string;
@@ -634,6 +640,12 @@ export type Database = {
         Row: { id: string; title: string; location: string | null; center_id: string | null; status: "draft" | "live" | "ended"; video: boolean; started_at: Timestamp | null; ended_at: Timestamp | null; recap_post_id: string | null; created_by: string | null; created_at: Timestamp; updated_at: Timestamp; deleted_at: Timestamp | null; cf_input_id: string | null; whep_url: string | null; hls_url: string | null };
         Insert: { id?: string; title: string; location?: string | null; center_id?: string | null; status?: "draft" | "live" | "ended"; video?: boolean; created_by?: string | null; cf_input_id?: string | null; whep_url?: string | null; hls_url?: string | null };
         Update: Partial<{ title: string; location: string | null; center_id: string | null; status: "draft" | "live" | "ended"; video: boolean; started_at: Timestamp | null; ended_at: Timestamp | null; recap_post_id: string | null; deleted_at: Timestamp | null; cf_input_id: string | null; whep_url: string | null; hls_url: string | null }>;
+        Relationships: [];
+      };
+      agents_registry: {
+        Row: AgentsRegistryRow;
+        Insert: Partial<AgentsRegistryRow> & { matricule: string };
+        Update: Partial<AgentsRegistryRow>;
         Relationships: [];
       };
       live_inputs: {

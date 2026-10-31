@@ -11,6 +11,14 @@ export type Mail = { to: string; subject: string; html: string; text: string };
 export async function sendMail(mail: Mail): Promise<boolean> {
   const from = process.env.EMAIL_FROM ?? "ATLAS <noreply@example.org>";
 
+  // Tests de bout en bout : les e-mails sont écrits dans un dossier local au lieu de partir
+  if (process.env.EMAIL_CAPTURE_DIR) {
+    const fs = await import("node:fs/promises");
+    await fs.mkdir(process.env.EMAIL_CAPTURE_DIR, { recursive: true });
+    await fs.writeFile(`${process.env.EMAIL_CAPTURE_DIR}/${Date.now()}-${mail.to.replace(/[^a-z0-9@.-]/gi, "_")}.json`, JSON.stringify({ from, ...mail, at: new Date().toISOString() }, null, 2));
+    return true;
+  }
+
   if (process.env.RESEND_API_KEY) {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

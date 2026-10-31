@@ -10,11 +10,14 @@
  * AUTH_OIDC_PROVIDER=azure (affiche le bouton) et, en option, AZURE_TENANT_ID.
  * Les réglages « lien magique » et « SSO forcé » sont dans app_settings.
  */
+export type FirstAccessMode = "link" | "registry";
 export type AuthSettings = {
   ssoEnabled: boolean;
   ssoForced: boolean;
   passwordEnabled: boolean;
   magicLinkEnabled: boolean;
+  /** Première connexion : lien e-mail (link) ou matricule + mot de passe temporaire (registry) */
+  firstAccess: FirstAccessMode;
 };
 
 export function ssoConfigured() {
@@ -30,6 +33,7 @@ export function resolveAuthSettings(settings: Record<string, unknown>): AuthSett
     ssoForced: forced,
     passwordEnabled: !forced && settings.auth_password_enabled !== false,
     magicLinkEnabled: !forced && settings.auth_magic_link_enabled !== false,
+    firstAccess: settings.auth_first_access === "registry" ? "registry" : "link",
   };
 }
 

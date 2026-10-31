@@ -224,6 +224,33 @@ where key = 'allowed_emails';
 - Renforcement possible : **Authentication → Providers → Email → Password requirements**
   et détection des mots de passe compromis (offre Pro).
 
+**Première connexion par matricule** (réglage *Paramètres → Première connexion*, migration
+`0046`, valeur `auth_first_access` = `registry` ; `link` = parcours ci-dessus, valeur par
+défaut) :
+
+1. L'administrateur importe la liste des agents dans **Administration → Agents référencés**
+   (collage d'un tableau ou fichier CSV : matricule, nom, prénom, e-mail SDIS, centre,
+   statut SPV/SPP/JSP/PATS ; seul le matricule est obligatoire, un matricule existant est
+   mis à jour). Table `agents_registry`, lisible uniquement par les administrateurs et le
+   serveur.
+2. Sur l'écran de connexion, « Première connexion » ouvre une fenêtre : adresse e-mail SDIS,
+   matricule, adresse e-mail personnelle, « Continuer ». Un matricule absent de la liste (ou
+   dont l'e-mail référencé ne correspond pas) est refusé immédiatement, sans aucun envoi.
+   Limite : 5 demandes par matricule et 10 par appareil par heure (`rate_limit_events`,
+   bucket `first_access`).
+3. Le compte est créé (ou complété s'il existait sans mot de passe) avec un **mot de passe
+   temporaire** (12 caractères, `XXXX-XXXX-XXXX`, valable 7 jours, `temp_password_expires_at`)
+   envoyé sur l'adresse personnelle (`profiles.personal_email`). L'e-mail part d'ATLAS :
+   `RESEND_API_KEY` ou `SMTP_HOST` **obligatoire** dans ce mode (sans transport, la demande
+   est refusée avec un message explicite).
+4. Connexion avec l'**e-mail SDIS ou le matricule** (`profiles.matricule`, unique, insensible
+   à la casse) et le mot de passe temporaire ; l'accueil (`/bienvenue`) enchaîne prénom et
+   nom, statut, centre, **mot de passe personnel** (obligatoire tant que `password_set_at`
+   est vide), notifications. « Mot de passe oublié » garde le lien e-mail sur l'adresse SDIS.
+5. En test, `EMAIL_CAPTURE_DIR=.tmp/mails` écrit chaque e-mail en JSON au lieu de l'envoyer ;
+   `tests/e2e/premiere-connexion.spec.ts` joue le parcours complet (refus, mot de passe
+   temporaire lu dans le fichier, accueil, reconnexion).
+
 ## 4. Créer le premier administrateur
 
 1. Connectez-vous une première fois avec votre adresse (lien magique) : le profil
@@ -793,6 +820,10 @@ $$);
   (passer éditeur ou agent, désactiver, réactiver), fiche par compte (identité,
   rattachement direct, mot de passe de dépannage, rôle, désactivation, export et
   suppression RGPD), dernière connexion réelle.
+- **Agents référencés** (administrateurs) : liste des matricules autorisés à créer un accès
+  (mode « première connexion par matricule », § 3.5) : import par collage ou CSV avec
+  vérification ligne par ligne, recherche, retrait d'un matricule, vidage ; un badge signale
+  les matricules déjà rattachés à un compte.
 - **Centres et services** : référentiel (groupements, centres, services, référents),
   **Rattachements** (demandes en attente et dernières décisions), **Journal** (actions et
   incidents, export CSV), **Paramètres** : ouverts au service communication, les

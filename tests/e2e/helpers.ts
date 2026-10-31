@@ -68,3 +68,26 @@ export async function scrubNotifications(admin: SupabaseClient, postIds: string[
   await admin.from("notifications").delete().ilike("body", `%${needle}%`);
   await admin.from("notifications").delete().ilike("title", `%${needle}%`);
 }
+
+/**
+ * Accueil de première connexion (/bienvenue) : une étape à la fois. Prénom/nom, statut
+ * (sauté s'il est déjà connu), centre (laissé vide), mot de passe si demandé, puis « Commencer ».
+ */
+export async function completeOnboarding(page: Page, opts: { firstName: string; lastName: string; password?: string; status?: "SPV" | "SPP" | "JSP" | "PATS" }) {
+  await page.getByLabel("Prénom").fill(opts.firstName);
+  await page.getByLabel("Nom", { exact: true }).fill(opts.lastName);
+  for (let i = 0; i < 6; i++) {
+    const next = page.getByRole("button", { name: "Suivant" });
+    if (!(await next.isVisible().catch(() => false))) break;
+    const radio = page.getByRole("radio", { name: opts.status ?? "SPV" });
+    if (await radio.isVisible().catch(() => false)) await radio.click();
+    const pwd = page.getByLabel("Mot de passe", { exact: true });
+    if (opts.password && (await pwd.isVisible().catch(() => false))) {
+      await pwd.fill(opts.password);
+      await page.getByLabel("Confirmer le mot de passe").fill(opts.password);
+    }
+    await next.click();
+    await page.waitForTimeout(300);
+  }
+  await page.getByRole("button", { name: "Commencer" }).click();
+}

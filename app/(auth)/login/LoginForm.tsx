@@ -3,8 +3,10 @@
 import { useActionState, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { sendMagicLink, signInWithPassword, startSso, verifyEmailCode, type LoginState } from "./actions";
+import { FirstAccess } from "./FirstAccess";
 import type { AuthSettings } from "@/lib/auth/providers";
 import { Button } from "@/components/ui/Button";
+import { Sheet } from "@/components/ui/Sheet";
 import { cn } from "@/lib/cn";
 
 const initial: LoginState = { status: "idle" };
@@ -13,30 +15,36 @@ type Mode = "password" | "link";
 const input = "h-11 w-full rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge";
 
 /**
- * Connexion : SSO Microsoft en premier s'il est configuré, sinon e-mail
- * professionnel + mot de passe. Première connexion ou mot de passe oublié :
- * un e-mail d'ATLAS avec le lien (et un code à six chiffres) pour définir le
- * mot de passe.
+ * Connexion : SSO Microsoft en premier s'il est configuré, sinon identifiant + mot de passe.
+ *
+ * Deux modes de première connexion (réglage administrateur) :
+ *  - « link » : e-mail professionnel, lien (et code) reçu pour définir le mot de passe ;
+ *  - « registry » : e-mail SDIS + matricule + adresse personnelle, matricule vérifié dans le
+ *    référentiel, mot de passe temporaire reçu sur l'adresse personnelle ; connexion ensuite par
+ *    e-mail ou matricule. « Mot de passe oublié » garde le lien e-mail.
  */
 export function LoginForm({ next, auth, mailFromApp = true }: { next: string; domains?: string[]; auth: AuthSettings; /** E-mails envoyés par ATLAS (lien + code) ; sinon e-mail standard Supabase (lien seul) */ mailFromApp?: boolean }) {
+  const registry = auth.firstAccess === "registry";
   const [mode, setMode] = useState<Mode>(auth.passwordEnabled ? "password" : "link");
   const [pwdState, pwdAction, pwdPending] = useActionState(signInWithPassword, initial);
   const [linkState, linkAction, linkPending] = useActionState(sendMagicLink, initial);
   const [ssoState, ssoAction, ssoPending] = useActionState(startSso, initial);
   const [codeState, codeAction, codePending] = useActionState(verifyEmailCode, initial);
   const [showPassword, setShowPassword] = useState(false);
+  const [identifier, setIdentifier] = useState("");
+  const [firstAccessOpen, setFirstAccessOpen] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   const sent = linkState.status === "sent" ? linkState : codeState.status === "sent" ? codeState : null;
-  if (sent) {
-    return (
-      <div className="space-y-4" role="status" aria-live="polite">
-        <div className="space-y-1">
-          <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">E-mail envoyé</p>
-          <p className="text-[15px] text-text-2">
-            Sur <span className="text-text-1">{sent.email}</span> : touchez le lien pour définir votre mot de passe{mailFromApp ? ", ou saisissez ici le code à six chiffres qui figure dans l'e-mail" : ""}. Valable {mailFromApp ? "quinze minutes" : "une heure"}.
-          </p>
-        </div>
-        {mailFromApp && (
+  const sentPanel = sent && (
+    <div className="space-y-4" role="status" aria-live="polite">
+      <div className="space-y-1">
+        <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">E-mail envoyé</p>
+        <p className="text-[15px] text-text-2">
+          Sur <span className="text-text-1">{sent.email}</span> : touchez le lien pour définir votre mot de passe{mailFromApp ? ", ou saisissez ici le code à six chiffres qui figure dans l'e-mail" : ""}. Valable {mailFromApp ? "quinze minutes" : "une heure"}.
+        </p>
+      </div>
+      {mailFromApp && (
         <form action={codeAction} className="space-y-3" noValidate>
           <input type="hidden" name="email" value={sent.email} />
           <input type="hidden" name="next" value={sent.next} />
@@ -61,15 +69,34 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
             Valider le code
           </Button>
         </form>
-        )}
-        <p className="text-[13px] text-text-3">{mailFromApp ? "Rien reçu ? Vérifiez vos indésirables. Le code et le lien arrivent dans le même e-mail ; si la messagerie du SDIS a déjà « ouvert » le lien, le code fonctionne quand même." : "Rien reçu ? Vérifiez vos indésirables. Ouvrez le lien depuis l'appareil où vous avez fait la demande."}</p>
-      </div>
-    );
-  }
+      )}
+      <p className="text-[13px] text-text-3">{mailFromApp ? "Rien reçu ? Vérifiez vos indésirables. Le code et le lien arrivent dans le même e-mail ; si la messagerie du SDIS a déjà « ouvert » le lien, le code fonctionne quand même." : "Rien reçu ? Vérifiez vos indésirables. Ouvrez le lien depuis l'appareil où vous avez fait la demande."}</p>
+    </div>
+  );
 
-  const placeholder = "E-mail";
-  const error = mode === "password" ? (pwdState.status === "error" ? pwdState.message : null) : linkState.status === "error" ? linkState.message : null;
+  // Mode « link » : l'écran entier devient le panneau « e-mail envoyé »
+  if (sentPanel && !registry) return sentPanel;
+
+  const placeholder = registry ? "E-mail ou matricule" : "E-mail";
+  const linkError = linkState.status === "error" ? linkState.message : null;
+  const error = mode === "password" ? (pwdState.status === "error" ? pwdState.message : null) : linkError;
   const secondaryVariant = auth.ssoEnabled ? "secondary" : "primary";
+
+  const linkForm = (
+    <form action={linkAction} className="space-y-3" noValidate>
+      <input type="hidden" name="next" value={next && next !== "/" ? next : "/"} />
+      <p className="text-[15px] text-text-2">{registry ? "Saisissez votre adresse @sdis62.fr : vous recevez un e-mail avec un lien pour choisir un nouveau mot de passe." : "Première connexion ou mot de passe oublié : saisissez votre adresse @sdis62.fr, vous recevez un e-mail avec un lien pour définir votre mot de passe."}</p>
+      <input name="email" type="email" autoComplete="email" inputMode="email" placeholder="E-mail" aria-label="Adresse e-mail" required className={cn(input, linkError && "ring-red")} />
+      {linkError && (
+        <p className="text-[13px] text-red-text" role="alert">
+          {linkError}
+        </p>
+      )}
+      <Button type="submit" variant={registry ? "primary" : secondaryVariant} className="w-full" loading={linkPending}>
+        Recevoir le lien
+      </Button>
+    </form>
+  );
 
   return (
     <div className="space-y-4">
@@ -93,7 +120,11 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
       {!auth.ssoForced && mode === "password" && auth.passwordEnabled && (
         <form action={pwdAction} className="space-y-3" noValidate>
           <input type="hidden" name="next" value={next} />
-          <input name="email" type="email" autoComplete="username" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail" required className={input} />
+          {registry ? (
+            <input name="identifier" type="text" autoComplete="username" autoCapitalize="none" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail ou matricule" required value={identifier} onChange={(e) => setIdentifier(e.target.value)} className={input} />
+          ) : (
+            <input name="email" type="email" autoComplete="username" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail" required className={input} />
+          )}
           <div className="relative">
             <input
               name="password"
@@ -125,23 +156,9 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
         </form>
       )}
 
-      {!auth.ssoForced && mode === "link" && auth.magicLinkEnabled && (
-        <form action={linkAction} className="space-y-3" noValidate>
-          <input type="hidden" name="next" value={next && next !== "/" ? next : "/"} />
-          <p className="text-[15px] text-text-2">Première connexion ou mot de passe oublié : saisissez votre adresse @sdis62.fr, vous recevez un e-mail avec un lien pour définir votre mot de passe.</p>
-          <input name="email" type="email" autoComplete="email" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail" required className={cn(input, error && "ring-red")} />
-          {error && (
-            <p className="text-[13px] text-red-text" role="alert">
-              {error}
-            </p>
-          )}
-          <Button type="submit" variant={secondaryVariant} className="w-full" loading={linkPending}>
-            Recevoir le lien
-          </Button>
-        </form>
-      )}
+      {!auth.ssoForced && !registry && mode === "link" && auth.magicLinkEnabled && linkForm}
 
-      {!auth.ssoForced && auth.passwordEnabled && auth.magicLinkEnabled && (
+      {!auth.ssoForced && !registry && auth.passwordEnabled && auth.magicLinkEnabled && (
         <button
           type="button"
           onClick={() => setMode((m) => (m === "password" ? "link" : "password"))}
@@ -149,6 +166,35 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
         >
           {mode === "password" ? "Première connexion ou mot de passe oublié ?" : "J'ai déjà un mot de passe"}
         </button>
+      )}
+
+      {!auth.ssoForced && registry && (
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <button type="button" onClick={() => setFirstAccessOpen(true)} className="text-[15px] font-semibold text-text-1 hover:opacity-80">
+            Première connexion
+          </button>
+          {auth.magicLinkEnabled && (
+            <button type="button" onClick={() => setForgotOpen(true)} className="text-[15px] font-medium text-text-2 hover:text-text-1">
+              Mot de passe oublié ?
+            </button>
+          )}
+        </div>
+      )}
+
+      {registry && (
+        <>
+          <FirstAccess
+            open={firstAccessOpen}
+            onClose={() => setFirstAccessOpen(false)}
+            onDone={(id) => {
+              setIdentifier(id);
+              setFirstAccessOpen(false);
+            }}
+          />
+          <Sheet open={forgotOpen} onClose={() => setForgotOpen(false)} title="Mot de passe oublié">
+            <div className="px-5 pb-[max(env(safe-area-inset-bottom),20px)]">{sentPanel ?? linkForm}</div>
+          </Sheet>
+        </>
       )}
     </div>
   );

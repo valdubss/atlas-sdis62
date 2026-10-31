@@ -2,34 +2,46 @@
 
 import { useActionState, useState, useTransition } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Bell, Newspaper, CircleDot } from "lucide-react";
+import { Bell, Check, ChevronLeft, ChevronRight, KeyRound, MapPin, Shield, UserRound } from "lucide-react";
 import { completeOnboarding, type OnboardingState } from "./actions";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Sheet } from "@/components/ui/Sheet";
 import { CenterPicker } from "@/components/centre/CenterPicker";
 import type { Directory } from "@/lib/centres/public";
-import { ChevronRight } from "lucide-react";
 import { LIMITS } from "@/lib/config";
 import { SPRING } from "@/lib/motion";
 import { pushSupported, subscribeBrowser } from "@/lib/push/client";
 import { savePushSubscription } from "@/app/(app)/profil/notifications-actions";
+import { AGENT_STATUSES, type AgentStatusValue } from "@/lib/auth/first-access-public";
 import { cn } from "@/lib/cn";
 
-const SLIDES = [
-  { icon: Newspaper, title: "Le fil", text: "Les actualités du SDIS 62 publiées par le service communication : interventions, vie des centres, formations, cérémonies. Réagissez, commentez, gardez en favori." },
-  { icon: CircleDot, title: "Les stories", text: "En haut du fil, des moments en photo ou en vidéo qui disparaissent après 48 heures. Touchez pour avancer, maintenez pour mettre en pause." },
-  { icon: Bell, title: "Les notifications", text: "Soyez prévenu des nouvelles publications et des annonces importantes. Vous choisissez ce que vous recevez, et vous pouvez changer d'avis à tout moment." },
-];
+type StepKey = "identite" | "statut" | "centre" | "motdepasse" | "notifications";
+const STEP_META: Record<StepKey, { icon: typeof UserRound; title: string; text: string }> = {
+  identite: { icon: UserRound, title: "Faisons connaissance", text: "Votre prénom et votre nom apparaissent dans vos commentaires. Ils restent internes au SDIS." },
+  statut: { icon: Shield, title: "Votre statut", text: "Il sert au service communication pour adresser les bonnes informations aux bonnes personnes." },
+  centre: { icon: MapPin, title: "Votre centre", text: "Choisissez votre centre d'incendie et de secours ou votre service. Votre chef de centre confirme votre arrivée." },
+  motdepasse: { icon: KeyRound, title: "Votre mot de passe", text: `Remplacez le mot de passe temporaire par le vôtre : ${LIMITS.passwordMinLength} caractères minimum, il vous servira à chaque connexion.` },
+  notifications: { icon: Bell, title: "Restez informé", text: "Soyez prévenu des publications et des annonces importantes. Vous choisissez ce que vous recevez, et vous pouvez changer d'avis à tout moment." },
+};
 
 const initial: OnboardingState = { status: "idle" };
 
 /**
- * Accueil de première connexion : trois écrans plein cadre, puis profil
- * (prénom, nom, centre, mot de passe si arrivée par lien) et activation des push.
+ * Accueil de première connexion : fenêtre centrée façon « pop-up », une étape à la fois
+ * (identité, statut, centre, mot de passe, notifications), progression en points, retour
+ * possible. Un seul envoi à la fin ; une erreur serveur renvoie à l'étape du champ concerné.
  */
-export function Onboarding({ firstName, lastName, centerId, directory, needPassword, startAtForm = false, presetRole = null, passwordRequired = false }: { firstName: string; lastName: string; centerId: string | null; directory: Directory; needPassword: boolean; startAtForm?: boolean; /** Chef de centre ou responsable com déjà rattaché d'office */ presetRole?: string | null; /** Mot de passe exigé (première connexion, lien « mot de passe oublié ») */ passwordRequired?: boolean }) {
-  const [step, setStep] = useState(startAtForm ? SLIDES.length : 0);
+export function Onboarding({ firstName, lastName, matricule, status: initialStatus, centerId, directory, needPassword, startAtForm = false, presetRole = null, passwordRequired = false }: { firstName: string; lastName: string; matricule?: string | null; status?: AgentStatusValue | null; centerId: string | null; directory: Directory; needPassword: boolean; startAtForm?: boolean; /** Chef de centre ou responsable com déjà rattaché d'office */ presetRole?: string | null; /** Mot de passe exigé (première connexion, lien « mot de passe oublié ») */ passwordRequired?: boolean }) {
+  const steps: StepKey[] = ["identite", ...(startAtForm && initialStatus ? [] : (["statut"] as StepKey[])), "centre", ...(needPassword ? (["motdepasse"] as StepKey[]) : []), ...(startAtForm ? [] : (["notifications"] as StepKey[]))];
+  const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [first, setFirst] = useState(firstName);
+  const [last, setLast] = useState(lastName);
+  const [status, setStatus] = useState<AgentStatusValue | "">(initialStatus ?? "");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [local, setLocal] = useState<Record<string, string>>({});
   const [picker, setPicker] = useState(false);
   const [choice, setChoice] = useState<{ center_id: string | null; service_id: string | null; name: string } | null>(() => {
     const c = centerId ? directory.centers.find((x) => x.id === centerId) : null;
@@ -38,9 +50,53 @@ export function Onboarding({ firstName, lastName, centerId, directory, needPassw
   const [pushDone, setPushDone] = useState<null | "on" | "skip">(null);
   const [pending, start] = useTransition();
   const [state, action, submitting] = useActionState(completeOnboarding, initial);
-  const fields = state.status === "error" ? state.fields ?? {} : {};
+  const serverFields = state.status === "error" ? state.fields ?? {} : {};
   const reduced = useReducedMotion();
-  const last = SLIDES.length; // index de l'étape formulaire
+  const step = steps[index];
+  const lastIndex = steps.length - 1;
+
+  // Erreur serveur sur un champ : retour à l'étape concernée (état dérivé pendant le rendu,
+  // pas d'effet : https://react.dev/learn/you-might-not-need-an-effect)
+  const [seenState, setSeenState] = useState(state);
+  if (state !== seenState) {
+    setSeenState(state);
+    if (state.status === "error" && state.fields) {
+      const key = Object.keys(state.fields)[0];
+      const target: StepKey | undefined = key === "first_name" || key === "last_name" ? "identite" : key === "status" ? "statut" : key === "center_id" ? "centre" : key === "password" || key === "confirm" ? "motdepasse" : undefined;
+      const i = target ? steps.indexOf(target) : -1;
+      if (i >= 0) {
+        setDirection(-1);
+        setIndex(i);
+      }
+    }
+  }
+
+  function validate(s: StepKey): Record<string, string> {
+    const e: Record<string, string> = {};
+    if (s === "identite") {
+      if (!first.trim()) e.first_name = "Champ obligatoire.";
+      if (!last.trim()) e.last_name = "Champ obligatoire.";
+    }
+    if (s === "statut" && !status) e.status = "Choisissez votre statut.";
+    if (s === "motdepasse" && (passwordRequired || password || confirm)) {
+      if (password.length < LIMITS.passwordMinLength) e.password = `${LIMITS.passwordMinLength} caractères minimum.`;
+      if (password !== confirm) e.confirm = "Les deux mots de passe ne correspondent pas.";
+    }
+    return e;
+  }
+
+  function next() {
+    const e = validate(step);
+    setLocal(e);
+    if (Object.keys(e).length) return;
+    setDirection(1);
+    setIndex((i) => Math.min(lastIndex, i + 1));
+  }
+  function back() {
+    setLocal({});
+    setDirection(-1);
+    setIndex((i) => Math.max(0, i - 1));
+  }
 
   function enablePush() {
     start(async () => {
@@ -56,118 +112,188 @@ export function Onboarding({ firstName, lastName, centerId, directory, needPassw
     });
   }
 
+  const fields = { ...serverFields, ...local };
+  const Icon = STEP_META[step].icon;
+
   return (
-    <div className="flex min-h-dvh flex-col bg-bg-0">
-      {/* Progression */}
-      <div className="flex gap-1 px-5 pt-[max(env(safe-area-inset-top),16px)]" aria-hidden="true">
-        {[...SLIDES, null].map((_, i) => (
-          <span key={i} className={cn("h-[2px] flex-1 rounded-full", i <= step ? "bg-text-1" : "bg-line-strong")} />
-        ))}
-      </div>
+    <div className="relative flex min-h-dvh flex-col justify-end bg-bg-0 sm:justify-center">
+      {/* Fond : halo discret derrière la fenêtre */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_30%,rgba(200,16,46,0.18),transparent_70%)]" />
 
-      <AnimatePresence mode="wait" initial={false}>
-        {step < last ? (
-          <motion.section
-            key={step}
-            initial={reduced ? false : { opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -24, transition: { duration: 0.16 } }}
-            transition={SPRING}
-            className="flex flex-1 flex-col justify-end px-5 pb-[max(env(safe-area-inset-bottom),24px)] sm:mx-auto sm:w-full sm:max-w-[480px] sm:justify-center"
-            aria-live="polite"
-          >
-            {(() => {
-              const Icon = SLIDES[step].icon;
-              return <Icon size={40} strokeWidth={1.5} className="mb-6 text-text-2" aria-hidden="true" />;
-            })()}
-            <h1 className="text-[34px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">{SLIDES[step].title}</h1>
-            <p className="mt-3 text-[17px] leading-[1.45] text-text-2">{SLIDES[step].text}</p>
-            <div className="mt-10 flex items-center justify-between">
-              <button type="button" onClick={() => setStep(last)} className="text-[15px] font-medium text-text-2 hover:text-text-1">
-                Passer
-              </button>
-              <Button onClick={() => setStep((s) => s + 1)}>{step === last - 1 ? "Configurer" : "Suivant"}</Button>
-            </div>
-          </motion.section>
-        ) : (
-          <motion.section
-            key="form"
-            initial={reduced ? false : { opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={SPRING}
-            className="flex flex-1 flex-col px-5 pb-[max(env(safe-area-inset-bottom),24px)] pt-6 sm:mx-auto sm:w-full sm:max-w-[480px] sm:justify-center"
-          >
-            <h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">{firstName ? `Bonjour ${firstName}` : "Votre profil"}</h1>
-            <p className="mt-1 text-[15px] text-text-2">Ces informations apparaissent dans vos commentaires. Elles restent internes au SDIS.</p>
+      <form action={action} className="relative mx-auto flex w-full max-w-[480px] flex-col sm:px-5" noValidate>
+        {/* Valeurs envoyées en une fois à la fin */}
+        <input type="hidden" name="need_password" value={needPassword ? "1" : "0"} />
+        <input type="hidden" name="password_required" value={passwordRequired ? "1" : "0"} />
+        <input type="hidden" name="center_id" value={choice?.center_id ?? ""} />
+        <input type="hidden" name="service_id" value={choice?.service_id ?? ""} />
+        {step !== "identite" && (
+          <>
+            <input type="hidden" name="first_name" value={first} />
+            <input type="hidden" name="last_name" value={last} />
+          </>
+        )}
+        {step !== "statut" && <input type="hidden" name="status" value={status} />}
+        {step !== "motdepasse" && needPassword && (
+          <>
+            <input type="hidden" name="password" value={password} />
+            <input type="hidden" name="confirm" value={confirm} />
+          </>
+        )}
 
-            <form action={action} className="mt-6 space-y-4" noValidate>
-              <input type="hidden" name="need_password" value={needPassword ? "1" : "0"} />
-              <input type="hidden" name="password_required" value={passwordRequired ? "1" : "0"} />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Prénom" name="first_name" defaultValue={firstName} autoComplete="given-name" required error={fields.first_name} />
-                <Field label="Nom" name="last_name" defaultValue={lastName} autoComplete="family-name" required error={fields.last_name} />
+        <section className="rounded-t-[26px] bg-bg-1 px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-5 ring-1 ring-glass-edge sm:rounded-[26px] sm:p-6" aria-label="Bienvenue">
+          <div className="flex items-center justify-between">
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-text-3">Bienvenue sur ATLAS</p>
+            <ol className="flex items-center gap-1.5" aria-label={`Étape ${index + 1} sur ${steps.length}`}>
+              {steps.map((s, i) => (
+                <li key={s} aria-current={i === index ? "step" : undefined} className={cn("h-1.5 rounded-full transition-all duration-300", i === index ? "w-5 bg-text-1" : i < index ? "w-1.5 bg-text-2" : "w-1.5 bg-line-strong")} />
+              ))}
+            </ol>
+          </div>
+
+          <AnimatePresence mode="wait" initial={false} custom={direction}>
+            <motion.div
+              key={step}
+              custom={direction}
+              initial={reduced ? false : { opacity: 0, x: 28 * direction }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={reduced ? undefined : { opacity: 0, x: -28 * direction, transition: { duration: 0.14 } }}
+              transition={SPRING}
+              className="mt-5"
+            >
+              <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-bg-2 text-text-1">
+                <Icon size={22} strokeWidth={1.75} aria-hidden="true" />
               </div>
-              <input type="hidden" name="center_id" value={choice?.center_id ?? ""} />
-              <input type="hidden" name="service_id" value={choice?.service_id ?? ""} />
-              <div className="space-y-1.5">
-                <span className="block text-[13px] font-medium text-text-2">Centre ou service</span>
-                <button type="button" onClick={() => setPicker(true)} className="pressable flex h-11 w-full items-center justify-between rounded-[10px] bg-bg-1 px-3.5 text-left text-[15px] ring-1 ring-transparent focus:ring-glass-edge">
-                  <span className={choice ? "text-text-1" : "text-text-3"}>{choice?.name ?? "Choisir mon centre…"}</span>
-                  <ChevronRight size={18} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
-                </button>
-                <p className="text-[13px] text-text-3">{fields.center_id ?? (presetRole && choice?.center_id === centerId ? `${presetRole} de ${choice?.name ?? "votre centre"} : vous êtes rattaché d'office, sans validation.` : "Votre chef de centre reçoit une demande et confirme votre arrivée. En attendant, vous avez accès au fil.")}</p>
-              </div>
-              <Sheet open={picker} onClose={() => setPicker(false)} title="Choisir un centre ou un service" tall>
-                <div className="px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
-                  <CenterPicker
-                    directory={directory}
-                    mode="attach"
-                    currentCenterId={choice?.center_id ?? null}
-                    currentServiceId={choice?.service_id ?? null}
-                    onPick={(sel) => {
-                      setChoice(sel);
-                      setPicker(false);
-                    }}
-                  />
-                </div>
-              </Sheet>
-              {needPassword && (
-                <>
-                  <Field label={passwordRequired ? "Mot de passe" : "Mot de passe (facultatif)"} name="password" type="password" autoComplete="new-password" minLength={LIMITS.passwordMinLength} required={passwordRequired} hint={`${LIMITS.passwordMinLength} caractères minimum. Il vous servira à chaque connexion.`} error={fields.password} />
-                  <Field label="Confirmer le mot de passe" name="confirm" type="password" autoComplete="new-password" required={passwordRequired} error={fields.confirm} />
-                </>
-              )}
+              <h1 className="mt-3 text-[26px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">{step === "identite" && firstName ? `Bonjour ${firstName}` : STEP_META[step].title}</h1>
+              <p className="mt-1.5 text-[15px] leading-[1.45] text-text-2">{STEP_META[step].text}</p>
 
-              <div className="rounded-[16px] bg-bg-1 px-4 py-3">
-                <p className="text-[15px] text-text-1">Notifications</p>
-                {pushDone === "on" ? (
-                  <p className="text-[13px] text-text-2">Activées sur cet appareil.</p>
-                ) : pushDone === "skip" ? (
-                  <p className="text-[13px] text-text-3">Vous pourrez les activer plus tard depuis votre profil.</p>
-                ) : (
-                  <div className="mt-2 flex items-center gap-3">
-                    <Button type="button" variant="secondary" size="md" loading={pending} onClick={enablePush}>
-                      Activer
-                    </Button>
-                    <button type="button" onClick={() => setPushDone("skip")} className="text-[15px] font-medium text-text-2 hover:text-text-1">
-                      Plus tard
+              <div className="mt-5 space-y-4">
+                {step === "identite" && (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Prénom" name="first_name" value={first} onChange={(e) => setFirst(e.target.value)} autoComplete="given-name" required error={fields.first_name} autoFocus={!startAtForm} />
+                      <Field label="Nom" name="last_name" value={last} onChange={(e) => setLast(e.target.value)} autoComplete="family-name" required error={fields.last_name} />
+                    </div>
+                    {matricule && (
+                      <p className="flex items-center justify-between rounded-[12px] bg-bg-2 px-3.5 py-2.5 text-[15px]">
+                        <span className="text-text-2">Matricule</span>
+                        <span className="font-semibold tabular-nums text-text-1">{matricule}</span>
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {step === "statut" && (
+                  <div role="radiogroup" aria-label="Statut" className="grid grid-cols-2 gap-2.5">
+                    {AGENT_STATUSES.map((s) => {
+                      const on = status === s.value;
+                      return (
+                        <button
+                          key={s.value}
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          onClick={() => {
+                            setStatus(s.value);
+                            setLocal({});
+                          }}
+                          className={cn("pressable flex min-h-[76px] flex-col justify-between rounded-[14px] px-3.5 py-3 text-left ring-1 transition-colors", on ? "bg-text-1 text-bg-0 ring-text-1" : "bg-bg-2 text-text-1 ring-transparent hover:ring-glass-edge")}
+                        >
+                          <span className="flex items-center justify-between text-[17px] font-semibold tracking-[-0.02em]">
+                            {s.label}
+                            {on && <Check size={18} strokeWidth={2.5} aria-hidden="true" />}
+                          </span>
+                          <span className={cn("text-[12px] leading-[1.3]", on ? "text-bg-0/80" : "text-text-3")}>{s.description}</span>
+                        </button>
+                      );
+                    })}
+                    {status && <input type="hidden" name="status" value={status} />}
+                    {fields.status && (
+                      <p className="col-span-2 text-[13px] text-red-text" role="alert">
+                        {fields.status}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {step === "centre" && (
+                  <div className="space-y-1.5">
+                    <button type="button" onClick={() => setPicker(true)} className="pressable flex h-12 w-full items-center justify-between rounded-[12px] bg-bg-2 px-3.5 text-left text-[15px] ring-1 ring-transparent focus:ring-glass-edge">
+                      <span className={choice ? "text-text-1" : "text-text-3"}>{choice?.name ?? "Choisir mon centre ou mon service…"}</span>
+                      <ChevronRight size={18} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
                     </button>
+                    <p className="text-[13px] text-text-3">{fields.center_id ?? (presetRole && choice?.center_id === centerId ? `${presetRole} de ${choice?.name ?? "votre centre"} : vous êtes rattaché d'office, sans validation.` : "Facultatif maintenant, modifiable depuis votre profil. En attendant la confirmation du chef de centre, vous avez accès au fil.")}</p>
+                  </div>
+                )}
+
+                {step === "motdepasse" && (
+                  <>
+                    <Field label={passwordRequired ? "Mot de passe" : "Mot de passe (facultatif)"} name="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={LIMITS.passwordMinLength} required={passwordRequired} error={fields.password} autoFocus />
+                    <Field label="Confirmer le mot de passe" name="confirm" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" required={passwordRequired} error={fields.confirm} />
+                  </>
+                )}
+
+                {step === "notifications" && (
+                  <div className="rounded-[14px] bg-bg-2 px-4 py-3">
+                    <p className="text-[15px] text-text-1">Notifications sur cet appareil</p>
+                    {pushDone === "on" ? (
+                      <p className="text-[13px] text-text-2">Activées.</p>
+                    ) : pushDone === "skip" ? (
+                      <p className="text-[13px] text-text-3">Vous pourrez les activer plus tard depuis votre profil.</p>
+                    ) : (
+                      <div className="mt-2 flex items-center gap-3">
+                        <Button type="button" variant="secondary" size="md" loading={pending} onClick={enablePush}>
+                          Activer
+                        </Button>
+                        <button type="button" onClick={() => setPushDone("skip")} className="text-[15px] font-medium text-text-2 hover:text-text-1">
+                          Plus tard
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
+            </motion.div>
+          </AnimatePresence>
 
-              {state.status === "error" && !state.fields && (
-                <p className="text-[13px] text-red-text" role="alert">
-                  {state.message}
-                </p>
-              )}
-              <Button type="submit" className="w-full" loading={submitting}>
+          {state.status === "error" && !state.fields && (
+            <p className="mt-4 text-[13px] text-red-text" role="alert">
+              {state.message}
+            </p>
+          )}
+
+          <div className="mt-6 flex items-center gap-3">
+            {index > 0 ? (
+              <button type="button" onClick={back} className="pressable flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] bg-bg-2 text-text-1" aria-label="Étape précédente">
+                <ChevronLeft size={20} strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            ) : null}
+            {index < lastIndex ? (
+              <Button type="button" className="flex-1" onClick={next}>
+                Suivant
+              </Button>
+            ) : (
+              <Button type="submit" className="flex-1" loading={submitting}>
                 Commencer
               </Button>
-            </form>
-          </motion.section>
-        )}
-      </AnimatePresence>
+            )}
+          </div>
+        </section>
+      </form>
+
+      <Sheet open={picker} onClose={() => setPicker(false)} title="Choisir un centre ou un service" tall>
+        <div className="px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
+          <CenterPicker
+            directory={directory}
+            mode="attach"
+            currentCenterId={choice?.center_id ?? null}
+            currentServiceId={choice?.service_id ?? null}
+            onPick={(sel) => {
+              setChoice(sel);
+              setPicker(false);
+            }}
+          />
+        </div>
+      </Sheet>
     </div>
   );
 }

@@ -38,6 +38,8 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
     <Onboarding
       firstName={profile.first_name}
       lastName={profile.last_name}
+      matricule={profile.matricule}
+      status={profile.status}
       centerId={profile.center_id}
       presetRole={presetRole}
       directory={directory}

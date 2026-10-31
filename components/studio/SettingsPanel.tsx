@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { flushQueue, sendDigestTest, setAppSetting, setDigestEnabled } from "@/app/(studio)/studio/parametres/actions";
-import { CheckboxField } from "@/components/ui/Field";
+import Link from "next/link";
+import { CheckboxField, SelectField } from "@/components/ui/Field";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { formatDateTime } from "@/lib/format";
@@ -16,7 +17,7 @@ type Stats = {
   failed_7d?: number;
   last?: { kind: string; status: string; at: string; stats: string | null } | null;
 };
-type AuthPrefs = { passwordEnabled: boolean; magicLinkEnabled: boolean; ssoForced: boolean; ssoConfigured: boolean; feedbackEmail: string };
+type AuthPrefs = { passwordEnabled: boolean; magicLinkEnabled: boolean; ssoForced: boolean; ssoConfigured: boolean; feedbackEmail: string; firstAccess: "link" | "registry"; registryCount: number };
 
 export function SettingsPanel({
   isAdmin,
@@ -111,6 +112,47 @@ export function SettingsPanel({
           <div className="py-2">
             <CheckboxField label="Connexion par lien e-mail" name="auth_magic_link_enabled" checked={auth.magicLinkEnabled} disabled={pending || !isAdmin || auth.ssoForced} onChange={(e) => toggleAuth("auth_magic_link_enabled", "magicLinkEnabled", e.target.checked)} hint="Sert aussi à la première connexion et au mot de passe oublié" />
           </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Première connexion</h2>
+        <div className="space-y-3 rounded-[16px] bg-bg-1 px-5 py-4">
+          <SelectField
+            label="Comment un agent crée son accès"
+            name="auth_first_access"
+            value={auth.firstAccess}
+            disabled={pending || !isAdmin}
+            onChange={(e) => {
+              const v = e.target.value as "link" | "registry";
+              const prev = auth.firstAccess;
+              setAuth((a) => ({ ...a, firstAccess: v }));
+              start(async () => {
+                const r = await setAppSetting("auth_first_access", v);
+                if (!r.ok) {
+                  setAuth((a) => ({ ...a, firstAccess: prev }));
+                  toast(r.error);
+                } else toast("Réglage enregistré");
+              });
+            }}
+            hint={
+              auth.firstAccess === "registry"
+                ? `Adresse SDIS + matricule + adresse personnelle : le matricule doit figurer parmi les ${auth.registryCount} agent(s) référencé(s), le mot de passe temporaire part sur l'adresse personnelle (e-mails envoyés par ATLAS : RESEND_API_KEY ou SMTP_HOST requis).`
+                : "Lien reçu sur l'adresse professionnelle, puis mot de passe choisi à l'accueil."
+            }
+          >
+            <option value="link">Lien e-mail sur l&apos;adresse SDIS</option>
+            <option value="registry">Matricule référencé + mot de passe temporaire</option>
+          </SelectField>
+          {isAdmin && (
+            <p className="text-[13px] text-text-3">
+              La liste des agents (matricule, nom, prénom, e-mail, centre, statut) s&apos;importe dans{" "}
+              <Link href="/admin/agents" className="font-medium text-text-1 underline-offset-2 hover:underline">
+                Agents référencés
+              </Link>
+              .
+            </p>
+          )}
         </div>
       </section>
 

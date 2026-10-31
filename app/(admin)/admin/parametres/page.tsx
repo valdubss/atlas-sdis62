@@ -12,9 +12,10 @@ export default async function ParametresPage() {
   const current = await getCurrentUser();
   if (!current) redirect("/auth/deconnexion?raison=profil");
   const supabase = await createClient();
-  const [{ data: settings }, { data: stats }] = await Promise.all([
-    supabase.from("app_settings").select("key, value").in("key", ["digest_enabled", "app_name", "auth_password_enabled", "auth_magic_link_enabled", "auth_sso_forced", "feedback_email"]),
+  const [{ data: settings }, { data: stats }, { count: registryCount }] = await Promise.all([
+    supabase.from("app_settings").select("key, value").in("key", ["digest_enabled", "app_name", "auth_password_enabled", "auth_magic_link_enabled", "auth_sso_forced", "auth_first_access", "feedback_email"]),
     supabase.rpc("get_notification_stats"),
+    supabase.from("agents_registry").select("matricule", { count: "exact", head: true }),
   ]);
   const get = (k: string) => settings?.find((s) => s.key === k)?.value;
   const digestEnabled = get("digest_enabled") === true;
@@ -24,6 +25,8 @@ export default async function ParametresPage() {
     ssoForced: get("auth_sso_forced") === true,
     ssoConfigured: process.env.AUTH_OIDC_PROVIDER === "azure",
     feedbackEmail: typeof get("feedback_email") === "string" ? (get("feedback_email") as string) : "",
+    firstAccess: (get("auth_first_access") === "registry" ? "registry" : "link") as "link" | "registry",
+    registryCount: registryCount ?? 0,
   };
 
   return (

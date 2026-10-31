@@ -20,6 +20,19 @@ export const passwordLoginSchema = z.object({
   password: z.string().min(1, "Saisissez votre mot de passe."),
 });
 
+/** Connexion par e-mail ou matricule (mode « registry »). */
+export const identifierLoginSchema = z.object({
+  identifier: z.string().trim().min(1, "Saisissez votre e-mail ou votre matricule.").max(120),
+  password: z.string().min(1, "Saisissez votre mot de passe."),
+});
+
+/** Première connexion par matricule : adresse SDIS, matricule, adresse personnelle. */
+export const firstAccessSchema = z.object({
+  email,
+  matricule: z.string().trim().min(3, "Saisissez votre matricule.").max(20, "Matricule trop long."),
+  personalEmail: z.string().trim().toLowerCase().min(1, "Saisissez votre adresse personnelle.").pipe(z.email("Adresse personnelle invalide.")),
+});
+
 export const setPasswordSchema = z
   .object({
     password,

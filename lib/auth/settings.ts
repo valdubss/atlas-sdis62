@@ -14,7 +14,7 @@ export async function getAuthSettings(): Promise<AuthSettings> {
     const { data } = await admin
       .from("app_settings")
       .select("key, value")
-      .in("key", ["auth_password_enabled", "auth_magic_link_enabled", "auth_sso_forced"]);
+      .in("key", ["auth_password_enabled", "auth_magic_link_enabled", "auth_sso_forced", "auth_first_access"]);
     const map: Record<string, unknown> = {};
     for (const row of data ?? []) map[row.key] = row.value;
     return resolveAuthSettings(map);

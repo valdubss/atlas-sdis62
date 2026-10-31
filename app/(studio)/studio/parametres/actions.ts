@@ -27,9 +27,10 @@ export async function setDigestEnabled(enabled: boolean): Promise<Result> {
 }
 
 /** Réglages d'authentification et adresse des signalements (admin). */
-export async function setAppSetting(key: "auth_password_enabled" | "auth_magic_link_enabled" | "auth_sso_forced" | "feedback_email", value: boolean | string): Promise<Result> {
+export async function setAppSetting(key: "auth_password_enabled" | "auth_magic_link_enabled" | "auth_sso_forced" | "auth_first_access" | "feedback_email", value: boolean | string): Promise<Result> {
   const ctx = await requireAdmin();
   if (!ctx) return { ok: false, error: "Réservé aux administrateurs." };
+  if (key === "auth_first_access" && value !== "link" && value !== "registry") return { ok: false, error: "Mode inconnu." };
   if (key === "feedback_email" && typeof value === "string" && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return { ok: false, error: "Adresse e-mail invalide." };
   if ((key === "auth_password_enabled" || key === "auth_magic_link_enabled") && value === false) {
     // Jamais zéro moyen de connexion : l'autre méthode ou le SSO doit rester actif

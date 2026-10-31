@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { adminClient, createTestUser, loadEnv, loginWithPassword, magicLink } from "./helpers";
+import { adminClient, createTestUser, loadEnv, loginWithPassword, magicLink, completeOnboarding } from "./helpers";
 
 const env = loadEnv();
 const admin = adminClient(env);
@@ -41,20 +41,9 @@ test("parcours comptes : nouvel agent par lien et code, accueil, fil ; administr
     const page = await (await browser.newContext()).newPage();
     await page.goto(await magicLink(env, baseURL!, newEmail), { waitUntil: "networkidle" });
     await page.waitForURL(/\/bienvenue/, { timeout: 20_000 });
-    // Écrans de présentation puis configuration
-    for (let i = 0; i < 6; i++) {
-      const next = page.getByRole("button", { name: /^(Suivant|Configurer)$/ });
-      if (!(await next.isVisible().catch(() => false))) break;
-      await next.click();
-      await page.waitForTimeout(250);
-    }
-    await page.getByLabel("Prénom").fill("Nouvel");
-    await page.getByLabel("Nom", { exact: true }).fill(`Agent ${stamp}`);
-    // Mot de passe obligatoire à la première connexion
+    // Accueil étape par étape ; mot de passe obligatoire à la première connexion
     const newPassword = `Nouveau-${stamp}-Mdp1`;
-    await page.getByLabel("Mot de passe", { exact: true }).fill(newPassword);
-    await page.getByLabel("Confirmer le mot de passe").fill(newPassword);
-    await page.getByRole("button", { name: "Commencer" }).click();
+    await completeOnboarding(page, { firstName: "Nouvel", lastName: `Agent ${stamp}`, password: newPassword });
     await page.waitForURL((u) => u.pathname === "/", { timeout: 20_000 });
     await expect(page.getByRole("article", { name: `Bienvenue ${stamp}` })).toBeVisible({ timeout: 20_000 });
     await expect.poll(async () => (await admin.from("profiles").select("onboarded_at, last_name").eq("id", newId!).single()).data?.last_name, { timeout: 10_000 }).toBe(`Agent ${stamp}`);
