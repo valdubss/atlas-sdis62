@@ -17,7 +17,7 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
   const { q = "" } = await searchParams;
   const supabase = await createClient();
 
-  let query = supabase.from("agents_registry").select("matricule, email, last_name, first_name, center_name, status, imported_at", { count: "exact" }).order("matricule").limit(200);
+  let query = supabase.from("agents_registry").select("matricule, email, personal_email, activated_at, last_name, first_name, center_name, status, imported_at", { count: "exact" }).order("matricule").limit(200);
   const needle = q.trim();
   if (needle) {
     const safe = needle.replace(/[%,()]/g, " ").trim();

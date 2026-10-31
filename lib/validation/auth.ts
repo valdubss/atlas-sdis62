@@ -26,12 +26,11 @@ export const identifierLoginSchema = z.object({
   password: z.string().min(1, "Saisissez votre mot de passe."),
 });
 
-/** Première connexion par matricule : matricule, nom, prénom (vérifiés dans le référentiel). */
-const personName = z.string().trim().min(1, "Champ obligatoire.").max(60, "60 caractères maximum.");
+/** Première connexion par matricule : adresse SDIS (indicative), matricule, adresse personnelle. */
 export const firstAccessSchema = z.object({
+  email,
   matricule: z.string().trim().min(3, "Saisissez votre matricule.").max(20, "Matricule trop long."),
-  lastName: personName,
-  firstName: personName,
+  personalEmail: z.string().trim().toLowerCase().min(1, "Saisissez votre adresse personnelle.").pipe(z.email("Adresse personnelle invalide.")),
 });
 
 export const setPasswordSchema = z

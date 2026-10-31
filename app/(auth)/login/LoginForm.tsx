@@ -19,10 +19,10 @@ const input = "h-11 w-full rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1
  *
  * Deux modes de première connexion (réglage administrateur) :
  *  - « link » : e-mail professionnel, lien (et code) reçu pour définir le mot de passe ;
- *  - « registry » : matricule + nom + prénom vérifiés dans le référentiel, session ouverte
- *    aussitôt, mot de passe choisi à l'accueil ; connexion ensuite par e-mail ou matricule.
- *    « Mot de passe oublié » : lien e-mail pour qui a une vraie adresse SDIS, sinon mot de passe
- *    provisoire remis par le service communication.
+ *  - « registry » : adresse SDIS + matricule + adresse personnelle vérifiés dans le référentiel,
+ *    code à six chiffres reçu sur l'adresse personnelle, mot de passe choisi à l'accueil ;
+ *    connexion ensuite par e-mail (personnelle ou SDIS) ou matricule.
+ *    « Mot de passe oublié » : e-mail ou matricule → code sur l'adresse personnelle.
  */
 export function LoginForm({ next, auth, mailFromApp = true }: { next: string; domains?: string[]; auth: AuthSettings; /** E-mails envoyés par ATLAS (lien + code) ; sinon e-mail standard Supabase (lien seul) */ mailFromApp?: boolean }) {
   const registry = auth.firstAccess === "registry";
@@ -41,12 +41,12 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
       <div className="space-y-1">
         <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">E-mail envoyé</p>
         <p className="text-[15px] text-text-2">
-          Sur <span className="text-text-1">{sent.email}</span> : touchez le lien pour définir votre mot de passe{mailFromApp ? ", ou saisissez ici le code à six chiffres qui figure dans l'e-mail" : ""}. Valable {mailFromApp ? "quinze minutes" : "une heure"}.
+          Sur <span className="text-text-1">{sent.display ?? sent.email}</span> : touchez le lien pour définir votre mot de passe{mailFromApp ? ", ou saisissez ici le code à six chiffres (il est aussi dans l'objet de l'e-mail)" : ""}. Valable {mailFromApp ? "quinze minutes" : "une heure"}.
         </p>
       </div>
       {mailFromApp && (
         <form action={codeAction} className="space-y-3" noValidate>
-          <input type="hidden" name="email" value={sent.email} />
+          {sent.identifier ? <input type="hidden" name="identifier" value={sent.identifier} /> : <input type="hidden" name="email" value={sent.email} />}
           <input type="hidden" name="next" value={sent.next} />
           <input
             name="code"
@@ -85,15 +85,19 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
   const linkForm = (
     <form action={linkAction} className="space-y-3" noValidate>
       <input type="hidden" name="next" value={next && next !== "/" ? next : "/"} />
-      <p className="text-[15px] text-text-2">{registry ? "Si vous avez une adresse @sdis62.fr : saisissez-la, vous recevez un e-mail avec un lien pour choisir un nouveau mot de passe." : "Première connexion ou mot de passe oublié : saisissez votre adresse @sdis62.fr, vous recevez un e-mail avec un lien pour définir votre mot de passe."}</p>
-      <input name="email" type="email" autoComplete="email" inputMode="email" placeholder="E-mail" aria-label="Adresse e-mail" required className={cn(input, linkError && "ring-red")} />
+      <p className="text-[15px] text-text-2">{registry ? "Saisissez votre e-mail ou votre matricule : vous recevez un code sur votre adresse personnelle pour choisir un nouveau mot de passe." : "Première connexion ou mot de passe oublié : saisissez votre adresse @sdis62.fr, vous recevez un e-mail avec un lien pour définir votre mot de passe."}</p>
+      {registry ? (
+        <input name="identifier" type="text" autoComplete="username" autoCapitalize="none" inputMode="email" placeholder="E-mail ou matricule" aria-label="E-mail ou matricule" required className={cn(input, linkError && "ring-red")} />
+      ) : (
+        <input name="email" type="email" autoComplete="email" inputMode="email" placeholder="E-mail" aria-label="Adresse e-mail" required className={cn(input, linkError && "ring-red")} />
+      )}
       {linkError && (
         <p className="text-[13px] text-red-text" role="alert">
           {linkError}
         </p>
       )}
       <Button type="submit" variant={registry ? "primary" : secondaryVariant} className="w-full" loading={linkPending}>
-        Recevoir le lien
+        {registry ? "Recevoir le code" : "Recevoir le lien"}
       </Button>
     </form>
   );
@@ -184,8 +188,8 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
           <FirstAccess open={firstAccessOpen} onClose={() => setFirstAccessOpen(false)} />
           <Sheet open={forgotOpen} onClose={() => setForgotOpen(false)} title="Mot de passe oublié">
             <div className="space-y-4 px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
-              {sentPanel ?? (auth.magicLinkEnabled ? linkForm : null)}
-              {!sentPanel && <p className="text-[13px] text-text-3">Pas d&apos;adresse e-mail du SDIS, ou rien reçu ? Adressez-vous au service communication : il vous remet un mot de passe provisoire, que vous remplacez à la connexion suivante.</p>}
+              {sentPanel ?? linkForm}
+              {!sentPanel && <p className="text-[13px] text-text-3">Plus accès à votre adresse personnelle ? Adressez-vous au service communication.</p>}
             </div>
           </Sheet>
         </>

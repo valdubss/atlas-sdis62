@@ -6,26 +6,28 @@ import { createClient } from "@/lib/supabase/server";
 import { isAllowedEmail, getAllowedDomains } from "@/lib/auth/domains";
 import { firstAccessSchema, identifierLoginSchema, loginSchema, passwordLoginSchema } from "@/lib/validation/auth";
 import { requestFirstAccess, resolveLoginIdentifier } from "@/lib/auth/first-access";
+import { maskEmail } from "@/lib/auth/first-access-public";
+import { sendAccountEmail } from "@/lib/auth/invite";
 import { getAuthSettings } from "@/lib/auth/settings";
 import { azureOAuthOptions } from "@/lib/auth/providers";
 import { appMailConfigured, sendLoginEmailFor } from "@/lib/auth/invite";
 
 export type LoginState =
   | { status: "idle" }
-  | { status: "sent"; email: string; next: string }
+  | { status: "sent"; email: string; /** Adresse affichée (masquée en mode « registry ») */ display?: string; /** Identifiant saisi (e-mail ou matricule) : le code est vérifié sans exposer l'adresse du compte */ identifier?: string; next: string }
   | { status: "error"; message: string };
 
-export type FirstAccessState = { status: "idle" } | { status: "error"; message: string; fields?: Record<string, string> };
+export type FirstAccessState = { status: "idle" } | { status: "sent"; email: string } | { status: "error"; message: string; fields?: Record<string, string> };
 
 /**
- * Première connexion par matricule (réglage « registry ») : matricule + nom + prénom, vérifiés
- * dans le référentiel. Succès : compte créé, session ouverte, direction l'accueil (/bienvenue)
- * où l'agent choisit statut, centre et mot de passe.
+ * Première connexion par matricule (réglage « registry ») : adresse SDIS + matricule + adresse
+ * personnelle, vérifiés dans le référentiel ; le code à six chiffres part sur l'adresse
+ * personnelle et la feuille passe à sa saisie (verifyEmailCode).
  */
 export async function requestFirstAccessAction(_prev: FirstAccessState, formData: FormData): Promise<FirstAccessState> {
   const auth = await getAuthSettings();
   if (auth.firstAccess !== "registry") return { status: "error", message: "Ce mode de première connexion est désactivé." };
-  const parsed = firstAccessSchema.safeParse({ matricule: formData.get("matricule"), lastName: formData.get("lastName"), firstName: formData.get("firstName") });
+  const parsed = firstAccessSchema.safeParse({ email: formData.get("email"), matricule: formData.get("matricule"), personalEmail: formData.get("personalEmail") });
   if (!parsed.success) {
     const fields: Record<string, string> = {};
     for (const i of parsed.error.issues) {
@@ -38,10 +40,7 @@ export async function requestFirstAccessAction(_prev: FirstAccessState, formData
   const client = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? "";
   const r = await requestFirstAccess(parsed.data, client);
   if (!r.ok) return { status: "error", message: r.error, fields: r.field ? { [r.field]: r.error } : undefined };
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email: r.email, password: r.password });
-  if (error) return { status: "error", message: "Compte créé, mais la connexion a échoué. Réessayez dans un instant." };
-  redirect("/bienvenue?mdp=1");
+  return { status: "sent", email: r.personalEmail };
 }
 
 function safeNext(next: string | null): string {
@@ -63,6 +62,21 @@ export async function sendMagicLink(
 ): Promise<LoginState> {
   const auth = await getAuthSettings();
   if (!auth.magicLinkEnabled) return { status: "error", message: "La connexion par lien e-mail est désactivée." };
+  const next = safeNext(formData.get("next") as string | null);
+
+  // Mode « registry » : e-mail (personnelle ou SDIS) ou matricule → compte existant → code de
+  // nouveau mot de passe sur l'adresse du compte, affichée masquée (l'adresse d'un autre ne se
+  // révèle pas en tapant son matricule)
+  if (formData.has("identifier")) {
+    const identifier = String(formData.get("identifier") ?? "").trim();
+    if (!identifier) return { status: "error", message: "Saisissez votre e-mail ou votre matricule." };
+    const resolved = await resolveLoginIdentifier(identifier);
+    if (!resolved?.known) return { status: "error", message: "Aucun compte ne correspond. Première connexion ? Utilisez le bouton « Première connexion »." };
+    const r = await sendAccountEmail("recovery", resolved.email, { codeInSubject: true });
+    if (!r.ok) return { status: "error", message: "Envoi impossible pour le moment. Réessayez dans quelques minutes." };
+    return { status: "sent", email: resolved.email, display: maskEmail(resolved.email), identifier, next: "/bienvenue?mdp=1" };
+  }
+
   const parsed = loginSchema.safeParse({ email: formData.get("email") });
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0]?.message ?? "Adresse invalide." };
@@ -72,8 +86,6 @@ export async function sendMagicLink(
   if (!isAllowedEmail(email)) {
     return { status: "error", message: notAllowedMessage() };
   }
-
-  const next = safeNext(formData.get("next") as string | null);
 
   // Transport d'ATLAS (Resend ou SMTP) : expéditeur, objet et contenu d'ATLAS, lien + code.
   if (appMailConfigured()) {
@@ -106,13 +118,26 @@ export async function sendMagicLink(
  * sécurité) ou quand l'e-mail est lu sur un autre appareil.
  */
 export async function verifyEmailCode(_prev: LoginState, formData: FormData): Promise<LoginState> {
-  const parsed = loginSchema.safeParse({ email: formData.get("email") });
   const code = String(formData.get("code") ?? "").replace(/\D/g, "");
   const next = safeNext(formData.get("next") as string | null);
-  if (!parsed.success) return { status: "error", message: "Adresse invalide." };
-  if (code.length < 6) return { status: "sent", email: parsed.data.email, next };
+  // Mode « registry », mot de passe oublié : l'identifiant saisi est résolu ici, l'adresse du compte
+  // ne transite pas par le navigateur
+  const identifier = String(formData.get("identifier") ?? "").trim();
+  let email: string;
+  let display: string | undefined;
+  if (identifier) {
+    const resolved = await resolveLoginIdentifier(identifier);
+    if (!resolved?.known) return { status: "error", message: "Aucun compte ne correspond." };
+    email = resolved.email;
+    display = maskEmail(email);
+  } else {
+    const parsed = loginSchema.safeParse({ email: formData.get("email") });
+    if (!parsed.success) return { status: "error", message: "Adresse invalide." };
+    email = parsed.data.email;
+  }
+  if (code.length < 6) return { status: "sent", email, display, identifier: identifier || undefined, next };
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.verifyOtp({ email: parsed.data.email, token: code, type: "email" });
+  const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
   if (error) {
     if (error.status === 429) return { status: "error", message: "Trop de tentatives. Patientez quelques minutes." };
     return { status: "error", message: "Code incorrect ou expiré. Demandez un nouvel e-mail." };
@@ -132,13 +157,15 @@ export async function signInWithPassword(
   // Mode « registry » : l'identifiant est l'adresse SDIS ou le matricule
   let email: string;
   let password: string;
+  let known = false;
   if (formData.has("identifier")) {
     const parsed = identifierLoginSchema.safeParse({ identifier: formData.get("identifier"), password: formData.get("password") });
     if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Champs invalides." };
     const resolved = await resolveLoginIdentifier(parsed.data.identifier);
     if (!resolved) return { status: "error", message: "Identifiants incorrects. Première connexion ? Utilisez le bouton ci-dessous." };
-    email = resolved;
+    email = resolved.email;
     password = parsed.data.password;
+    known = resolved.known;
   } else {
     const parsed = passwordLoginSchema.safeParse({ email: formData.get("email"), password: formData.get("password") });
     if (!parsed.success) return { status: "error", message: parsed.error.issues[0]?.message ?? "Champs invalides." };
@@ -146,7 +173,7 @@ export async function signInWithPassword(
     password = parsed.data.password;
   }
 
-  if (!isAllowedEmail(email)) {
+  if (!known && !isAllowedEmail(email)) {
     return { status: "error", message: notAllowedMessage() };
   }
   const supabase = await createClient();
@@ -158,7 +185,7 @@ export async function signInWithPassword(
     }
     return {
       status: "error",
-      message: auth.firstAccess === "registry" ? "Identifiants incorrects. Première connexion ? Utilisez le bouton ci-dessous. Mot de passe oublié ? Voyez « Mot de passe oublié ? »." : "Identifiants incorrects. Première connexion ou mot de passe oublié ? Demandez un lien ci-dessous.",
+      message: auth.firstAccess === "registry" ? "Identifiants incorrects. Première connexion ou mot de passe oublié ? Utilisez les boutons ci-dessous." : "Identifiants incorrects. Première connexion ou mot de passe oublié ? Demandez un lien ci-dessous.",
     };
   }
 

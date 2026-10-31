@@ -21,7 +21,7 @@ const STEP_META: Record<StepKey, { icon: typeof UserRound; title: string; text: 
   identite: { icon: UserRound, title: "Faisons connaissance", text: "Votre prénom et votre nom apparaissent dans vos commentaires. Ils restent internes au SDIS." },
   statut: { icon: Shield, title: "Votre statut", text: "Il sert au service communication pour adresser les bonnes informations aux bonnes personnes." },
   centre: { icon: MapPin, title: "Votre centre", text: "Choisissez votre centre d'incendie et de secours ou votre service. Votre chef de centre confirme que vous en faites bien partie." },
-  motdepasse: { icon: KeyRound, title: "Votre mot de passe", text: `Remplacez le mot de passe temporaire par le vôtre : ${LIMITS.passwordMinLength} caractères minimum, il vous servira à chaque connexion.` },
+  motdepasse: { icon: KeyRound, title: "Votre mot de passe", text: `${LIMITS.passwordMinLength} caractères minimum. Il vous servira à chaque connexion, avec votre e-mail ou votre matricule.` },
   notifications: { icon: Bell, title: "Restez informé", text: "Soyez prévenu des publications et des annonces importantes. Vous choisissez ce que vous recevez, et vous pouvez changer d'avis à tout moment." },
 };
 
@@ -32,8 +32,10 @@ const initial: OnboardingState = { status: "idle" };
  * (identité, statut, centre, mot de passe, notifications), progression en points, retour
  * possible. Un seul envoi à la fin ; une erreur serveur renvoie à l'étape du champ concerné.
  */
-export function Onboarding({ firstName, lastName, matricule, status: initialStatus, centerId, directory, needPassword, startAtForm = false, presetRole = null, passwordRequired = false, requireCenter = false }: { firstName: string; lastName: string; matricule?: string | null; status?: AgentStatusValue | null; centerId: string | null; directory: Directory; needPassword: boolean; startAtForm?: boolean; /** Chef de centre ou responsable com déjà rattaché d'office */ presetRole?: string | null; /** Mot de passe exigé (première connexion, lien « mot de passe oublié ») */ passwordRequired?: boolean; /** Centre ou service obligatoire (première connexion par matricule : le chef de centre valide l'appartenance) */ requireCenter?: boolean }) {
-  const steps: StepKey[] = ["identite", ...(startAtForm && initialStatus ? [] : (["statut"] as StepKey[])), "centre", ...(needPassword ? (["motdepasse"] as StepKey[]) : []), ...(startAtForm ? [] : (["notifications"] as StepKey[]))];
+export function Onboarding({ firstName, lastName, matricule, status: initialStatus, centerId, directory, needPassword, startAtForm = false, presetRole = null, passwordRequired = false, requireCenter = false, registryFirst = false, personalEmail = null }: { firstName: string; lastName: string; matricule?: string | null; status?: AgentStatusValue | null; centerId: string | null; directory: Directory; needPassword: boolean; startAtForm?: boolean; /** Chef de centre ou responsable com déjà rattaché d'office */ presetRole?: string | null; /** Mot de passe exigé (première connexion, lien « mot de passe oublié ») */ passwordRequired?: boolean; /** Centre ou service obligatoire (première connexion par matricule : le chef de centre valide l'appartenance) */ requireCenter?: boolean; /** Première connexion par matricule : identité reprise de la liste, pas d'étape notifications, retour à l'écran de connexion */ registryFirst?: boolean; personalEmail?: string | null }) {
+  const steps: StepKey[] = ["identite", ...(startAtForm && initialStatus ? [] : (["statut"] as StepKey[])), "centre", ...(needPassword ? (["motdepasse"] as StepKey[]) : []), ...(startAtForm || registryFirst ? [] : (["notifications"] as StepKey[]))];
+  // Identité connue par la liste des agents : l'étape se résume à un mot de bienvenue
+  const welcome = registryFirst && Boolean(firstName && lastName);
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [first, setFirst] = useState(firstName);
@@ -126,9 +128,10 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
         {/* Valeurs envoyées en une fois à la fin */}
         <input type="hidden" name="need_password" value={needPassword ? "1" : "0"} />
         <input type="hidden" name="password_required" value={passwordRequired ? "1" : "0"} />
+        {registryFirst && <input type="hidden" name="registry_first" value="1" />}
         <input type="hidden" name="center_id" value={choice?.center_id ?? ""} />
         <input type="hidden" name="service_id" value={choice?.service_id ?? ""} />
-        {step !== "identite" && (
+        {(step !== "identite" || welcome) && (
           <>
             <input type="hidden" name="first_name" value={first} />
             <input type="hidden" name="last_name" value={last} />
@@ -166,11 +169,26 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
               <div className="flex h-11 w-11 items-center justify-center rounded-[14px] bg-bg-2 text-text-1">
                 <Icon size={22} strokeWidth={1.75} aria-hidden="true" />
               </div>
-              <h1 className="mt-3 text-[26px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">{step === "identite" && firstName ? `Bonjour ${firstName}` : STEP_META[step].title}</h1>
-              <p className="mt-1.5 text-[15px] leading-[1.45] text-text-2">{STEP_META[step].text}</p>
+              <h1 className="mt-3 text-[26px] font-semibold tracking-[-0.02em] leading-[1.15] text-text-1">{step === "identite" && welcome ? `Bienvenue ${firstName} ${lastName}` : step === "identite" && firstName ? `Bonjour ${firstName}` : STEP_META[step].title}</h1>
+              <p className="mt-1.5 text-[15px] leading-[1.45] text-text-2">{step === "identite" && welcome ? "Votre matricule est reconnu. Encore trois étapes : votre statut, votre centre et votre mot de passe." : STEP_META[step].text}</p>
 
               <div className="mt-5 space-y-4">
-                {step === "identite" && (
+                {step === "identite" && welcome && (
+                  <dl className="divide-y divide-line rounded-[12px] bg-bg-2 px-3.5 text-[15px]">
+                    {[
+                      ["Matricule", matricule],
+                      ["Adresse personnelle", personalEmail],
+                    ]
+                      .filter(([, v]) => v)
+                      .map(([k, v]) => (
+                        <div key={k} className="flex items-center justify-between gap-3 py-2.5">
+                          <dt className="text-text-2">{k}</dt>
+                          <dd className="truncate font-semibold tabular-nums text-text-1">{v}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                )}
+                {step === "identite" && !welcome && (
                   <>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Field label="Prénom" name="first_name" value={first} onChange={(e) => setFirst(e.target.value)} autoComplete="given-name" required error={fields.first_name} autoFocus={!startAtForm} />
@@ -182,7 +200,7 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
                         <span className="font-semibold tabular-nums text-text-1">{matricule}</span>
                       </p>
                     )}
-                    {!startAtForm && <Field label="Adresse e-mail personnelle (facultatif)" name="personal_email" type="email" inputMode="email" autoComplete="email" value={personal} onChange={(e) => setPersonal(e.target.value)} error={fields.personal_email} hint="Pour vous joindre ou retrouver votre compte. Jamais visible des autres agents." />}
+                    {!startAtForm && !registryFirst && <Field label="Adresse e-mail personnelle (facultatif)" name="personal_email" type="email" inputMode="email" autoComplete="email" value={personal} onChange={(e) => setPersonal(e.target.value)} error={fields.personal_email} hint="Pour vous joindre ou retrouver votre compte. Jamais visible des autres agents." />}
                   </>
                 )}
 
@@ -277,7 +295,7 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
               </Button>
             ) : (
               <Button type="submit" className="flex-1" loading={submitting}>
-                Commencer
+                {registryFirst ? "Terminer" : "Commencer"}
               </Button>
             )}
           </div>

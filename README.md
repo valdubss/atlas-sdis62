@@ -224,36 +224,35 @@ where key = 'allowed_emails';
 - Renforcement possible : **Authentication → Providers → Email → Password requirements**
   et détection des mots de passe compromis (offre Pro).
 
-**Première connexion par matricule, sans e-mail** (réglage *Paramètres → Première
-connexion*, migration `0046`, valeur `auth_first_access` = `registry` ; `link` = parcours
-ci-dessus, valeur par défaut). Pensé pour un SDIS où la plupart des volontaires n'ont pas
-d'adresse @sdis62.fr réelle et où aucun serveur d'envoi n'est disponible : l'agent est
-autonome, le chef de centre ne valide que son appartenance au centre.
+**Première connexion par matricule** (réglage *Paramètres → Première connexion*, migrations
+`0046` et `0047`, valeur `auth_first_access` = `registry` ; `link` = parcours ci-dessus,
+valeur par défaut). Pensé pour un SDIS où la plupart des volontaires n'ont pas d'adresse
+@sdis62.fr réelle : l'adresse SDIS n'est qu'un identifiant indicatif, tout passe par
+l'adresse personnelle de l'agent.
 
 1. L'administrateur importe la liste des agents dans **Administration → Agents référencés**
    (collage d'un tableau ou fichier CSV : matricule, nom, prénom, e-mail SDIS, centre,
-   statut SPV/SPP/JSP/PATS ; seul le matricule est obligatoire, un matricule existant est
-   mis à jour). Table `agents_registry`, lisible uniquement par les administrateurs et le
-   serveur.
-2. Sur l'écran de connexion, « Première connexion » ouvre une fenêtre : matricule, nom,
-   prénom, « Continuer ». Un matricule absent de la liste, ou un nom qui ne correspond pas à
-   celui de la liste (accents, casse, espaces et tirets ignorés), est refusé immédiatement.
-   Limite : 5 tentatives par matricule et 10 par appareil par heure (`rate_limit_events`,
-   bucket `first_access`).
-3. Le compte est créé avec l'adresse de la liste ou, à défaut, `<matricule>@sdis62.fr`
-   (premier domaine de `ALLOWED_EMAIL_DOMAINS`), un mot de passe jetable connu du seul
-   serveur, puis la session est ouverte aussitôt : aucun e-mail ne part. Un matricule déjà
-   rattaché à un compte accueilli n'est jamais réinitialisé par ce chemin.
-4. L'accueil (`/bienvenue`) enchaîne prénom et nom, statut, **centre obligatoire** (demande
-   de rattachement classique : le chef de centre, le responsable com ou le service
-   communication la confirme, l'agent a accès au fil en attendant), **mot de passe
-   personnel** (obligatoire tant que `password_set_at` est vide), notifications.
-5. Connexion ensuite avec l'**e-mail ou le matricule** (`profiles.matricule`, unique,
-   insensible à la casse) et le mot de passe. « Mot de passe oublié » : lien e-mail pour
-   qui a une vraie adresse SDIS (si un transport est configuré), sinon mot de passe
-   provisoire remis par un administrateur (Administration → Utilisateurs).
-6. `tests/e2e/premiere-connexion.spec.ts` joue le parcours (refus d'un matricule inconnu et
-   d'un nom faux, création, accueil avec centre de test, reconnexion par matricule).
+   statut SPV/SPP/JSP ; seul le matricule est obligatoire, un matricule existant est mis à
+   jour). Table `agents_registry`, lisible uniquement par les administrateurs et le serveur.
+2. Sur l'écran de connexion, « Première connexion » demande l'adresse SDIS, le matricule et
+   l'adresse personnelle. Un matricule absent de la liste est refusé immédiatement, rien ne
+   part. Limite : 5 demandes par matricule et 10 par appareil par heure
+   (`rate_limit_events`, bucket `first_access`).
+3. Le compte est créé avec **l'adresse personnelle pour identité** (elle est d'abord inscrite
+   dans `agents_registry.personal_email`, que la fonction `is_allowed_email` accepte), nom et
+   prénom repris de la liste, puis ATLAS envoie le **code à six chiffres** (repris dans l'objet
+   de l'e-mail) par son transport : `SMTP_HOST` ou `RESEND_API_KEY` **obligatoire** dans ce
+   mode. L'agent saisit le code dans la même fenêtre.
+4. L'accueil (`/bienvenue`) affiche « Bienvenue Prénom Nom », puis statut, **centre
+   obligatoire** (demande de rattachement classique : le chef de centre confirme que l'agent
+   fait partie du centre) et **mot de passe**. Il se termine sur l'écran de connexion
+   (« Votre compte est prêt ») ; `agents_registry.activated_at` garde la trace.
+5. Connexion ensuite avec l'**e-mail (personnelle ou SDIS) ou le matricule** et le mot de
+   passe. « Mot de passe oublié » : e-mail ou matricule → code sur l'adresse personnelle,
+   affichée masquée (taper le matricule d'un autre ne révèle pas son adresse).
+6. `tests/e2e/premiere-connexion.spec.ts` joue le parcours avec `EMAIL_CAPTURE_DIR` (refus
+   d'un matricule inconnu, code lu dans l'e-mail capturé, accueil avec centre de test,
+   reconnexion par matricule, mot de passe oublié).
 
 ## 4. Créer le premier administrateur
 

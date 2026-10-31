@@ -54,7 +54,7 @@ export async function sendLoginEmailFor(email: string): Promise<{ ok: true } | {
  * l'e-mail part par notre transport, sans dépendre du SMTP de Supabase.
  * Renvoie false si aucun transport n'est configuré (l'appelant prévient l'admin).
  */
-export async function sendAccountEmail(kind: LinkKind, email: string, opts: { firstName?: string; by?: string } = {}): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function sendAccountEmail(kind: LinkKind, email: string, opts: { firstName?: string; by?: string; /** Code à six chiffres repris dans l'objet (lisible sans ouvrir l'e-mail) */ codeInSubject?: boolean } = {}): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = createAdminClient();
   const base = siteUrl();
   // Première connexion et mot de passe oublié arrivent sur l'écran qui fait choisir le mot de passe
@@ -90,7 +90,8 @@ export async function sendAccountEmail(kind: LinkKind, email: string, opts: { fi
   }[kind];
   const text = `${copy.title}\n\n${copy.intro.replace(/<[^>]+>/g, "")}\n\nLien : ${url}\nCode : ${email_otp ?? "(voir le lien)"}\n\nValable quinze minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`;
   const html = layout({ title: copy.title, intro: copy.intro, code: email_otp ?? undefined, buttons: [{ label: copy.button, href: url }], footer: "Valable quinze minutes. Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail." });
-  const sent = await sendMail({ to: email, subject: copy.subject, html, text });
+  const subject = opts.codeInSubject && email_otp ? `${copy.subject} · code ${email_otp}` : copy.subject;
+  const sent = await sendMail({ to: email, subject, html, text });
   if (!sent) {
     // Pas de transport ATLAS (RESEND_API_KEY ou SMTP_HOST) : Supabase envoie son e-mail standard
     // (modèle anglais non modifiable, quelques envois par heure). Provisoire : voir README § 3.5.

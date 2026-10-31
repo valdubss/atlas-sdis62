@@ -36,6 +36,10 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
     getAuthSettings(),
   ]);
 
+  // Première connexion par matricule : nom et prénom viennent de la liste, le centre est obligatoire,
+  // et l'accueil se termine sur l'écran de connexion
+  const registryFirst = auth.firstAccess === "registry" && !profile.onboarded_at && Boolean(profile.matricule);
+
   return (
     <Onboarding
       firstName={profile.first_name}
@@ -47,7 +51,9 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
       directory={directory}
       needPassword={passwordRequired}
       passwordRequired={passwordRequired}
-      requireCenter={auth.firstAccess === "registry" && !profile.onboarded_at && !profile.center_id && !profile.service_id}
+      requireCenter={registryFirst && !profile.center_id && !profile.service_id}
+      registryFirst={registryFirst}
+      personalEmail={registryFirst ? current.user.email : null}
       startAtForm={Boolean(profile.onboarded_at)}
       key={profile.onboarded_at ? "reset" : "first"}
     />

@@ -11,7 +11,7 @@ import { AGENT_STATUS_LABELS, type AgentStatusValue } from "@/lib/auth/first-acc
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-type Entry = { matricule: string; email: string | null; last_name: string | null; first_name: string | null; center_name: string | null; status: string | null; imported_at: string; linked: boolean };
+type Entry = { matricule: string; email: string | null; personal_email: string | null; activated_at: string | null; last_name: string | null; first_name: string | null; center_name: string | null; status: string | null; imported_at: string; linked: boolean };
 
 /**
  * Administration → Agents référencés : liste des matricules autorisés à créer un accès.
@@ -94,7 +94,7 @@ export function RegistryAdmin({ rows, shown, total, query, registryMode }: { row
       <section className="space-y-3">
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Importer la liste</h2>
         <p className="text-[13px] text-text-3">
-          Collez un tableau ou choisissez un fichier CSV, une ligne par agent : <span className="text-text-2">matricule ; nom ; prénom ; e-mail SDIS ; centre ; statut (SPV, SPP, JSP, PATS)</span>. Avec une ligne d&apos;en-têtes, l&apos;ordre des colonnes est libre. Seul le matricule est obligatoire ; nom et prénom, s&apos;ils sont renseignés, doivent être saisis à l&apos;identique par l&apos;agent (accents et casse ignorés). L&apos;e-mail sert d&apos;identifiant de compte s&apos;il existe, sinon ATLAS en forge un à partir du matricule. Un matricule déjà présent est mis à jour.
+          Collez un tableau ou choisissez un fichier CSV, une ligne par agent : <span className="text-text-2">matricule ; nom ; prénom ; e-mail SDIS ; centre ; statut (SPV, SPP, JSP, PATS)</span>. Avec une ligne d&apos;en-têtes, l&apos;ordre des colonnes est libre. Seul le matricule est obligatoire ; nom et prénom, s&apos;ils sont renseignés, doivent être saisis à l&apos;identique par l&apos;agent (accents et casse ignorés). L&apos;e-mail SDIS est indicatif (il sert aussi d&apos;identifiant de connexion) ; l&apos;adresse personnelle saisie par l&apos;agent à sa première connexion s&apos;ajoute ici. Un matricule déjà présent est mis à jour.
         </p>
         <textarea
           value={text}
@@ -174,7 +174,7 @@ export function RegistryAdmin({ rows, shown, total, query, registryMode }: { row
                       {r.linked && <span className="ml-2 rounded-full bg-bg-2 px-2 py-0.5 text-[11px] font-medium text-text-2">compte créé</span>}
                     </p>
                     <p className="truncate text-text-3">
-                      {[r.email, r.center_name].filter(Boolean).join(" · ") || "—"} · importé {formatDateTime(r.imported_at)}
+                      {[r.email, r.personal_email, r.center_name].filter(Boolean).join(" · ") || "—"} · importé {formatDateTime(r.imported_at)}{r.activated_at ? ` · activé ${formatDateTime(r.activated_at)}` : ""}
                     </p>
                   </div>
                   <button type="button" onClick={() => remove(r.matricule)} disabled={pending} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] text-text-3 hover:bg-bg-2 hover:text-red-text" aria-label={`Retirer ${r.matricule}`}>

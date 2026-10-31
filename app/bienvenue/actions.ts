@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { setPasswordSchema } from "@/lib/validation/auth";
 import { personalEmail } from "@/lib/validation/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { markRegistryActivated } from "@/lib/auth/first-access";
 import { requestMembership } from "@/lib/membership/request";
 
 export type OnboardingState = { status: "idle" } | { status: "error"; message: string; fields?: Record<string, string> };
@@ -87,6 +88,15 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
       return { status: "error", message: weak ? "Ce mot de passe est trop faible ou connu dans des fuites de données. Choisissez-en un autre." : "Enregistrement du mot de passe impossible. Reconnectez-vous puis réessayez." };
     }
     await supabase.rpc("mark_password_set");
+  }
+
+  // Première connexion par matricule : l'agent retourne à l'écran de connexion et entre avec
+  // son e-mail ou son matricule et le mot de passe qu'il vient de choisir
+  if (formData.get("registry_first") === "1") {
+    const { data: me } = await supabase.from("profiles").select("matricule").eq("id", user.id).maybeSingle();
+    if (me?.matricule) await markRegistryActivated(me.matricule);
+    await supabase.auth.signOut();
+    redirect("/login?pret=1");
   }
 
   // Rafraîchit le jeton pour que le middleware voie « onboarded »
