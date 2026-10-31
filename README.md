@@ -1,4 +1,4 @@
-# ATLAS — plateforme d'actualités interne du SDIS 62
+# MySDIS by Atlas — plateforme d'actualités interne du SDIS 62
 
 Application web (PWA) de diffusion descendante : le service communication publie
 (posts, stories, articles, galeries, vidéos, sondages), les agents consultent et
@@ -154,7 +154,7 @@ une, jamais de modification d'une migration déjà appliquée.
 par exemple :
 
 ```html
-<h2>Connexion à ATLAS</h2>
+<h2>Connexion à MySDIS</h2>
 <p>Cliquez sur le lien ci-dessous pour vous connecter (valable 1 heure) :</p>
 <p><a href="{{ .ConfirmationURL }}">Me connecter</a></p>
 <p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>
@@ -217,7 +217,7 @@ where key = 'allowed_emails';
   (`profiles.password_set_at`, recopié dans le jeton `password_set`, migration `0038`).
 - **Transport e-mail** : avec `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` /
   `EMAIL_FROM` (serveur de messagerie du SDIS, ou tout SMTP) ou `RESEND_API_KEY`, les
-  e-mails partent d'ATLAS : expéditeur, objet (« ATLAS · votre accès », « ATLAS · nouveau
+  e-mails partent d'ATLAS : expéditeur, objet (« MySDIS · votre accès », « MySDIS · nouveau
   mot de passe ») et contenu en français, lien + code. Sans transport, Supabase envoie son
   e-mail standard (modèle anglais non modifiable sans SMTP, quelques envois par heure) :
   acceptable pour tester, pas pour ouvrir à tous les agents.
@@ -753,7 +753,7 @@ select public.schedule_hourly_dispatch('https://atlas-sdis62.vercel.app/api/cron
 
 - **PWA** : `app/manifest.ts`, icônes dans `public/icons/`, service worker `public/sw.js`
   (cache de l'interface et des vignettes des 20 dernières publications, bornées ; page `/offline` qui rejoue le fil enregistré). Sur iPhone, l'agent doit
-  d'abord ajouter ATLAS à l'écran d'accueil depuis Safari pour recevoir des push.
+  d'abord ajouter MySDIS à l'écran d'accueil depuis Safari pour recevoir des push.
 - **Push** : clés VAPID générées par `npm run vapid` (→ `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
   `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`). Un trigger SQL enfile une notification à chaque
   mise en ligne ; l'envoi part juste après la publication, puis `/api/cron/dispatch`

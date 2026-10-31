@@ -189,7 +189,7 @@ export async function createUser(_prev: CreateUserState, formData: FormData): Pr
   const v = parsed.data;
   const { user, error } = await requireAdmin();
   if (!user) return { status: "error", message: error! };
-  if (!isAllowedEmail(v.email)) return { status: "error", message: "Ce domaine n'est pas autorisé sur ATLAS (voir ALLOWED_EMAIL_DOMAINS / adresses autorisées).", fields: { email: "Domaine non autorisé." } };
+  if (!isAllowedEmail(v.email)) return { status: "error", message: "Ce domaine n'est pas autorisé sur MySDIS (voir ALLOWED_EMAIL_DOMAINS / adresses autorisées).", fields: { email: "Domaine non autorisé." } };
 
   const admin = createAdminClient();
   const { data, error: createError } = await admin.auth.admin.createUser({

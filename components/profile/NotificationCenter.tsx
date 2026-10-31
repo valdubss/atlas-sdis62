@@ -84,7 +84,7 @@ export function NotificationCenter({ prefs: initial, hasSubscriptions }: { prefs
           checked={Boolean(enabledHere)}
           disabled={pending || !supported || enabledHere === null}
           onChange={(e) => togglePush(e.target.checked)}
-          hint={!supported ? "Non disponible dans ce navigateur. Sur iPhone : ajoutez d'abord ATLAS à l'écran d'accueil depuis Safari." : hasSubscriptions && !enabledHere ? "Actives sur un autre appareil" : undefined}
+          hint={!supported ? "Non disponible dans ce navigateur. Sur iPhone : ajoutez d'abord MySDIS à l'écran d'accueil depuis Safari." : hasSubscriptions && !enabledHere ? "Actives sur un autre appareil" : undefined}
         />
       </div>
       <div className={row}>

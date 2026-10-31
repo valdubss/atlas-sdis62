@@ -214,9 +214,9 @@ async function sendFeedbackEmail(admin: ReturnType<typeof createAdminClient>, fe
   const who = f.author ? `${f.author.first_name} ${f.author.last_name}`.trim() + ` (${f.author.email})` : "agent inconnu";
   const esc = (t: string) => t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!);
   const lines = [`Catégorie : ${cat}`, `De : ${who}`, `Page : ${f.context.path ?? "-"}`, `Navigateur : ${f.context.user_agent ?? "-"}`, `Écran : ${f.context.viewport ?? "-"}`, `Version : ${f.context.app_version ?? "-"}`];
-  const text = `Nouveau signalement ATLAS\n\n${f.description}\n\n${lines.join("\n")}\n\n${f.screenshot_key ? "Capture : " + mediaUrl(f.screenshot_key) + "\n" : ""}Traiter : ${site}/studio/retours`;
-  const html = `<div style="font-family:Inter,-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1c1c21"><p style="font-size:13px;color:#6e6e73;margin:0 0 6px">ATLAS · ${esc(cat)}</p><p style="font-size:16px;white-space:pre-line;margin:0 0 16px">${esc(f.description)}</p><p style="font-size:13px;color:#6e6e73;margin:0 0 16px">${lines.map(esc).join("<br>")}</p>${f.screenshot_key ? `<p><a href="${mediaUrl(f.screenshot_key)}">Voir la capture d'écran</a></p>` : ""}<p><a href="${site}/studio/retours" style="color:#d71f36;font-weight:600">Traiter dans le studio</a></p></div>`;
-  return sendMail({ to, subject: `[ATLAS] ${cat} signalé par ${f.author ? f.author.first_name + " " + f.author.last_name : "un agent"}`, html, text });
+  const text = `Nouveau signalement MySDIS\n\n${f.description}\n\n${lines.join("\n")}\n\n${f.screenshot_key ? "Capture : " + mediaUrl(f.screenshot_key) + "\n" : ""}Traiter : ${site}/studio/retours`;
+  const html = `<div style="font-family:Inter,-apple-system,Segoe UI,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1c1c21"><p style="font-size:13px;color:#6e6e73;margin:0 0 6px">MySDIS · ${esc(cat)}</p><p style="font-size:16px;white-space:pre-line;margin:0 0 16px">${esc(f.description)}</p><p style="font-size:13px;color:#6e6e73;margin:0 0 16px">${lines.map(esc).join("<br>")}</p>${f.screenshot_key ? `<p><a href="${mediaUrl(f.screenshot_key)}">Voir la capture d'écran</a></p>` : ""}<p><a href="${site}/studio/retours" style="color:#d71f36;font-weight:600">Traiter dans le studio</a></p></div>`;
+  return sendMail({ to, subject: `[MySDIS] ${cat} signalé par ${f.author ? f.author.first_name + " " + f.author.last_name : "un agent"}`, html, text });
 }
 
 /**

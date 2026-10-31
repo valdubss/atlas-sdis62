@@ -54,7 +54,7 @@ export default async function StudioLayout({ children }: { children: React.React
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header
-          className="glass fixed inset-x-0 top-0 z-30 md:hidden"
+          className="fixed inset-x-0 top-0 z-30 border-b border-line bg-bg-0 md:hidden"
           style={{ paddingTop: "env(safe-area-inset-top)" }}
         >
           <div className="flex h-12 items-center justify-between px-5">

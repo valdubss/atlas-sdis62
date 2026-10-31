@@ -73,7 +73,7 @@ export function NotificationSettings({ prefs: initial, hasSubscriptions }: { pre
           onChange={(e) => togglePush(e.target.checked)}
           hint={
             !supported
-              ? "Non disponible dans ce navigateur. Sur iPhone : ajoutez d'abord ATLAS à l'écran d'accueil depuis Safari."
+              ? "Non disponible dans ce navigateur. Sur iPhone : ajoutez d'abord MySDIS à l'écran d'accueil depuis Safari."
               : hasSubscriptions && !enabledHere
                 ? "Actives sur un autre appareil"
                 : undefined

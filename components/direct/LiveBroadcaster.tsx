@@ -54,7 +54,7 @@ export function LiveBroadcaster({ whipUrl }: { whipUrl: string }) {
       await openCamera(facing);
       setState("preview");
     } catch (e) {
-      setError(e instanceof Error && /NotAllowed|Permission/i.test(e.message) ? "Accès à la caméra refusé : autorisez ATLAS dans les réglages du téléphone." : "Caméra indisponible sur cet appareil.");
+      setError(e instanceof Error && /NotAllowed|Permission/i.test(e.message) ? "Accès à la caméra refusé : autorisez MySDIS dans les réglages du téléphone." : "Caméra indisponible sur cet appareil.");
       setState("error");
     }
   }

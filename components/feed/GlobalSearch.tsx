@@ -59,7 +59,7 @@ export function GlobalSearch({ open, onClose }: { open: boolean; onClose: () => 
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && commit(q)}
             placeholder="Publication, centre, service, agent"
-            aria-label="Rechercher dans ATLAS"
+            aria-label="Rechercher dans MySDIS"
             autoComplete="off"
             enterKeyHint="search"
             className="block h-11 w-full rounded-[12px] bg-bg-2 pl-10 pr-10 text-[15px] text-text-1 outline-none ring-1 ring-transparent placeholder:text-text-3 focus:ring-glass-edge"

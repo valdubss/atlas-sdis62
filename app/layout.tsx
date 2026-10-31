@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Inter } from "next/font/google";
-import { APP_NAME, APP_TAGLINE } from "@/lib/config";
+import { APP_BRAND, APP_NAME, APP_TAGLINE } from "@/lib/config";
 import { ToastProvider } from "@/components/ui/Toast";
 import { ErrorReporter } from "@/components/app/ErrorReporter";
 import { NoPageZoom } from "@/components/app/NoPageZoom";
@@ -17,7 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: { default: APP_NAME, template: `%s · ${APP_NAME}` },
+  title: { default: APP_BRAND, template: `%s · ${APP_NAME}` },
   description: APP_TAGLINE,
   applicationName: APP_NAME,
   robots: { index: false, follow: false },

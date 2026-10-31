@@ -2,7 +2,9 @@
  * Constantes produit. Le nom de l'app est modifiable ici (et dans app_settings
  * côté base pour les e-mails / notifications).
  */
-export const APP_NAME = "ATLAS";
+export const APP_NAME = "MySDIS";
+/** Nom complet (manifeste, titre par défaut, écran de connexion). */
+export const APP_BRAND = "MySDIS by Atlas";
 export const APP_TAGLINE = "L'actualité interne du SDIS 62";
 export const ORG_NAME = "SDIS 62";
 export const ORG_LONG_NAME =

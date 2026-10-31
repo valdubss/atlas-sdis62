@@ -3,7 +3,7 @@ import { z } from "zod";
 export const FEEDBACK_CATEGORIES = [
   { id: "bug", label: "Un problème technique", hint: "Quelque chose ne fonctionne pas ou s'affiche mal." },
   { id: "content", label: "Un contenu", hint: "Une erreur ou un contenu inapproprié dans une publication." },
-  { id: "suggestion", label: "Une suggestion", hint: "Une idée pour améliorer ATLAS." },
+  { id: "suggestion", label: "Une suggestion", hint: "Une idée pour améliorer MySDIS." },
 ] as const;
 
 export const feedbackSchema = z.object({

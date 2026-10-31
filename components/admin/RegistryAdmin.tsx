@@ -161,7 +161,7 @@ export function RegistryAdmin({ rows, shown, total, query, registryMode }: { row
           <div className="hairline overflow-hidden rounded-[16px] bg-bg-1">
             <p className="px-4 py-2.5 text-[13px] text-text-3">
               {shown > rows.length ? `${rows.length} premiers sur ${shown}` : `${shown} agent${shown > 1 ? "s" : ""}`}
-              {query ? ` pour « ${query} »` : ""} · <span className="text-text-2">compte créé</span> = matricule déjà rattaché à un compte ATLAS
+              {query ? ` pour « ${query} »` : ""} · <span className="text-text-2">compte créé</span> = matricule déjà rattaché à un compte MySDIS
             </p>
             <ul className="divide-y divide-line">
               {rows.map((r) => (

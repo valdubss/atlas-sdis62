@@ -58,7 +58,7 @@ export default async function MembershipDecisionPage({ params, searchParams }: {
             </>
           )}
         </section>
-        <p className="text-center text-[13px] text-text-3">ATLAS · application interne du SDIS 62</p>
+        <p className="text-center text-[13px] text-text-3">MySDIS by Atlas · application interne du SDIS 62</p>
       </div>
     </main>
   );

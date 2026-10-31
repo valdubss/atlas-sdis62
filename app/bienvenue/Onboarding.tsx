@@ -148,7 +148,7 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
 
         <section className="rounded-t-[26px] bg-bg-1 px-5 pb-[max(env(safe-area-inset-bottom),20px)] pt-5 ring-1 ring-glass-edge sm:rounded-[26px] sm:p-6" aria-label="Bienvenue">
           <div className="flex items-center justify-between">
-            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-text-3">Bienvenue sur ATLAS</p>
+            <p className="text-[13px] font-semibold uppercase tracking-[0.08em] text-text-3">Bienvenue sur MySDIS</p>
             <ol className="flex items-center gap-1.5" aria-label={`Étape ${index + 1} sur ${steps.length}`}>
               {steps.map((s, i) => (
                 <li key={s} aria-current={i === index ? "step" : undefined} className={cn("h-1.5 rounded-full transition-all duration-300", i === index ? "w-5 bg-text-1" : i < index ? "w-1.5 bg-text-2" : "w-1.5 bg-line-strong")} />

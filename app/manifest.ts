@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
-import { APP_NAME, APP_TAGLINE } from "@/lib/config";
+import { APP_BRAND, APP_NAME, APP_TAGLINE } from "@/lib/config";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: APP_NAME,
+    name: APP_BRAND,
     short_name: APP_NAME,
     description: APP_TAGLINE,
     lang: "fr",

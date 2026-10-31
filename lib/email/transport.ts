@@ -9,7 +9,7 @@ export type Mail = { to: string; subject: string; html: string; text: string };
  * Renvoie false si aucun transport n'est configuré.
  */
 export async function sendMail(mail: Mail): Promise<boolean> {
-  const from = process.env.EMAIL_FROM ?? "ATLAS <noreply@example.org>";
+  const from = process.env.EMAIL_FROM ?? "MySDIS <noreply@example.org>";
 
   // Tests de bout en bout : les e-mails sont écrits dans un dossier local au lieu de partir
   if (process.env.EMAIL_CAPTURE_DIR) {

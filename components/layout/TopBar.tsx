@@ -9,9 +9,11 @@ import { CreateMenu } from "./CreateMenu";
 import { BellButton } from "./BellButton";
 
 /**
- * Barre haute en verre. Transparente au repos ; quand le grand titre de la page
- * sort de l'écran, la barre se teinte et le titre réduit apparaît, centré
- * (largeTitleDisplayMode). Sans grand titre sur la page, elle est toujours teintée.
+ * Barre haute. Transparente au repos ; quand le grand titre de la page sort de
+ * l'écran, la barre devient opaque (fond de page, filet bas) et le titre réduit apparaît,
+ * centré (largeTitleDisplayMode). Sans grand titre sur la page, elle est toujours opaque.
+ * Pas de verre flouté ici : sur iPhone, le flou sous la barre d'état rendait le haut de
+ * l'écran brouillé (Safari comme PWA).
  */
 export function TopBar({ title, right, leading }: { title?: string; right?: React.ReactNode; leading?: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -29,7 +31,7 @@ export function TopBar({ title, right, leading }: { title?: string; right?: Reac
 
   return (
     <header
-      className={cn("fixed inset-x-0 top-0 z-30 transition-colors duration-200", collapsed ? "glass" : "border-t border-transparent")}
+      className={cn("fixed inset-x-0 top-0 z-30 border-b transition-colors duration-200", collapsed ? "border-line bg-bg-0" : "border-transparent")}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
     >
       <div className="relative mx-auto flex h-12 max-w-[680px] items-center justify-between px-5 sm:px-8">

@@ -14,7 +14,7 @@ export function escapeIcs(s: string) {
   return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 }
 
-export function buildIcs(e: IcsEvent, prodId = "ATLAS", now = new Date()) {
+export function buildIcs(e: IcsEvent, prodId = "MySDIS", now = new Date()) {
   const start = new Date(e.starts_at);
   const end = e.ends_at ? new Date(e.ends_at) : new Date(start.getTime() + (e.all_day ? 0 : 3600_000));
   const dt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");

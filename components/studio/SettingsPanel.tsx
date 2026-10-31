@@ -137,7 +137,7 @@ export function SettingsPanel({
             }}
             hint={
               auth.firstAccess === "registry"
-                ? `Adresse SDIS + matricule + adresse personnelle : le matricule doit figurer parmi les ${auth.registryCount} agent(s) référencé(s), le code à six chiffres part sur l'adresse personnelle (transport e-mail d'ATLAS requis : SMTP ou Resend). L'agent choisit ensuite statut, centre (validé par le chef de centre) et mot de passe, puis se connecte par e-mail ou matricule.`
+                ? `Adresse SDIS + matricule + adresse personnelle : le matricule doit figurer parmi les ${auth.registryCount} agent(s) référencé(s), le code à six chiffres part sur l'adresse personnelle (transport e-mail de MySDIS requis : SMTP ou Resend). L'agent choisit ensuite statut, centre (validé par le chef de centre) et mot de passe, puis se connecte par e-mail ou matricule.`
                 : "Lien reçu sur l'adresse professionnelle, puis mot de passe choisi à l'accueil."
             }
           >

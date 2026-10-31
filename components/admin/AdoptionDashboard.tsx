@@ -33,7 +33,7 @@ export function AdoptionDashboard({ stats }: { stats: AdoptionStats }) {
     <div className="mx-auto max-w-[1100px] space-y-8">
       <div>
         <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-text-1">Tableau de bord</h1>
-        <p className="text-[13px] text-text-3">Adoption d&apos;ATLAS par les agents · {formatDateLong(stats.generated_at)}</p>
+        <p className="text-[13px] text-text-3">Adoption de MySDIS par les agents · {formatDateLong(stats.generated_at)}</p>
       </div>
 
       <section className="space-y-3">
