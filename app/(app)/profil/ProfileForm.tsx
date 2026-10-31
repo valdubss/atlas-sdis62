@@ -9,7 +9,7 @@ import type { Profile } from "@/lib/supabase/database.types";
 
 const initial: ProfileState = { status: "idle" };
 
-export function ProfileForm({ profile }: { profile: Profile }) {
+export function ProfileForm({ profile, personalEmail }: { profile: Profile; personalEmail: string | null }) {
   const [state, action, pending] = useActionState(updateProfile, initial);
   const fields = state.status === "error" ? state.fields ?? {} : {};
   const toast = useToast();
@@ -25,6 +25,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         <Field label="Prénom" name="first_name" defaultValue={profile.first_name} autoComplete="given-name" required error={fields.first_name} />
         <Field label="Nom" name="last_name" defaultValue={profile.last_name} autoComplete="family-name" required error={fields.last_name} />
       </div>
+      <Field label="Adresse e-mail personnelle (facultatif)" name="personal_email" type="email" inputMode="email" autoComplete="email" defaultValue={personalEmail ?? ""} error={fields.personal_email} hint="Pour vous joindre ou retrouver votre compte. Jamais visible des autres agents." />
       <Button type="submit" variant="secondary" loading={pending}>
         Enregistrer
       </Button>

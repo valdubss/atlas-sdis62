@@ -6,9 +6,19 @@ const name = z
   .min(1, "Champ obligatoire.")
   .max(60, "60 caractères maximum.");
 
+/** Adresse personnelle facultative : vide → null. Jamais visible des autres agents. */
+export const personalEmail = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .max(120, "120 caractères maximum.")
+  .transform((v) => (v === "" ? null : v))
+  .pipe(z.email("Adresse e-mail invalide.").nullable());
+
 export const profileSchema = z.object({
   first_name: name,
   last_name: name,
+  personal_email: personalEmail,
 });
 
 const optionalUuid = z

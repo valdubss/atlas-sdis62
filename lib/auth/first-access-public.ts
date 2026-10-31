@@ -1,5 +1,4 @@
 /** Constantes de la première connexion partagées avec le navigateur (pas de code serveur ici). */
-export const TEMP_PASSWORD_DAYS_PUBLIC = 7;
 
 /** Statuts d'agent proposés à l'accueil. */
 export const AGENT_STATUSES = [
@@ -16,3 +15,12 @@ export function normalizeMatricule(raw: string): string {
   return raw.toUpperCase().replace(/[\s.\-]/g, "");
 }
 export const MATRICULE_RE = /^[A-Z0-9]{3,12}$/;
+
+/** Nom comparable : minuscules, sans accents, espaces, tirets ni apostrophes (« Le Gall » = « LEGALL »). */
+export function normalizeName(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}

@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { setPasswordSchema } from "@/lib/validation/auth";
+import { personalEmail } from "@/lib/validation/profile";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requestMembership } from "@/lib/membership/request";
 
 export type OnboardingState = { status: "idle" } | { status: "error"; message: string; fields?: Record<string, string> };
@@ -28,6 +30,7 @@ const profileSchema = z.object({
     .trim()
     .transform((v) => (v === "" ? null : v))
     .pipe(z.enum(["spv", "spp", "jsp", "pats"], "Choisissez votre statut.").nullable()),
+  personal_email: personalEmail,
 });
 
 /** Termine l'accueil : profil, centre, mot de passe si demandé, puis onboarded_at. */
@@ -42,6 +45,7 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
     center_id: formData.get("center_id") ?? "",
     service_id: formData.get("service_id") ?? "",
     status: formData.get("status") ?? "",
+    personal_email: formData.get("personal_email") ?? "",
   });
   const parsedPwd = needPassword ? setPasswordSchema.safeParse({ password: formData.get("password"), confirm: formData.get("confirm") }) : null;
 
@@ -61,12 +65,14 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { center_id, service_id, ...identity } = parsedProfile.data;
+  const { center_id, service_id, personal_email, ...identity } = parsedProfile.data;
   const { error: profileError } = await supabase
     .from("profiles")
     .update({ ...identity, onboarded_at: new Date().toISOString() })
     .eq("id", user.id);
   if (profileError) return { status: "error", message: "Enregistrement du profil impossible." };
+  // Adresse personnelle : colonne réservée au serveur (jamais dans l'annuaire)
+  if (personal_email) await createAdminClient().from("profiles").update({ personal_email }).eq("id", user.id);
 
   // Le rattachement n'est pas immédiat : demande envoyée au chef de centre
   if (center_id || service_id) {

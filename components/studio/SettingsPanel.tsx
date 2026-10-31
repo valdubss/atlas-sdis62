@@ -137,12 +137,12 @@ export function SettingsPanel({
             }}
             hint={
               auth.firstAccess === "registry"
-                ? `Adresse SDIS + matricule + adresse personnelle : le matricule doit figurer parmi les ${auth.registryCount} agent(s) référencé(s), le mot de passe temporaire part sur l'adresse personnelle (e-mails envoyés par ATLAS : RESEND_API_KEY ou SMTP_HOST requis).`
+                ? `Matricule + nom + prénom, vérifiés parmi les ${auth.registryCount} agent(s) référencé(s) ; aucun e-mail : l'agent choisit son centre (validé par le chef de centre) et son mot de passe dans la foulée. Connexion ensuite par matricule ou e-mail.`
                 : "Lien reçu sur l'adresse professionnelle, puis mot de passe choisi à l'accueil."
             }
           >
             <option value="link">Lien e-mail sur l&apos;adresse SDIS</option>
-            <option value="registry">Matricule référencé + mot de passe temporaire</option>
+            <option value="registry">Matricule référencé (sans e-mail)</option>
           </SelectField>
           {isAdmin && (
             <p className="text-[13px] text-text-3">

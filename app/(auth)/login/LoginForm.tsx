@@ -19,9 +19,10 @@ const input = "h-11 w-full rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1
  *
  * Deux modes de première connexion (réglage administrateur) :
  *  - « link » : e-mail professionnel, lien (et code) reçu pour définir le mot de passe ;
- *  - « registry » : e-mail SDIS + matricule + adresse personnelle, matricule vérifié dans le
- *    référentiel, mot de passe temporaire reçu sur l'adresse personnelle ; connexion ensuite par
- *    e-mail ou matricule. « Mot de passe oublié » garde le lien e-mail.
+ *  - « registry » : matricule + nom + prénom vérifiés dans le référentiel, session ouverte
+ *    aussitôt, mot de passe choisi à l'accueil ; connexion ensuite par e-mail ou matricule.
+ *    « Mot de passe oublié » : lien e-mail pour qui a une vraie adresse SDIS, sinon mot de passe
+ *    provisoire remis par le service communication.
  */
 export function LoginForm({ next, auth, mailFromApp = true }: { next: string; domains?: string[]; auth: AuthSettings; /** E-mails envoyés par ATLAS (lien + code) ; sinon e-mail standard Supabase (lien seul) */ mailFromApp?: boolean }) {
   const registry = auth.firstAccess === "registry";
@@ -31,7 +32,6 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
   const [ssoState, ssoAction, ssoPending] = useActionState(startSso, initial);
   const [codeState, codeAction, codePending] = useActionState(verifyEmailCode, initial);
   const [showPassword, setShowPassword] = useState(false);
-  const [identifier, setIdentifier] = useState("");
   const [firstAccessOpen, setFirstAccessOpen] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
 
@@ -85,7 +85,7 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
   const linkForm = (
     <form action={linkAction} className="space-y-3" noValidate>
       <input type="hidden" name="next" value={next && next !== "/" ? next : "/"} />
-      <p className="text-[15px] text-text-2">{registry ? "Saisissez votre adresse @sdis62.fr : vous recevez un e-mail avec un lien pour choisir un nouveau mot de passe." : "Première connexion ou mot de passe oublié : saisissez votre adresse @sdis62.fr, vous recevez un e-mail avec un lien pour définir votre mot de passe."}</p>
+      <p className="text-[15px] text-text-2">{registry ? "Si vous avez une adresse @sdis62.fr : saisissez-la, vous recevez un e-mail avec un lien pour choisir un nouveau mot de passe." : "Première connexion ou mot de passe oublié : saisissez votre adresse @sdis62.fr, vous recevez un e-mail avec un lien pour définir votre mot de passe."}</p>
       <input name="email" type="email" autoComplete="email" inputMode="email" placeholder="E-mail" aria-label="Adresse e-mail" required className={cn(input, linkError && "ring-red")} />
       {linkError && (
         <p className="text-[13px] text-red-text" role="alert">
@@ -121,7 +121,7 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
         <form action={pwdAction} className="space-y-3" noValidate>
           <input type="hidden" name="next" value={next} />
           {registry ? (
-            <input name="identifier" type="text" autoComplete="username" autoCapitalize="none" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail ou matricule" required value={identifier} onChange={(e) => setIdentifier(e.target.value)} className={input} />
+            <input name="identifier" type="text" autoComplete="username" autoCapitalize="none" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail ou matricule" required className={input} />
           ) : (
             <input name="email" type="email" autoComplete="username" inputMode="email" placeholder={placeholder} aria-label="Adresse e-mail" required className={input} />
           )}
@@ -173,26 +173,20 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
           <button type="button" onClick={() => setFirstAccessOpen(true)} className="text-[15px] font-semibold text-text-1 hover:opacity-80">
             Première connexion
           </button>
-          {auth.magicLinkEnabled && (
-            <button type="button" onClick={() => setForgotOpen(true)} className="text-[15px] font-medium text-text-2 hover:text-text-1">
-              Mot de passe oublié ?
-            </button>
-          )}
+          <button type="button" onClick={() => setForgotOpen(true)} className="text-[15px] font-medium text-text-2 hover:text-text-1">
+            Mot de passe oublié ?
+          </button>
         </div>
       )}
 
       {registry && (
         <>
-          <FirstAccess
-            open={firstAccessOpen}
-            onClose={() => setFirstAccessOpen(false)}
-            onDone={(id) => {
-              setIdentifier(id);
-              setFirstAccessOpen(false);
-            }}
-          />
+          <FirstAccess open={firstAccessOpen} onClose={() => setFirstAccessOpen(false)} />
           <Sheet open={forgotOpen} onClose={() => setForgotOpen(false)} title="Mot de passe oublié">
-            <div className="px-5 pb-[max(env(safe-area-inset-bottom),20px)]">{sentPanel ?? linkForm}</div>
+            <div className="space-y-4 px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
+              {sentPanel ?? (auth.magicLinkEnabled ? linkForm : null)}
+              {!sentPanel && <p className="text-[13px] text-text-3">Pas d&apos;adresse e-mail du SDIS, ou rien reçu ? Adressez-vous au service communication : il vous remet un mot de passe provisoire, que vous remplacez à la connexion suivante.</p>}
+            </div>
           </Sheet>
         </>
       )}

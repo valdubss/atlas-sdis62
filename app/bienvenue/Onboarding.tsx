@@ -20,7 +20,7 @@ type StepKey = "identite" | "statut" | "centre" | "motdepasse" | "notifications"
 const STEP_META: Record<StepKey, { icon: typeof UserRound; title: string; text: string }> = {
   identite: { icon: UserRound, title: "Faisons connaissance", text: "Votre prénom et votre nom apparaissent dans vos commentaires. Ils restent internes au SDIS." },
   statut: { icon: Shield, title: "Votre statut", text: "Il sert au service communication pour adresser les bonnes informations aux bonnes personnes." },
-  centre: { icon: MapPin, title: "Votre centre", text: "Choisissez votre centre d'incendie et de secours ou votre service. Votre chef de centre confirme votre arrivée." },
+  centre: { icon: MapPin, title: "Votre centre", text: "Choisissez votre centre d'incendie et de secours ou votre service. Votre chef de centre confirme que vous en faites bien partie." },
   motdepasse: { icon: KeyRound, title: "Votre mot de passe", text: `Remplacez le mot de passe temporaire par le vôtre : ${LIMITS.passwordMinLength} caractères minimum, il vous servira à chaque connexion.` },
   notifications: { icon: Bell, title: "Restez informé", text: "Soyez prévenu des publications et des annonces importantes. Vous choisissez ce que vous recevez, et vous pouvez changer d'avis à tout moment." },
 };
@@ -32,12 +32,13 @@ const initial: OnboardingState = { status: "idle" };
  * (identité, statut, centre, mot de passe, notifications), progression en points, retour
  * possible. Un seul envoi à la fin ; une erreur serveur renvoie à l'étape du champ concerné.
  */
-export function Onboarding({ firstName, lastName, matricule, status: initialStatus, centerId, directory, needPassword, startAtForm = false, presetRole = null, passwordRequired = false }: { firstName: string; lastName: string; matricule?: string | null; status?: AgentStatusValue | null; centerId: string | null; directory: Directory; needPassword: boolean; startAtForm?: boolean; /** Chef de centre ou responsable com déjà rattaché d'office */ presetRole?: string | null; /** Mot de passe exigé (première connexion, lien « mot de passe oublié ») */ passwordRequired?: boolean }) {
+export function Onboarding({ firstName, lastName, matricule, status: initialStatus, centerId, directory, needPassword, startAtForm = false, presetRole = null, passwordRequired = false, requireCenter = false }: { firstName: string; lastName: string; matricule?: string | null; status?: AgentStatusValue | null; centerId: string | null; directory: Directory; needPassword: boolean; startAtForm?: boolean; /** Chef de centre ou responsable com déjà rattaché d'office */ presetRole?: string | null; /** Mot de passe exigé (première connexion, lien « mot de passe oublié ») */ passwordRequired?: boolean; /** Centre ou service obligatoire (première connexion par matricule : le chef de centre valide l'appartenance) */ requireCenter?: boolean }) {
   const steps: StepKey[] = ["identite", ...(startAtForm && initialStatus ? [] : (["statut"] as StepKey[])), "centre", ...(needPassword ? (["motdepasse"] as StepKey[]) : []), ...(startAtForm ? [] : (["notifications"] as StepKey[]))];
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [first, setFirst] = useState(firstName);
   const [last, setLast] = useState(lastName);
+  const [personal, setPersonal] = useState("");
   const [status, setStatus] = useState<AgentStatusValue | "">(initialStatus ?? "");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -62,7 +63,7 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
     setSeenState(state);
     if (state.status === "error" && state.fields) {
       const key = Object.keys(state.fields)[0];
-      const target: StepKey | undefined = key === "first_name" || key === "last_name" ? "identite" : key === "status" ? "statut" : key === "center_id" ? "centre" : key === "password" || key === "confirm" ? "motdepasse" : undefined;
+      const target: StepKey | undefined = key === "first_name" || key === "last_name" || key === "personal_email" ? "identite" : key === "status" ? "statut" : key === "center_id" ? "centre" : key === "password" || key === "confirm" ? "motdepasse" : undefined;
       const i = target ? steps.indexOf(target) : -1;
       if (i >= 0) {
         setDirection(-1);
@@ -78,6 +79,7 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
       if (!last.trim()) e.last_name = "Champ obligatoire.";
     }
     if (s === "statut" && !status) e.status = "Choisissez votre statut.";
+    if (s === "centre" && requireCenter && !choice) e.center_id = "Choisissez votre centre ou votre service.";
     if (s === "motdepasse" && (passwordRequired || password || confirm)) {
       if (password.length < LIMITS.passwordMinLength) e.password = `${LIMITS.passwordMinLength} caractères minimum.`;
       if (password !== confirm) e.confirm = "Les deux mots de passe ne correspondent pas.";
@@ -130,6 +132,7 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
           <>
             <input type="hidden" name="first_name" value={first} />
             <input type="hidden" name="last_name" value={last} />
+            <input type="hidden" name="personal_email" value={personal} />
           </>
         )}
         {step !== "statut" && <input type="hidden" name="status" value={status} />}
@@ -179,6 +182,7 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
                         <span className="font-semibold tabular-nums text-text-1">{matricule}</span>
                       </p>
                     )}
+                    {!startAtForm && <Field label="Adresse e-mail personnelle (facultatif)" name="personal_email" type="email" inputMode="email" autoComplete="email" value={personal} onChange={(e) => setPersonal(e.target.value)} error={fields.personal_email} hint="Pour vous joindre ou retrouver votre compte. Jamais visible des autres agents." />}
                   </>
                 )}
 
@@ -217,11 +221,11 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
 
                 {step === "centre" && (
                   <div className="space-y-1.5">
-                    <button type="button" onClick={() => setPicker(true)} className="pressable flex h-12 w-full items-center justify-between rounded-[12px] bg-bg-2 px-3.5 text-left text-[15px] ring-1 ring-transparent focus:ring-glass-edge">
+                    <button type="button" onClick={() => { setPicker(true); setLocal({}); }} className="pressable flex h-12 w-full items-center justify-between rounded-[12px] bg-bg-2 px-3.5 text-left text-[15px] ring-1 ring-transparent focus:ring-glass-edge">
                       <span className={choice ? "text-text-1" : "text-text-3"}>{choice?.name ?? "Choisir mon centre ou mon service…"}</span>
                       <ChevronRight size={18} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
                     </button>
-                    <p className="text-[13px] text-text-3">{fields.center_id ?? (presetRole && choice?.center_id === centerId ? `${presetRole} de ${choice?.name ?? "votre centre"} : vous êtes rattaché d'office, sans validation.` : "Facultatif maintenant, modifiable depuis votre profil. En attendant la confirmation du chef de centre, vous avez accès au fil.")}</p>
+                    <p className="text-[13px] text-text-3">{fields.center_id ?? (presetRole && choice?.center_id === centerId ? `${presetRole} de ${choice?.name ?? "votre centre"} : vous êtes rattaché d'office, sans validation.` : requireCenter ? "Votre chef de centre reçoit la demande et la confirme. En attendant, vous avez accès au fil." : "Facultatif maintenant, modifiable depuis votre profil. En attendant la confirmation du chef de centre, vous avez accès au fil.")}</p>
                   </div>
                 )}
 

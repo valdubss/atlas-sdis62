@@ -94,7 +94,7 @@ export function RegistryAdmin({ rows, shown, total, query, registryMode }: { row
       <section className="space-y-3">
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Importer la liste</h2>
         <p className="text-[13px] text-text-3">
-          Collez un tableau ou choisissez un fichier CSV, une ligne par agent : <span className="text-text-2">matricule ; nom ; prénom ; e-mail SDIS ; centre ; statut (SPV, SPP, JSP, PATS)</span>. Avec une ligne d&apos;en-têtes, l&apos;ordre des colonnes est libre. Seul le matricule est obligatoire ; si l&apos;e-mail SDIS est renseigné, il doit correspondre à celui saisi par l&apos;agent. Un matricule déjà présent est mis à jour.
+          Collez un tableau ou choisissez un fichier CSV, une ligne par agent : <span className="text-text-2">matricule ; nom ; prénom ; e-mail SDIS ; centre ; statut (SPV, SPP, JSP, PATS)</span>. Avec une ligne d&apos;en-têtes, l&apos;ordre des colonnes est libre. Seul le matricule est obligatoire ; nom et prénom, s&apos;ils sont renseignés, doivent être saisis à l&apos;identique par l&apos;agent (accents et casse ignorés). L&apos;e-mail sert d&apos;identifiant de compte s&apos;il existe, sinon ATLAS en forge un à partir du matricule. Un matricule déjà présent est mis à jour.
         </p>
         <textarea
           value={text}

@@ -224,32 +224,36 @@ where key = 'allowed_emails';
 - Renforcement possible : **Authentication → Providers → Email → Password requirements**
   et détection des mots de passe compromis (offre Pro).
 
-**Première connexion par matricule** (réglage *Paramètres → Première connexion*, migration
-`0046`, valeur `auth_first_access` = `registry` ; `link` = parcours ci-dessus, valeur par
-défaut) :
+**Première connexion par matricule, sans e-mail** (réglage *Paramètres → Première
+connexion*, migration `0046`, valeur `auth_first_access` = `registry` ; `link` = parcours
+ci-dessus, valeur par défaut). Pensé pour un SDIS où la plupart des volontaires n'ont pas
+d'adresse @sdis62.fr réelle et où aucun serveur d'envoi n'est disponible : l'agent est
+autonome, le chef de centre ne valide que son appartenance au centre.
 
 1. L'administrateur importe la liste des agents dans **Administration → Agents référencés**
    (collage d'un tableau ou fichier CSV : matricule, nom, prénom, e-mail SDIS, centre,
    statut SPV/SPP/JSP/PATS ; seul le matricule est obligatoire, un matricule existant est
    mis à jour). Table `agents_registry`, lisible uniquement par les administrateurs et le
    serveur.
-2. Sur l'écran de connexion, « Première connexion » ouvre une fenêtre : adresse e-mail SDIS,
-   matricule, adresse e-mail personnelle, « Continuer ». Un matricule absent de la liste (ou
-   dont l'e-mail référencé ne correspond pas) est refusé immédiatement, sans aucun envoi.
-   Limite : 5 demandes par matricule et 10 par appareil par heure (`rate_limit_events`,
+2. Sur l'écran de connexion, « Première connexion » ouvre une fenêtre : matricule, nom,
+   prénom, « Continuer ». Un matricule absent de la liste, ou un nom qui ne correspond pas à
+   celui de la liste (accents, casse, espaces et tirets ignorés), est refusé immédiatement.
+   Limite : 5 tentatives par matricule et 10 par appareil par heure (`rate_limit_events`,
    bucket `first_access`).
-3. Le compte est créé (ou complété s'il existait sans mot de passe) avec un **mot de passe
-   temporaire** (12 caractères, `XXXX-XXXX-XXXX`, valable 7 jours, `temp_password_expires_at`)
-   envoyé sur l'adresse personnelle (`profiles.personal_email`). L'e-mail part d'ATLAS :
-   `RESEND_API_KEY` ou `SMTP_HOST` **obligatoire** dans ce mode (sans transport, la demande
-   est refusée avec un message explicite).
-4. Connexion avec l'**e-mail SDIS ou le matricule** (`profiles.matricule`, unique, insensible
-   à la casse) et le mot de passe temporaire ; l'accueil (`/bienvenue`) enchaîne prénom et
-   nom, statut, centre, **mot de passe personnel** (obligatoire tant que `password_set_at`
-   est vide), notifications. « Mot de passe oublié » garde le lien e-mail sur l'adresse SDIS.
-5. En test, `EMAIL_CAPTURE_DIR=.tmp/mails` écrit chaque e-mail en JSON au lieu de l'envoyer ;
-   `tests/e2e/premiere-connexion.spec.ts` joue le parcours complet (refus, mot de passe
-   temporaire lu dans le fichier, accueil, reconnexion).
+3. Le compte est créé avec l'adresse de la liste ou, à défaut, `<matricule>@sdis62.fr`
+   (premier domaine de `ALLOWED_EMAIL_DOMAINS`), un mot de passe jetable connu du seul
+   serveur, puis la session est ouverte aussitôt : aucun e-mail ne part. Un matricule déjà
+   rattaché à un compte accueilli n'est jamais réinitialisé par ce chemin.
+4. L'accueil (`/bienvenue`) enchaîne prénom et nom, statut, **centre obligatoire** (demande
+   de rattachement classique : le chef de centre, le responsable com ou le service
+   communication la confirme, l'agent a accès au fil en attendant), **mot de passe
+   personnel** (obligatoire tant que `password_set_at` est vide), notifications.
+5. Connexion ensuite avec l'**e-mail ou le matricule** (`profiles.matricule`, unique,
+   insensible à la casse) et le mot de passe. « Mot de passe oublié » : lien e-mail pour
+   qui a une vraie adresse SDIS (si un transport est configuré), sinon mot de passe
+   provisoire remis par un administrateur (Administration → Utilisateurs).
+6. `tests/e2e/premiere-connexion.spec.ts` joue le parcours (refus d'un matricule inconnu et
+   d'un nom faux, création, accueil avec centre de test, reconnexion par matricule).
 
 ## 4. Créer le premier administrateur
 

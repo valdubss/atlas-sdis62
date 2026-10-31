@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient, getCurrentUser } from "@/lib/supabase/server";
 import { NOTE_ROLE_LABELS } from "@/lib/centres/notes";
 import { fetchDirectory } from "@/lib/centres/public";
+import { getAuthSettings } from "@/lib/auth/settings";
 import { Onboarding } from "./Onboarding";
 
 export const metadata: Metadata = { title: "Bienvenue" };
@@ -28,10 +29,11 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
   // et pour tout compte qui n'en a pas encore
   const passwordRequired = !passwordSet || mdp === "1";
 
-  const [directory, presetRole] = await Promise.all([
+  const [directory, presetRole, auth] = await Promise.all([
     fetchDirectory(),
     // Chef de centre ou responsable com : déjà rattaché d'office par le trigger, l'accueil le dit
     profile.center_id ? supabase.rpc("center_author_role", { p_center: profile.center_id, p_profile: profile.id }).then((r) => (r.data === "chief" || r.data === "com" ? NOTE_ROLE_LABELS[r.data] : null)) : Promise.resolve(null),
+    getAuthSettings(),
   ]);
 
   return (
@@ -45,6 +47,7 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
       directory={directory}
       needPassword={passwordRequired}
       passwordRequired={passwordRequired}
+      requireCenter={auth.firstAccess === "registry" && !profile.onboarded_at && !profile.center_id && !profile.service_id}
       startAtForm={Boolean(profile.onboarded_at)}
       key={profile.onboarded_at ? "reset" : "first"}
     />

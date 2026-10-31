@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { profileSchema } from "@/lib/validation/profile";
 import { setPasswordSchema } from "@/lib/validation/auth";
 
@@ -27,6 +28,7 @@ export async function updateProfile(
   const parsed = profileSchema.safeParse({
     first_name: formData.get("first_name"),
     last_name: formData.get("last_name"),
+    personal_email: formData.get("personal_email") ?? "",
   });
 
   if (!parsed.success) {
@@ -39,11 +41,15 @@ export async function updateProfile(
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { error } = await supabase.from("profiles").update(parsed.data).eq("id", user.id);
-
+  const { personal_email, ...names } = parsed.data;
+  const { error } = await supabase.from("profiles").update(names).eq("id", user.id);
   if (error) {
     return { status: "error", message: "Enregistrement impossible. Réessayez." };
   }
+  // La colonne personal_email n'est pas accordée au rôle authenticated (elle ne doit jamais
+  // apparaître dans l'annuaire) : écrite par le serveur seulement
+  const { error: personalError } = await createAdminClient().from("profiles").update({ personal_email }).eq("id", user.id);
+  if (personalError) return { status: "error", message: "Enregistrement de l'adresse personnelle impossible. Réessayez." };
 
   revalidatePath("/profil");
   revalidatePath("/");

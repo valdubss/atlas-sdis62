@@ -9,6 +9,7 @@ import { createClient, getCurrentUser, isEditorRole } from "@/lib/supabase/serve
 import { ROLE_LABELS } from "@/lib/config";
 import { NOTE_ROLE_LABELS } from "@/lib/centres/notes";
 import { ProfileForm } from "./ProfileForm";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PasswordForm } from "./PasswordForm";
 import { NotificationCenter } from "@/components/profile/NotificationCenter";
 import { ThemeToggle } from "@/components/profile/ThemeToggle";
@@ -23,7 +24,7 @@ export default async function ProfilPage() {
   const { profile } = current;
 
   const supabase = await createClient();
-  const [{ data: settings }, { count: subCount }, home, { count: sharedCount }, centerRole] = await Promise.all([
+  const [{ data: settings }, { count: subCount }, home, { count: sharedCount }, centerRole, personalEmail] = await Promise.all([
     supabase.from("user_settings").select("push_new_posts, push_pinned, push_center, push_agenda, push_messages, quiet_start, quiet_end, hide_preview, digest_email, theme").eq("user_id", profile.id).maybeSingle(),
     supabase.from("push_subscriptions").select("id", { count: "exact", head: true }).eq("user_id", profile.id),
     profile.center_id
@@ -34,6 +35,8 @@ export default async function ProfilPage() {
     supabase.from("post_editors").select("post_id", { count: "exact", head: true }).eq("profile_id", profile.id),
     // Chef de centre ou responsable com (adresse saisie par le service communication) : rappelé sous « Mon centre »
     profile.center_id ? supabase.rpc("center_author_role", { p_center: profile.center_id, p_profile: profile.id }).then((r) => (r.data === "chief" || r.data === "com" ? NOTE_ROLE_LABELS[r.data] : null)) : Promise.resolve(null),
+    // Adresse personnelle : colonne réservée au serveur, lue avec la clé service
+    createAdminClient().from("profiles").select("personal_email").eq("id", profile.id).maybeSingle().then((r) => r.data?.personal_email ?? null),
   ]);
   const prefs = {
     push_new_posts: settings?.push_new_posts ?? true,
@@ -71,7 +74,7 @@ export default async function ProfilPage() {
       )}
 
       <section className="rounded-[16px] bg-bg-1 px-5 py-4">
-        <ProfileForm profile={profile} />
+        <ProfileForm profile={profile} personalEmail={personalEmail} />
       </section>
 
       <div className="hairline rounded-[16px] bg-bg-1">
