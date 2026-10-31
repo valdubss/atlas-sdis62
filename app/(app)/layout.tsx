@@ -27,6 +27,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <ThemeApplier theme={theme} />
       <OfflineBanner />
       <div className="min-h-dvh overflow-x-clip bg-bg-0">
+        {/* Bande fixe de la couleur du fond sous la barre d'état : Safari iOS 26 floute ce qui
+            défile sous la barre d'état quand aucun élément fixe opaque ne touche le bord haut
+            (barre haute transparente au repos sur les pages à grand titre). Hauteur nulle hors iPhone. */}
+        <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-0 z-30 bg-bg-0" style={{ height: "env(safe-area-inset-top, 0px)" }} />
         {/* Marges d'écran 20 px mobile / 32 px desktop ; lecture ≤ 680 px ; place pour la barre haute (48 px) */}
         <main className="mx-auto w-full max-w-[680px] px-3 pb-28 pt-[calc(48px+env(safe-area-inset-top)+8px)] sm:px-8">{children}</main>
         <BottomNav />
