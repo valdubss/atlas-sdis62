@@ -90,13 +90,10 @@ export async function completeOnboarding(_prev: OnboardingState, formData: FormD
     await supabase.rpc("mark_password_set");
   }
 
-  // Première connexion par matricule : l'agent retourne à l'écran de connexion et entre avec
-  // son e-mail ou son matricule et le mot de passe qu'il vient de choisir
+  // Première connexion par matricule : trace d'activation, puis directement le fil (session gardée)
   if (formData.get("registry_first") === "1") {
     const { data: me } = await supabase.from("profiles").select("matricule").eq("id", user.id).maybeSingle();
     if (me?.matricule) await markRegistryActivated(me.matricule);
-    await supabase.auth.signOut();
-    redirect("/login?pret=1");
   }
 
   // Rafraîchit le jeton pour que le middleware voie « onboarded »

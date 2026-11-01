@@ -47,11 +47,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="fr" className={inter.variable} suppressHydrationWarning>
       <head>
-        {/* Thème mémorisé sur l'appareil appliqué avant le premier rendu : pas de flash sombre → clair */}
+        {/* Thème mémorisé sur l'appareil appliqué avant le premier rendu : pas de flash sombre → clair.
+            Invite d'installation Chrome/Android gardée dès le chargement pour le bandeau « écran d'accueil ». */}
         <script
           nonce={nonce}
           dangerouslySetInnerHTML={{
-            __html: "try{var t=localStorage.getItem('atlas:theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}",
+            __html: "try{var t=localStorage.getItem('atlas:theme');if(t==='light'||t==='dark'){document.documentElement.setAttribute('data-theme',t);}}catch(e){}window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__mysdisInstall=e;window.dispatchEvent(new Event('mysdis:installable'));});",
           }}
         />
       </head>

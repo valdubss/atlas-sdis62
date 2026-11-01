@@ -34,6 +34,8 @@ const nextConfig: NextConfig = {
   env: {
     // Logo image présent dans public/ ? (évalué au démarrage et à la construction)
     NEXT_PUBLIC_HAS_LOGO: existsSync(path.join(process.cwd(), "public", "logo-atlas.png")) ? "1" : "0",
+    // Vidéo du geste « Sur l'écran d'accueil » sur iPhone (public/videos/installer-iphone.mp4) : sinon, étapes illustrées
+    NEXT_PUBLIC_HAS_INSTALL_VIDEO: existsSync(path.join(process.cwd(), "public", "videos", "installer-iphone.mp4")) ? "1" : "0",
     NEXT_PUBLIC_APP_VERSION: (JSON.parse(readFileSync(path.join(process.cwd(), "package.json"), "utf8")) as { version: string }).version,
     // Identifiant de déploiement (commit sur Vercel) : change l'adresse du service worker à
     // chaque mise en ligne, ce qui déclenche la bulle « Nouvelle version » sur les appareils

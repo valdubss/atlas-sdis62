@@ -12,6 +12,7 @@ import { ProfileForm } from "./ProfileForm";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PasswordForm } from "./PasswordForm";
 import { NotificationCenter } from "@/components/profile/NotificationCenter";
+import { HomeScreenRow } from "@/components/pwa/HomeScreenPrompt";
 import { ThemeToggle } from "@/components/profile/ThemeToggle";
 import { Activity } from "lucide-react";
 import { signOut } from "./actions";
@@ -171,6 +172,7 @@ export default async function ProfilPage() {
 
       <section className="rounded-[16px] bg-bg-1 py-3">
         <h2 className="px-5 pb-1 text-[17px] font-semibold tracking-[-0.02em] text-text-1">Notifications</h2>
+        <HomeScreenRow />
         <NotificationCenter prefs={prefs} hasSubscriptions={(subCount ?? 0) > 0} />
       </section>
 

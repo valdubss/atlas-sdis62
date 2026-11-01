@@ -2,25 +2,25 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAllowedEmail } from "@/lib/auth/domains";
 import { appMailConfigured, sendAccountEmail } from "@/lib/auth/invite";
 import { MATRICULE_RE, normalizeMatricule } from "@/lib/auth/first-access-public";
 
 /**
  * Première connexion par matricule (réglage auth_first_access = "registry") :
- *  1. l'agent saisit son adresse SDIS (identifiant, à titre indicatif), son matricule et son
- *     adresse personnelle ;
+ *  1. l'agent saisit son matricule et son adresse personnelle (l'adresse SDIS, quand la liste
+ *     la connaît, reste un identifiant de connexion) ;
  *  2. le matricule doit figurer dans le référentiel importé par les administrateurs
  *     (agents_registry), sinon refus immédiat, rien ne part ;
  *  3. le compte est créé avec l'adresse personnelle pour identité (tous les codes et liens y
  *     partent ; l'adresse est inscrite dans le référentiel pour passer le contrôle des domaines),
  *     nom et prénom repris de la liste, puis un e-mail d'ATLAS envoie le code à six chiffres ;
- *  4. le code ouvre la session : l'accueil enchaîne statut, centre (validé par le chef de centre)
- *     et mot de passe, puis l'agent se connecte par e-mail (personnelle ou SDIS) ou matricule.
+ *  4. le code ouvre la session : un seul écran d'accueil (centre validé par le chef de centre,
+ *     mot de passe, statut s'il manque dans la liste), puis l'agent arrive directement dans le fil.
+ *     Connexions suivantes : e-mail (personnelle ou SDIS) ou matricule.
  * Un compte déjà accueilli n'est jamais réinitialisé par ce chemin : « mot de passe oublié ».
  */
-export type FirstAccessInput = { email: string; matricule: string; personalEmail: string };
-export type FirstAccessResult = { ok: true; personalEmail: string } | { ok: false; error: string; field?: "email" | "matricule" | "personalEmail" };
+export type FirstAccessInput = { matricule: string; personalEmail: string };
+export type FirstAccessResult = { ok: true; personalEmail: string } | { ok: false; error: string; field?: "matricule" | "personalEmail" };
 
 export { normalizeMatricule };
 
@@ -56,12 +56,9 @@ export async function resolveLoginIdentifier(identifier: string): Promise<{ emai
 }
 
 export async function requestFirstAccess(input: FirstAccessInput, clientKey = ""): Promise<FirstAccessResult> {
-  const email = input.email.trim().toLowerCase();
   const personalEmail = input.personalEmail.trim().toLowerCase();
   const matricule = normalizeMatricule(input.matricule);
-  if (!isAllowedEmail(email)) return { ok: false, error: "Utilisez votre adresse du SDIS 62.", field: "email" };
   if (!matricule || !MATRICULE_RE.test(matricule)) return { ok: false, error: "Matricule invalide (3 à 12 lettres ou chiffres).", field: "matricule" };
-  if (personalEmail === email) return { ok: false, error: "Indiquez une adresse personnelle, différente de l'adresse du SDIS.", field: "personalEmail" };
   if (!appMailConfigured()) return { ok: false, error: "L'envoi d'e-mails n'est pas configuré sur ce déploiement : contactez le service communication." };
 
   const admin = createAdminClient();
@@ -95,7 +92,7 @@ export async function requestFirstAccess(input: FirstAccessInput, clientKey = ""
   // L'adresse personnelle passe le contrôle des domaines (fonction is_allowed_email) via le référentiel
   const { error: refError } = await admin
     .from("agents_registry")
-    .update({ personal_email: personalEmail, ...(ref.email ? {} : { email }) })
+    .update({ personal_email: personalEmail })
     .eq("matricule", matricule);
   if (refError) return { ok: false, error: "Enregistrement impossible pour le moment. Réessayez." };
 

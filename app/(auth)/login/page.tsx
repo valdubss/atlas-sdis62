@@ -28,8 +28,8 @@ const HAS_BG = existsSync(path.join(process.cwd(), "public", BG_FILE));
  * Écran de connexion « affiche » : photo assombrie à 55 %, logo en haut à gauche,
  * champ et bouton en verre en bas. Aucune tagline.
  */
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; erreur?: string; pret?: string }> }) {
-  const { next = "/", erreur, pret } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; erreur?: string }> }) {
+  const { next = "/", erreur } = await searchParams;
   const domains = getAllowedDomains();
   const auth = await getAuthSettings();
 
@@ -55,11 +55,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <Logo height={52} />
         </div>
         <section className="glass rounded-[22px] p-5 sm:p-6">
-          {pret === "1" && (
-            <p role="status" className="mb-4 rounded-[12px] bg-bg-2 px-4 py-3 text-[15px] text-text-1">
-              Votre compte est prêt. Connectez-vous avec votre e-mail ou votre matricule et le mot de passe que vous venez de choisir.
-            </p>
-          )}
           {erreur && ERRORS[erreur] && (
             <p role="alert" className="mb-4 text-[15px] text-red-text">
               {ERRORS[erreur]}

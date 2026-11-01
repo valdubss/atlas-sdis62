@@ -5,6 +5,7 @@ import { NOTE_ROLE_LABELS } from "@/lib/centres/notes";
 import { fetchDirectory } from "@/lib/centres/public";
 import { getAuthSettings } from "@/lib/auth/settings";
 import { Onboarding } from "./Onboarding";
+import { RegistryWelcome } from "./RegistryWelcome";
 
 export const metadata: Metadata = { title: "Bienvenue" };
 export const dynamic = "force-dynamic";
@@ -36,9 +37,22 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
     getAuthSettings(),
   ]);
 
-  // Première connexion par matricule : nom et prénom viennent de la liste, le centre est obligatoire,
-  // et l'accueil se termine sur l'écran de connexion
+  // Première connexion par matricule : un seul écran (nom, prénom et statut viennent de la liste,
+  // centre obligatoire, mot de passe), puis directement le fil
   const registryFirst = auth.firstAccess === "registry" && !profile.onboarded_at && Boolean(profile.matricule);
+  if (registryFirst)
+    return (
+      <RegistryWelcome
+        firstName={profile.first_name}
+        lastName={profile.last_name}
+        matricule={profile.matricule}
+        status={profile.status}
+        accountEmail={current.user.email ?? profile.email}
+        centerId={profile.center_id}
+        directory={directory}
+        requireCenter={!profile.center_id && !profile.service_id}
+      />
+    );
 
   return (
     <Onboarding
@@ -51,9 +65,6 @@ export default async function BienvenuePage({ searchParams }: { searchParams: Pr
       directory={directory}
       needPassword={passwordRequired}
       passwordRequired={passwordRequired}
-      requireCenter={registryFirst && !profile.center_id && !profile.service_id}
-      registryFirst={registryFirst}
-      personalEmail={registryFirst ? current.user.email : null}
       startAtForm={Boolean(profile.onboarded_at)}
       key={profile.onboarded_at ? "reset" : "first"}
     />

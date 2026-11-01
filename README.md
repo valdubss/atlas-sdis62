@@ -234,9 +234,9 @@ l'adresse personnelle de l'agent.
    (collage d'un tableau ou fichier CSV : matricule, nom, prénom, e-mail SDIS, centre,
    statut SPV/SPP/JSP ; seul le matricule est obligatoire, un matricule existant est mis à
    jour). Table `agents_registry`, lisible uniquement par les administrateurs et le serveur.
-2. Sur l'écran de connexion, « Première connexion » demande l'adresse SDIS, le matricule et
-   l'adresse personnelle. Un matricule absent de la liste est refusé immédiatement, rien ne
-   part. Limite : 5 demandes par matricule et 60 par adresse IP par heure (une caserne
+2. Sur l'écran de connexion, « Première connexion » demande seulement le matricule et
+   l'adresse personnelle (l'adresse SDIS de la liste reste un identifiant de connexion). Un
+   matricule absent de la liste est refusé immédiatement, rien ne part. Limite : 5 demandes par matricule et 60 par adresse IP par heure (une caserne
    partage une seule adresse publique)
    (`rate_limit_events`, bucket `first_access`).
 3. Le compte est créé avec **l'adresse personnelle pour identité** (elle est d'abord inscrite
@@ -244,14 +244,19 @@ l'adresse personnelle de l'agent.
    prénom repris de la liste, puis ATLAS envoie le **code à six chiffres** (repris dans l'objet
    de l'e-mail) par son transport : `SMTP_HOST` ou `RESEND_API_KEY` **obligatoire** dans ce
    mode. L'agent saisit le code dans la même fenêtre.
-4. L'accueil (`/bienvenue`) affiche « Bienvenue Prénom Nom », puis statut, **centre
-   obligatoire** (demande de rattachement classique : le chef de centre confirme que l'agent
-   fait partie du centre) et **mot de passe**. Il se termine sur l'écran de connexion
-   (« Votre compte est prêt ») ; `agents_registry.activated_at` garde la trace.
-5. Connexion ensuite avec l'**e-mail (personnelle ou SDIS) ou le matricule** et le mot de
+4. L'accueil (`/bienvenue`) tient sur **un seul écran** : « Bienvenue Prénom Nom », statut
+   repris de la liste (demandé seulement s'il y manque), **centre obligatoire** (le chef de
+   centre confirme l'appartenance) et **mot de passe** (le téléphone propose de l'enregistrer).
+   « Entrer dans MySDIS » mène **directement au fil** ; `agents_registry.activated_at` garde la trace.
+5. Dans le fil, un bandeau propose une fois « Ajouter à l'écran d'accueil » : un toucher sur
+   Android (invite Chrome gardée par le script en ligne de `app/layout.tsx`), guide du geste
+   sur iPhone (vidéo `public/videos/installer-iphone.mp4` si elle existe, sinon étapes). Dans
+   l'app installée, le bandeau propose ensuite « Activer les notifications ». Fermé, il ne
+   revient pas sur l'appareil ; Profil → Notifications garde l'accès au guide.
+6. Connexion ensuite avec l'**e-mail (personnelle ou SDIS) ou le matricule** et le mot de
    passe. « Mot de passe oublié » : e-mail ou matricule → code sur l'adresse personnelle,
    affichée masquée (taper le matricule d'un autre ne révèle pas son adresse).
-6. `tests/e2e/premiere-connexion.spec.ts` joue le parcours avec `EMAIL_CAPTURE_DIR` (refus
+7. `tests/e2e/premiere-connexion.spec.ts` joue le parcours avec `EMAIL_CAPTURE_DIR` (refus
    d'un matricule inconnu, code lu dans l'e-mail capturé, accueil avec centre de test,
    reconnexion par matricule, mot de passe oublié).
 

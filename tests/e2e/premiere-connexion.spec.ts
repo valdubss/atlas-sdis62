@@ -6,10 +6,10 @@ import { adminClient, completeOnboarding, loadEnv } from "./helpers";
 /**
  * Première connexion par matricule (réglage auth_first_access = "registry") :
  *  1. matricule absent du référentiel → refusé avant tout envoi ;
- *  2. matricule référencé → code à six chiffres « envoyé » sur l'adresse personnelle
+ *  2. matricule + adresse personnelle → code à six chiffres « envoyé » sur l'adresse personnelle
  *     (capturé dans EMAIL_CAPTURE_DIR, repris dans l'objet) → saisi → accueil ;
- *  3. accueil : « Bienvenue Prénom Nom », statut, centre obligatoire (centre de test sans chef),
- *     mot de passe → retour à l'écran de connexion « compte prêt » ;
+ *  3. accueil en un écran : « Bienvenue Prénom Nom », statut repris de la liste, centre
+ *     obligatoire (centre de test sans chef), mot de passe → directement le fil ;
  *  4. connexion par matricule, puis par adresse SDIS indicative ;
  *  5. mot de passe oublié par matricule : code sur l'adresse personnelle, affichée masquée.
  * Le réglage est remis à sa valeur initiale, le centre et le compte supprimés.
@@ -53,6 +53,7 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
   try {
     await admin.from("app_settings").upsert({ key: "auth_first_access", value: "registry" });
     await admin.from("agents_registry").upsert({ matricule, email: null, last_name: `Référencé ${stamp}`, first_name: "Agent", center_name: "Test", status: "spp" });
+    await admin.from("agents_registry").update({ email: sdisEmail }).eq("matricule", matricule);
     await admin.from("rate_limit_events").delete().in("bucket", ["first_access", "magiclink"]);
     const { data: center } = await admin.from("centers").insert({ slug: `e2e-pc-${stamp}`, name: `CIS Test ${stamp}`, type: "cis", city: "Arras", sort_order: 999 }).select("id").single();
     centerId = center!.id;
@@ -60,7 +61,6 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
     // --- 1. Matricule inconnu : refusé, aucun compte créé ---------------------------------
     await page.goto("/login", { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Première connexion" }).click();
-    await page.getByLabel("Adresse e-mail SDIS").fill(sdisEmail);
     await page.getByLabel("Matricule").fill(`X${stamp}`);
     await page.getByLabel("Adresse e-mail personnelle").fill(personal);
     await page.getByRole("button", { name: "Continuer" }).click();
@@ -77,32 +77,32 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
     expect(created).toMatchObject({ matricule, personal_email: personal, status: "spp", first_name: "Agent", last_name: `Référencé ${stamp}`, password_set_at: null });
     const { data: ref } = await admin.from("agents_registry").select("email, personal_email").eq("matricule", matricule).single();
     expect(ref).toMatchObject({ email: sdisEmail, personal_email: personal });
+    await expect(page.getByLabel("Adresse e-mail SDIS")).toHaveCount(0);
     await page.getByLabel("Code reçu par e-mail").fill(lastCode(t0));
     await page.getByRole("button", { name: "Valider le code" }).click();
     await page.waitForURL(/\/bienvenue/, { timeout: 20_000 });
 
-    // --- 3. Accueil : bienvenue nominatif, statut, centre obligatoire, mot de passe ----------
+    // --- 3. Accueil en un écran : bienvenue nominatif, statut repris, centre obligatoire, mot de passe
     await expect(page.getByRole("heading", { name: `Bienvenue Agent Référencé ${stamp}` })).toBeVisible();
     await expect(page.getByText(matricule)).toBeVisible();
-    await page.getByRole("button", { name: "Suivant" }).click();
-    await page.getByRole("radio", { name: "SPV" }).click();
-    await page.getByRole("button", { name: "Suivant" }).click();
-    await page.getByRole("button", { name: "Suivant" }).click();
+    await expect(page.getByText("SPP", { exact: true })).toBeVisible();
+    const newPassword = `Perso-${stamp}-Mdp1`;
+    await page.getByLabel("Mot de passe", { exact: true }).fill(newPassword);
+    await page.getByRole("button", { name: "Entrer dans MySDIS" }).click();
     await expect(page.getByText("Choisissez votre centre ou votre service.")).toBeVisible();
     await page.getByRole("button", { name: /Choisir mon centre/ }).click();
     await page.getByRole("dialog").getByLabel("Rechercher un centre").fill(`CIS Test ${stamp}`);
     await page.getByRole("dialog").getByText(`CIS Test ${stamp}`).first().click();
-    const newPassword = `Perso-${stamp}-Mdp1`;
-    await completeOnboarding(page, { firstName: "Agent", lastName: `Référencé ${stamp}`, password: newPassword });
-    await page.waitForURL(/\/login\?pret=1/, { timeout: 20_000 });
-    await expect(page.getByText("Votre compte est prêt")).toBeVisible();
+    await page.getByRole("button", { name: "Entrer dans MySDIS" }).click();
+    await page.waitForURL((u) => u.pathname === "/", { timeout: 20_000 });
     const { data: done } = await admin.from("profiles").select("status, onboarded_at, password_set_at").eq("id", userId).single();
-    expect(done.status).toBe("spv");
+    expect(done.status).toBe("spp");
     expect(done.onboarded_at).not.toBeNull();
     expect(done.password_set_at).not.toBeNull();
     const { data: req } = await admin.from("membership_requests").select("status, center_id").eq("profile_id", userId).maybeSingle();
     expect(req).toMatchObject({ status: "pending", center_id: centerId });
     expect((await admin.from("agents_registry").select("activated_at").eq("matricule", matricule).single()).data?.activated_at).not.toBeNull();
+    await page.goto("/auth/deconnexion", { waitUntil: "networkidle" }).catch(() => {});
 
     // --- 4. Connexion par matricule, puis par adresse SDIS indicative -----------------------
     await login(page, matricule.toLowerCase(), newPassword);
@@ -113,7 +113,6 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
     // Un second passage par « Première connexion » est refusé (compte accueilli)
     await page.goto("/login", { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Première connexion" }).click();
-    await page.getByLabel("Adresse e-mail SDIS").fill(sdisEmail);
     await page.getByLabel("Matricule").fill(matricule);
     await page.getByLabel("Adresse e-mail personnelle").fill(personal);
     await page.getByRole("button", { name: "Continuer" }).click();

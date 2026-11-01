@@ -28,7 +28,6 @@ export const identifierLoginSchema = z.object({
 
 /** Première connexion par matricule : adresse SDIS (indicative), matricule, adresse personnelle. */
 export const firstAccessSchema = z.object({
-  email,
   matricule: z.string().trim().min(3, "Saisissez votre matricule.").max(20, "Matricule trop long."),
   personalEmail: z.string().trim().toLowerCase().min(1, "Saisissez votre adresse personnelle.").pipe(z.email("Adresse personnelle invalide.")),
 });
