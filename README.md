@@ -249,7 +249,10 @@ l'adresse personnelle de l'agent.
    mode. L'agent saisit le code dans la même fenêtre.
 4. L'accueil (`/bienvenue`) tient sur **un seul écran** : « Bienvenue Prénom Nom », statut
    repris de la liste (demandé seulement s'il y manque), **centre obligatoire** (le chef de
-   centre confirme l'appartenance) et **mot de passe** (le téléphone propose de l'enregistrer).
+   centre confirme l'appartenance ; les services de la direction ne sont pas proposés, un
+   administrateur y rattache l'agent depuis Administration → Utilisateurs, comme partout où
+   l'agent choisit lui-même son rattachement) et **mot de passe** (le téléphone propose de
+   l'enregistrer).
    « Entrer dans MySDIS » mène **directement au fil** ; `agents_registry.activated_at` garde la trace.
 5. Dans le fil, un bandeau propose une fois « Ajouter à l'écran d'accueil » : un toucher sur
    Android (invite Chrome gardée par le script en ligne de `app/layout.tsx`), guide du geste

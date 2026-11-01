@@ -97,7 +97,7 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
     const newPassword = `Perso-${stamp}-Mdp1`;
     await page.getByLabel("Mot de passe", { exact: true }).fill(newPassword);
     await page.getByRole("button", { name: "Entrer dans MySDIS" }).click();
-    await expect(page.getByText("Choisissez votre centre ou votre service.")).toBeVisible();
+    await expect(page.getByText("Choisissez votre centre.")).toBeVisible();
     await page.getByRole("button", { name: /Choisir mon centre/ }).click();
     await page.getByRole("dialog").getByLabel("Rechercher un centre").fill(`CIS Test ${stamp}`);
     await page.getByRole("dialog").getByText(`CIS Test ${stamp}`).first().click();

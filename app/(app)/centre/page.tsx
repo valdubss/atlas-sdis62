@@ -33,7 +33,7 @@ export default async function MyCenterPage() {
         <PendingRequestCard pending={pending} directory={directory} />
       ) : (
         <>
-          <p className="px-1 text-[15px] text-text-2">Choisissez votre centre ou votre service : votre chef de centre confirme votre arrivée, puis sa page devient votre onglet « Mon centre ».</p>
+          <p className="px-1 text-[15px] text-text-2">Choisissez votre centre : votre chef de centre confirme votre arrivée, puis sa page devient votre onglet « Mon centre ». Les services de la direction sont attribués par un administrateur.</p>
           <CenterPicker directory={directory} mode="attach" />
         </>
       )}

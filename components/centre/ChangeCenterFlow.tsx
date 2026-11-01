@@ -18,7 +18,8 @@ export type ProfileHistoryEntry = { id: number; field: string; changed_at: strin
 const FIELD_LABELS: Record<string, string> = { center_id: "Centre", service_id: "Service", role: "Rôle", is_active: "Compte" };
 
 /**
- * Changement de centre en un écran : choix du nouveau centre ou service,
+ * Changement de centre en un écran : choix du nouveau centre (les services de la direction
+ * sont attribués par un administrateur),
  * récapitulatif de ce qui change (onglet Mon centre, notifications « mon centre »,
  * canaux de centre pour les référents), confirmation, puis historique.
  */
@@ -66,7 +67,7 @@ export function ChangeCenterFlow({ home, directory, history, currentCenterId, cu
             ) : (
               <span className="block text-[15px] text-text-2">Non renseigné</span>
             )}
-            <span className="block text-[13px] text-text-3">Votre centre ou service apparaît dans l&apos;onglet « Mon centre »</span>
+            <span className="block text-[13px] text-text-3">Votre centre apparaît dans l&apos;onglet « Mon centre »</span>
           </span>
           <button type="button" onClick={() => setPicker(true)} className="pressable flex h-10 items-center gap-1 rounded-[10px] bg-bg-2 px-3 text-[13px] font-medium text-text-1">
             {home ? "Changer" : "Choisir"}
@@ -100,7 +101,7 @@ export function ChangeCenterFlow({ home, directory, history, currentCenterId, cu
         )}
       </section>
 
-      <Sheet open={picker} onClose={() => setPicker(false)} title="Choisir un centre ou un service" tall>
+      <Sheet open={picker} onClose={() => setPicker(false)} title="Choisir mon centre" tall>
         <div className="px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
           <CenterPicker
             directory={directory}

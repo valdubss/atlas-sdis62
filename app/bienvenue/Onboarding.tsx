@@ -20,7 +20,7 @@ type StepKey = "identite" | "statut" | "centre" | "motdepasse" | "notifications"
 const STEP_META: Record<StepKey, { icon: typeof UserRound; title: string; text: string }> = {
   identite: { icon: UserRound, title: "Faisons connaissance", text: "Votre prénom et votre nom apparaissent dans vos commentaires. Ils restent internes au SDIS." },
   statut: { icon: Shield, title: "Votre statut", text: "Il sert au service communication pour adresser les bonnes informations aux bonnes personnes." },
-  centre: { icon: MapPin, title: "Votre centre", text: "Choisissez votre centre d'incendie et de secours ou votre service. Votre chef de centre confirme que vous en faites bien partie." },
+  centre: { icon: MapPin, title: "Votre centre", text: "Choisissez votre centre d'incendie et de secours. Votre chef de centre confirme que vous en faites bien partie." },
   motdepasse: { icon: KeyRound, title: "Votre mot de passe", text: `${LIMITS.passwordMinLength} caractères minimum. Il vous servira à chaque connexion, avec votre e-mail ou votre matricule.` },
   notifications: { icon: Bell, title: "Restez informé", text: "Soyez prévenu des publications et des annonces importantes. Vous choisissez ce que vous recevez, et vous pouvez changer d'avis à tout moment." },
 };
@@ -81,7 +81,7 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
       if (!last.trim()) e.last_name = "Champ obligatoire.";
     }
     if (s === "statut" && !status) e.status = "Choisissez votre statut.";
-    if (s === "centre" && requireCenter && !choice) e.center_id = "Choisissez votre centre ou votre service.";
+    if (s === "centre" && requireCenter && !choice) e.center_id = "Choisissez votre centre.";
     if (s === "motdepasse" && (passwordRequired || password || confirm)) {
       if (password.length < LIMITS.passwordMinLength) e.password = `${LIMITS.passwordMinLength} caractères minimum.`;
       if (password !== confirm) e.confirm = "Les deux mots de passe ne correspondent pas.";
@@ -240,7 +240,7 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
                 {step === "centre" && (
                   <div className="space-y-1.5">
                     <button type="button" onClick={() => { setPicker(true); setLocal({}); }} className="pressable flex h-12 w-full items-center justify-between rounded-[12px] bg-bg-2 px-3.5 text-left text-[15px] ring-1 ring-transparent focus:ring-glass-edge">
-                      <span className={choice ? "text-text-1" : "text-text-3"}>{choice?.name ?? "Choisir mon centre ou mon service…"}</span>
+                      <span className={choice ? "text-text-1" : "text-text-3"}>{choice?.name ?? "Choisir mon centre…"}</span>
                       <ChevronRight size={18} strokeWidth={1.75} className="text-text-3" aria-hidden="true" />
                     </button>
                     <p className="text-[13px] text-text-3">{fields.center_id ?? (presetRole && choice?.center_id === centerId ? `${presetRole} de ${choice?.name ?? "votre centre"} : vous êtes rattaché d'office, sans validation.` : requireCenter ? "Votre chef de centre reçoit la demande et la confirme. En attendant, vous avez accès au fil." : "Facultatif maintenant, modifiable depuis votre profil. En attendant la confirmation du chef de centre, vous avez accès au fil.")}</p>
@@ -302,7 +302,7 @@ export function Onboarding({ firstName, lastName, matricule, status: initialStat
         </section>
       </form>
 
-      <Sheet open={picker} onClose={() => setPicker(false)} title="Choisir un centre ou un service" tall>
+      <Sheet open={picker} onClose={() => setPicker(false)} title="Choisir mon centre" tall>
         <div className="px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
           <CenterPicker
             directory={directory}

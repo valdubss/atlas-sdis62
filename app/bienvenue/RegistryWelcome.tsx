@@ -24,7 +24,8 @@ const item = { hidden: { opacity: 0, y: 14 }, shown: { opacity: 1, y: 0, transit
  * Fenêtre de bienvenue de la première connexion par matricule : pop-up centrée (feuille
  * en bas sur mobile) avec un bandeau rouge à l'identité de l'agent (nom, matricule, statut
  * repris de la liste), puis un seul écran de réglages : statut s'il manque, centre (le chef
- * de centre confirme l'appartenance) et mot de passe. Un champ caché « username » permet au
+ * de centre confirme l'appartenance ; les services de la direction sont réservés aux
+ * administrateurs) et mot de passe. Un champ caché « username » permet au
  * gestionnaire de mots de passe du téléphone d'enregistrer le couple adresse + mot de passe.
  * L'envoi mène directement au fil.
  */
@@ -64,7 +65,7 @@ export function RegistryWelcome({
   function check(e: React.FormEvent<HTMLFormElement>) {
     const errs: Record<string, string> = {};
     if (!status) errs.status = "Choisissez votre statut.";
-    if (requireCenter && !choice) errs.center_id = "Choisissez votre centre ou votre service.";
+    if (requireCenter && !choice) errs.center_id = "Choisissez votre centre.";
     if (password.length < LIMITS.passwordMinLength) errs.password = `${LIMITS.passwordMinLength} caractères minimum.`;
     setLocal(errs);
     if (Object.keys(errs).length) e.preventDefault();
@@ -180,7 +181,7 @@ export function RegistryWelcome({
             <motion.div variants={item} className="space-y-2">
               <p className="flex items-center gap-1.5 text-[13px] font-medium text-text-2">
                 <MapPin size={14} strokeWidth={1.75} aria-hidden="true" />
-                Centre ou service
+                Centre
               </p>
               <button
                 type="button"
@@ -190,7 +191,7 @@ export function RegistryWelcome({
                 }}
                 className={cn("pressable flex h-12 w-full items-center justify-between rounded-[12px] bg-bg-2 px-3.5 text-left text-[15px] ring-1", fields.center_id ? "ring-red" : choice ? "ring-glass-edge" : "ring-transparent")}
               >
-                <span className={cn("truncate", choice ? "font-medium text-text-1" : "text-text-3")}>{choice?.name ?? "Choisir mon centre ou mon service…"}</span>
+                <span className={cn("truncate", choice ? "font-medium text-text-1" : "text-text-3")}>{choice?.name ?? "Choisir mon centre…"}</span>
                 {choice ? <Check size={18} strokeWidth={2.25} className="shrink-0 text-success" aria-hidden="true" /> : <ChevronRight size={18} strokeWidth={1.75} className="shrink-0 text-text-3" aria-hidden="true" />}
               </button>
               <p className={cn("text-[13px]", fields.center_id ? "text-red-text" : "text-text-3")} role={fields.center_id ? "alert" : undefined}>
@@ -243,7 +244,7 @@ export function RegistryWelcome({
         </section>
       </motion.form>
 
-      <Sheet open={picker} onClose={() => setPicker(false)} title="Choisir un centre ou un service" tall>
+      <Sheet open={picker} onClose={() => setPicker(false)} title="Choisir mon centre" tall>
         <div className="px-5 pb-[max(env(safe-area-inset-bottom),20px)]">
           <CenterPicker
             directory={directory}

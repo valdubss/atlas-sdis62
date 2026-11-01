@@ -20,8 +20,10 @@ function normalize(s: string) {
 /**
  * Liste des centres par groupement (services de direction en bas), avec
  * recherche par nom ou ville.
- *  - mode "attach" : choisir son rattachement (profil), puis ouvrir la page
- *  - mode "browse" : simples liens vers les pages (annuaire)
+ *  - mode "attach" : choisir son rattachement (profil), puis ouvrir la page ; les
+ *    services de la direction n'y figurent pas, seul un administrateur y rattache
+ *    un agent (Administration → Utilisateurs)
+ *  - mode "browse" : simples liens vers les pages (annuaire), services compris
  */
 export function CenterPicker({ directory, mode, currentCenterId, currentServiceId, onPick }: { directory: Directory; mode: "attach" | "browse"; currentCenterId?: string | null; currentServiceId?: string | null; onPick?: (sel: { center_id: string | null; service_id: string | null; name: string }) => void }) {
   const [q, setQ] = useState("");
@@ -37,8 +39,9 @@ export function CenterPicker({ directory, mode, currentCenterId, currentServiceI
       ...directory.groupings.map((g) => ({ key: g.id, name: g.name, items: centers.filter((c) => c.grouping_id === g.id) })),
       { key: "none", name: "Autres", items: centers.filter((c) => !c.grouping_id || !directory.groupings.some((g) => g.id === c.grouping_id)) },
     ].filter((g) => g.items.length > 0);
-    return { groups, services: directory.services.filter((s) => match(s.name) || match(s.short_description)) };
-  }, [directory, q]);
+    const services = mode === "attach" ? [] : directory.services.filter((s) => match(s.name) || match(s.short_description));
+    return { groups, services };
+  }, [directory, mode, q]);
 
   function pick(kind: "center" | "service", id: string) {
     if (onPick) {
