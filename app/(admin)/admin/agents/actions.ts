@@ -36,9 +36,11 @@ export async function importRegistry(text: string, apply: boolean): Promise<Regi
   for (const r of valid) r.existing = existing.has(r.matricule);
   if (!apply) return { ok: true, rows, applied: 0, valid: valid.length };
 
+  // Fichier sans date de naissance : les dates déjà enregistrées ne sont pas effacées
+  const withBirth = valid.some((r) => r.birth_date);
   let applied = 0;
   for (let i = 0; i < valid.length; i += 500) {
-    const batch = valid.slice(i, i + 500).map((r) => ({ matricule: r.matricule, last_name: r.last_name, first_name: r.first_name, email: r.email, center_name: r.center_name, status: r.status, imported_at: new Date().toISOString() }));
+    const batch = valid.slice(i, i + 500).map((r) => ({ matricule: r.matricule, last_name: r.last_name, first_name: r.first_name, email: r.email, center_name: r.center_name, status: r.status, ...(withBirth ? { birth_date: r.birth_date } : {}), imported_at: new Date().toISOString() }));
     const { error } = await ctx.supabase.from("agents_registry").upsert(batch, { onConflict: "matricule" });
     if (error) return { ok: false, error: `Import interrompu à la ligne ${valid[i].line} : ${error.message}` };
     applied += batch.length;

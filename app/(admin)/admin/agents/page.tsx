@@ -17,7 +17,7 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
   const { q = "" } = await searchParams;
   const supabase = await createClient();
 
-  let query = supabase.from("agents_registry").select("matricule, email, personal_email, activated_at, last_name, first_name, center_name, status, imported_at", { count: "exact" }).order("matricule").limit(200);
+  let query = supabase.from("agents_registry").select("matricule, email, personal_email, activated_at, last_name, first_name, center_name, status, birth_date, imported_at", { count: "exact" }).order("matricule").limit(200);
   const needle = q.trim();
   if (needle) {
     const safe = needle.replace(/[%,()]/g, " ").trim();
@@ -31,5 +31,5 @@ export default async function AgentsPage({ searchParams }: { searchParams: Promi
   ]);
   const linkedSet = new Set((linked ?? []).map((p) => (p.matricule ?? "").toUpperCase()));
 
-  return <RegistryAdmin rows={(rows ?? []).map((r) => ({ ...r, linked: linkedSet.has(r.matricule.toUpperCase()) }))} shown={count ?? 0} total={total ?? 0} query={needle} registryMode={setting?.value === "registry"} />;
+  return <RegistryAdmin rows={(rows ?? []).map(({ birth_date, ...r }) => ({ ...r, has_birth: Boolean(birth_date), linked: linkedSet.has(r.matricule.toUpperCase()) }))} shown={count ?? 0} total={total ?? 0} query={needle} registryMode={setting?.value === "registry"} />;
 }

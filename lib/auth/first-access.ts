@@ -7,10 +7,11 @@ import { MATRICULE_RE, normalizeMatricule } from "@/lib/auth/first-access-public
 
 /**
  * Première connexion par matricule (réglage auth_first_access = "registry") :
- *  1. l'agent saisit son matricule et son adresse personnelle (l'adresse SDIS, quand la liste
- *     la connaît, reste un identifiant de connexion) ;
- *  2. le matricule doit figurer dans le référentiel importé par les administrateurs
- *     (agents_registry), sinon refus immédiat, rien ne part ;
+ *  1. l'agent saisit son matricule, sa date de naissance et son adresse personnelle (l'adresse
+ *     SDIS, quand la liste la connaît, reste un identifiant de connexion) ;
+ *  2. le matricule et la date de naissance doivent correspondre à la liste importée par les
+ *     administrateurs (agents_registry), sinon refus immédiat, rien ne part ; le message est le
+ *     même que le matricule soit inconnu, sans date ou avec une autre date (pas de sondage) ;
  *  3. le compte est créé avec l'adresse personnelle pour identité (tous les codes et liens y
  *     partent ; l'adresse est inscrite dans le référentiel pour passer le contrôle des domaines),
  *     nom et prénom repris de la liste, puis un e-mail d'ATLAS envoie le code à six chiffres ;
@@ -19,7 +20,7 @@ import { MATRICULE_RE, normalizeMatricule } from "@/lib/auth/first-access-public
  *     Connexions suivantes : e-mail (personnelle ou SDIS) ou matricule.
  * Un compte déjà accueilli n'est jamais réinitialisé par ce chemin : « mot de passe oublié ».
  */
-export type FirstAccessInput = { matricule: string; personalEmail: string };
+export type FirstAccessInput = { matricule: string; personalEmail: string; birthDate: string };
 export type FirstAccessResult = { ok: true; personalEmail: string } | { ok: false; error: string; field?: "matricule" | "personalEmail" };
 
 export { normalizeMatricule };
@@ -73,9 +74,10 @@ export async function requestFirstAccess(input: FirstAccessInput, clientKey = ""
   await admin.from("rate_limit_events").insert({ user_id: bucketId(`m:${matricule}`), bucket: "first_access" });
   if (clientKey) await admin.from("rate_limit_events").insert({ user_id: bucketId(`c:${clientKey}`), bucket: "first_access" });
 
-  // Référentiel : le matricule doit exister
-  const { data: ref } = await admin.from("agents_registry").select("matricule, email, personal_email, first_name, last_name, status").eq("matricule", matricule).maybeSingle();
-  if (!ref) return { ok: false, error: "Ce matricule n'est pas référencé. Vérifiez-le ; s'il est exact, contactez le service communication.", field: "matricule" };
+  // Référentiel : le matricule doit exister, avec la même date de naissance
+  const { data: ref } = await admin.from("agents_registry").select("matricule, email, personal_email, first_name, last_name, status, birth_date").eq("matricule", matricule).maybeSingle();
+  if (!ref || !ref.birth_date || ref.birth_date !== input.birthDate)
+    return { ok: false, error: "Matricule ou date de naissance incorrects. Vérifiez-les ; s'ils sont exacts, contactez le service communication.", field: "matricule" };
 
   // Compte existant ? Par matricule (déjà activé) ou par adresse personnelle (autre agent)
   const [{ data: byMatricule }, { data: byPersonal }] = await Promise.all([

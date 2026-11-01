@@ -11,7 +11,7 @@ import { AGENT_STATUS_LABELS, type AgentStatusValue } from "@/lib/auth/first-acc
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-type Entry = { matricule: string; email: string | null; personal_email: string | null; activated_at: string | null; last_name: string | null; first_name: string | null; center_name: string | null; status: string | null; imported_at: string; linked: boolean };
+type Entry = { matricule: string; email: string | null; personal_email: string | null; activated_at: string | null; last_name: string | null; first_name: string | null; center_name: string | null; status: string | null; imported_at: string; has_birth: boolean; linked: boolean };
 
 /**
  * Administration → Agents référencés : liste des matricules autorisés à créer un accès.
@@ -94,7 +94,7 @@ export function RegistryAdmin({ rows, shown, total, query, registryMode }: { row
       <section className="space-y-3">
         <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Importer la liste</h2>
         <p className="text-[13px] text-text-3">
-          Collez un tableau ou choisissez un fichier CSV, une ligne par agent : <span className="text-text-2">matricule ; nom ; prénom ; e-mail SDIS ; centre ; statut (SPV, SPP, JSP, PATS)</span>. Avec une ligne d&apos;en-têtes, l&apos;ordre des colonnes est libre. Seul le matricule est obligatoire ; nom et prénom, s&apos;ils sont renseignés, doivent être saisis à l&apos;identique par l&apos;agent (accents et casse ignorés). L&apos;e-mail SDIS est indicatif (il sert aussi d&apos;identifiant de connexion) ; l&apos;adresse personnelle saisie par l&apos;agent à sa première connexion s&apos;ajoute ici. Un matricule déjà présent est mis à jour.
+          Collez un tableau ou choisissez un fichier CSV, une ligne par agent : <span className="text-text-2">matricule ; nom ; prénom ; e-mail SDIS ; centre ; statut (SPV, SPP, JSP, PATS) ; date de naissance (jj/mm/aaaa)</span>. Avec une ligne d&apos;en-têtes, l&apos;ordre des colonnes est libre. Le matricule est obligatoire, et la <span className="text-text-2">date de naissance</span> aussi pour que l&apos;agent puisse créer son accès (il la saisit avec son matricule) ; nom et prénom, s&apos;ils sont renseignés, doivent être saisis à l&apos;identique par l&apos;agent (accents et casse ignorés). L&apos;e-mail SDIS est indicatif (il sert aussi d&apos;identifiant de connexion) ; l&apos;adresse personnelle saisie par l&apos;agent à sa première connexion s&apos;ajoute ici. Un matricule déjà présent est mis à jour.
         </p>
         <textarea
           value={text}
@@ -103,7 +103,7 @@ export function RegistryAdmin({ rows, shown, total, query, registryMode }: { row
             setPreview(null);
           }}
           rows={6}
-          placeholder={"matricule ; nom ; prénom ; e-mail ; centre ; statut\n12345 ; Dupont ; Marie ; marie.dupont@sdis62.fr ; Lumbres ; SPV\n67890 ; Martin ; Paul ; paul.martin@sdis62.fr ; Calais ; SPP"}
+          placeholder={"matricule ; nom ; prénom ; e-mail ; centre ; statut ; date de naissance\n12345 ; Dupont ; Marie ; marie.dupont@sdis62.fr ; Lumbres ; SPV ; 14/05/1990\n67890 ; Martin ; Paul ; paul.martin@sdis62.fr ; Calais ; SPP ; 02/11/1985"}
           aria-label="Lignes à importer"
           className="block w-full rounded-[12px] bg-bg-2 px-3.5 py-3 font-mono text-[13px] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge"
         />
@@ -135,7 +135,7 @@ export function RegistryAdmin({ rows, shown, total, query, registryMode }: { row
                   ) : (
                     <span>
                       {" "}
-                      · {[r.first_name, r.last_name].filter(Boolean).join(" ") || "—"} {r.email ? `<${r.email}>` : ""} · {r.center_name ?? "—"} · {r.status ? AGENT_STATUS_LABELS[r.status as AgentStatusValue] : "—"}
+                      · {[r.first_name, r.last_name].filter(Boolean).join(" ") || "—"} {r.email ? `<${r.email}>` : ""} · {r.center_name ?? "—"} · {r.status ? AGENT_STATUS_LABELS[r.status as AgentStatusValue] : "—"} · {r.birth_date ? `né(e) le ${r.birth_date.split("-").reverse().join("/")}` : <span className="text-red-text">date de naissance manquante</span>}
                       {r.existing && <span className="text-text-3"> · mise à jour</span>}
                     </span>
                   )}
@@ -171,6 +171,7 @@ export function RegistryAdmin({ rows, shown, total, query, registryMode }: { row
                       <span className="font-semibold tabular-nums">{r.matricule}</span>
                       {(r.first_name || r.last_name) && <span> · {[r.first_name, r.last_name].filter(Boolean).join(" ")}</span>}
                       {r.status && <span className="ml-2 rounded-full bg-bg-2 px-2 py-0.5 text-[11px] font-semibold uppercase text-text-2">{AGENT_STATUS_LABELS[r.status as AgentStatusValue] ?? r.status}</span>}
+                      {!r.has_birth && !r.linked && <span className="ml-2 rounded-full bg-bg-2 px-2 py-0.5 text-[11px] font-semibold text-red-text">sans date de naissance</span>}
                       {r.linked && <span className="ml-2 rounded-full bg-bg-2 px-2 py-0.5 text-[11px] font-medium text-text-2">compte créé</span>}
                     </p>
                     <p className="truncate text-text-3">

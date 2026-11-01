@@ -232,11 +232,14 @@ l'adresse personnelle de l'agent.
 
 1. L'administrateur importe la liste des agents dans **Administration → Agents référencés**
    (collage d'un tableau ou fichier CSV : matricule, nom, prénom, e-mail SDIS, centre,
-   statut SPV/SPP/JSP ; seul le matricule est obligatoire, un matricule existant est mis à
-   jour). Table `agents_registry`, lisible uniquement par les administrateurs et le serveur.
-2. Sur l'écran de connexion, « Première connexion » demande seulement le matricule et
-   l'adresse personnelle (l'adresse SDIS de la liste reste un identifiant de connexion). Un
-   matricule absent de la liste est refusé immédiatement, rien ne part. Limite : 5 demandes par matricule et 60 par adresse IP par heure (une caserne
+   statut SPV/SPP/JSP, **date de naissance** jj/mm/aaaa ; matricule et date de naissance sont
+   indispensables pour que l'agent crée son accès, un matricule existant est mis à jour, un
+   fichier sans colonne de date n'efface pas les dates déjà enregistrées ; migration `0048`). Table `agents_registry`, lisible uniquement par les administrateurs et le serveur.
+2. Sur l'écran de connexion, « Première connexion » demande le matricule, la **date de
+   naissance** et l'adresse personnelle (l'adresse SDIS de la liste reste un identifiant de
+   connexion). Matricule inconnu, date absente de la liste ou différente : même message
+   « Matricule ou date de naissance incorrects », rien ne part (le matricule seul se trouve
+   trop facilement). La date n'est lisible que par les administrateurs et le serveur. Limite : 5 demandes par matricule et 60 par adresse IP par heure (une caserne
    partage une seule adresse publique)
    (`rate_limit_events`, bucket `first_access`).
 3. Le compte est créé avec **l'adresse personnelle pour identité** (elle est d'abord inscrite

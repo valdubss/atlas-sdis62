@@ -53,7 +53,7 @@ type ProfileRow = {
   updated_at: Timestamp;
 };
 export type AgentStatus = "spv" | "spp" | "jsp" | "pats";
-type AgentsRegistryRow = { matricule: string; email: string | null; personal_email: string | null; activated_at: Timestamp | null; last_name: string | null; first_name: string | null; center_name: string | null; status: AgentStatus | null; note: string | null; imported_at: Timestamp };
+type AgentsRegistryRow = { matricule: string; email: string | null; personal_email: string | null; activated_at: Timestamp | null; birth_date: string | null; last_name: string | null; first_name: string | null; center_name: string | null; status: AgentStatus | null; note: string | null; imported_at: Timestamp };
 
 type FeedbackRow = {
   id: string;

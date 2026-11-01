@@ -30,6 +30,7 @@ export const identifierLoginSchema = z.object({
 export const firstAccessSchema = z.object({
   matricule: z.string().trim().min(3, "Saisissez votre matricule.").max(20, "Matricule trop long."),
   personalEmail: z.string().trim().toLowerCase().min(1, "Saisissez votre adresse personnelle.").pipe(z.email("Adresse personnelle invalide.")),
+  birthDate: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Saisissez votre date de naissance."),
 });
 
 export const setPasswordSchema = z

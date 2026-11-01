@@ -27,7 +27,7 @@ export type FirstAccessState = { status: "idle" } | { status: "sent"; email: str
 export async function requestFirstAccessAction(_prev: FirstAccessState, formData: FormData): Promise<FirstAccessState> {
   const auth = await getAuthSettings();
   if (auth.firstAccess !== "registry") return { status: "error", message: "Ce mode de première connexion est désactivé." };
-  const parsed = firstAccessSchema.safeParse({ matricule: formData.get("matricule"), personalEmail: formData.get("personalEmail") });
+  const parsed = firstAccessSchema.safeParse({ matricule: formData.get("matricule"), personalEmail: formData.get("personalEmail"), birthDate: formData.get("birthDate") });
   if (!parsed.success) {
     const fields: Record<string, string> = {};
     for (const i of parsed.error.issues) {

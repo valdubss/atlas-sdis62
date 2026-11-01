@@ -5,7 +5,7 @@ import { adminClient, completeOnboarding, loadEnv } from "./helpers";
 
 /**
  * Première connexion par matricule (réglage auth_first_access = "registry") :
- *  1. matricule absent du référentiel → refusé avant tout envoi ;
+ *  1. matricule absent du référentiel, ou date de naissance différente → même refus, rien ne part ;
  *  2. matricule + adresse personnelle → code à six chiffres « envoyé » sur l'adresse personnelle
  *     (capturé dans EMAIL_CAPTURE_DIR, repris dans l'objet) → saisi → accueil ;
  *  3. accueil en un écran : « Bienvenue Prénom Nom », statut repris de la liste, centre
@@ -52,7 +52,7 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
 
   try {
     await admin.from("app_settings").upsert({ key: "auth_first_access", value: "registry" });
-    await admin.from("agents_registry").upsert({ matricule, email: null, last_name: `Référencé ${stamp}`, first_name: "Agent", center_name: "Test", status: "spp" });
+    await admin.from("agents_registry").upsert({ matricule, email: null, last_name: `Référencé ${stamp}`, first_name: "Agent", center_name: "Test", status: "spp", birth_date: "1990-05-14" });
     await admin.from("agents_registry").update({ email: sdisEmail }).eq("matricule", matricule);
     await admin.from("rate_limit_events").delete().in("bucket", ["first_access", "magiclink"]);
     const { data: center } = await admin.from("centers").insert({ slug: `e2e-pc-${stamp}`, name: `CIS Test ${stamp}`, type: "cis", city: "Arras", sort_order: 999 }).select("id").single();
@@ -62,14 +62,20 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
     await page.goto("/login", { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Première connexion" }).click();
     await page.getByLabel("Matricule").fill(`X${stamp}`);
+    await page.getByLabel("Date de naissance").fill("1990-05-14");
     await page.getByLabel("Adresse e-mail personnelle").fill(personal);
     await page.getByRole("button", { name: "Continuer" }).click();
-    await expect(page.getByText(/n'est pas référencé/)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(/Matricule ou date de naissance incorrects/)).toBeVisible({ timeout: 15_000 });
+    await page.getByLabel("Matricule").fill(matricule);
+    await page.getByLabel("Date de naissance").fill("1991-05-14");
+    await page.getByRole("button", { name: "Continuer" }).click();
+    await expect(page.getByText(/Matricule ou date de naissance incorrects/)).toBeVisible({ timeout: 15_000 });
     expect((await admin.from("profiles").select("id").ilike("email", personal).maybeSingle()).data).toBeNull();
 
     // --- 2. Matricule référencé : code reçu sur l'adresse personnelle ----------------------
     const t0 = Date.now();
     await page.getByLabel("Matricule").fill(matricule.toLowerCase());
+    await page.getByLabel("Date de naissance").fill("1990-05-14");
     await page.getByRole("button", { name: "Continuer" }).click();
     await expect(page.getByText("Code envoyé")).toBeVisible({ timeout: 20_000 });
     const { data: created } = await admin.from("profiles").select("id, email, matricule, personal_email, status, first_name, last_name, password_set_at").ilike("email", personal).single();
@@ -114,6 +120,7 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
     await page.goto("/login", { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "Première connexion" }).click();
     await page.getByLabel("Matricule").fill(matricule);
+    await page.getByLabel("Date de naissance").fill("1990-05-14");
     await page.getByLabel("Adresse e-mail personnelle").fill(personal);
     await page.getByRole("button", { name: "Continuer" }).click();
     await expect(page.getByText(/Un compte existe déjà/)).toBeVisible({ timeout: 15_000 });

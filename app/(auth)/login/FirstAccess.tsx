@@ -12,7 +12,7 @@ const initial: FirstAccessState = { status: "idle" };
 const codeInitial: LoginState = { status: "idle" };
 
 /**
- * Première connexion par matricule : matricule et adresse personnelle, puis le code à six
+ * Première connexion par matricule : matricule, date de naissance et adresse personnelle, puis le code à six
  * chiffres reçu sur l'adresse personnelle (proposé par le clavier, autocomplete one-time-code). Le serveur vérifie le matricule dans le
  * référentiel avant tout envoi ; un matricule inconnu est refusé ici même.
  */
@@ -65,9 +65,10 @@ export function FirstAccess({ open, onClose }: { open: boolean; onClose: () => v
           <form action={action} className="space-y-4" noValidate>
             <div className="flex items-start gap-3">
               <IdCard size={22} strokeWidth={1.75} className="mt-0.5 shrink-0 text-text-2" aria-hidden="true" />
-              <p className="text-[15px] text-text-2">Votre matricule et votre adresse e-mail personnelle suffisent. Vous recevez un code, puis vous choisissez votre centre et votre mot de passe.</p>
+              <p className="text-[15px] text-text-2">Votre matricule, votre date de naissance et votre adresse e-mail personnelle suffisent. Vous recevez un code, puis vous choisissez votre centre et votre mot de passe.</p>
             </div>
             <Field label="Matricule" name="matricule" type="text" inputMode="text" autoComplete="off" autoCapitalize="characters" placeholder="Ex. 12345" required error={fields.matricule} />
+            <Field label="Date de naissance" name="birthDate" type="date" autoComplete="bday" min="1920-01-01" max={new Date().toISOString().slice(0, 10)} required error={fields.birthDate} />
             <Field label="Adresse e-mail personnelle" name="personalEmail" type="email" inputMode="email" autoComplete="email" placeholder="vous@exemple.fr" required error={fields.personalEmail} hint="Le code y arrive tout de suite, puis vos demandes de mot de passe." />
             {state.status === "error" && !state.fields && (
               <p className="text-[13px] text-red-text" role="alert">
