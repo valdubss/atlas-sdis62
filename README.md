@@ -255,26 +255,6 @@ l'adresse personnelle de l'agent.
    d'un matricule inconnu, code lu dans l'e-mail capturé, accueil avec centre de test,
    reconnexion par matricule, mot de passe oublié).
 
-### 3.6 Installer l'app sur les téléphones (lien ou QR code)
-
-Page publique **`/installer`** (par exemple `https://atlas-sdis62.vercel.app/installer`), à
-diffuser par lien, e-mail, messagerie ou affiche. Elle reconnaît l'appareil :
-
-- **Android** (Chrome, Edge, Samsung Internet) : bouton « Installer MySDIS », un toucher puis
-  « Installer » dans la fenêtre du système. L'invite `beforeinstallprompt` est gardée dès le
-  chargement par le script en ligne de `app/layout.tsx`. Sans invite (Firefox, app déjà
-  installée), les gestes du menu ⋮ s'affichent.
-- **iPhone** : Apple n'autorise aucun site à s'ajouter seul à l'écran d'accueil. La page montre
-  les trois gestes de Safari (Partager, « Sur l'écran d'accueil », Ajouter), adaptés à iOS 26
-  (Partager dans le menu ⋯), avec une flèche vers le bouton à toucher. Navigateur intégré d'une
-  autre application (Facebook, Instagram…) : invitation à ouvrir la page dans Safari, lien à copier.
-- **Ordinateur** : QR code à scanner, lien à copier, QR code en PNG (`/installer/qr.png`,
-  1024 px) et **affiche A4** imprimable (bouton « Affiche »).
-
-L'écran de connexion ouvert dans le navigateur d'un téléphone propose aussi « Installer l'app sur
-ce téléphone ». Adresse du QR code : `NEXT_PUBLIC_SITE_URL` si elle est en https, sinon l'hôte de
-la requête.
-
 ## 4. Créer le premier administrateur
 
 1. Connectez-vous une première fois avec votre adresse (lien magique) : le profil

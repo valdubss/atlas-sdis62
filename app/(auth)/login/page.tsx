@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { Logo } from "@/components/brand/Logo";
-import { InstallHint } from "@/components/pwa/InstallHint";
 import { APP_NAME } from "@/lib/config";
 import { getAllowedDomains } from "@/lib/auth/domains";
 import { getAuthSettings } from "@/lib/auth/settings";
@@ -68,7 +67,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           )}
           <LoginForm mailFromApp={appMailConfigured()} next={next} domains={domains} auth={auth} />
         </section>
-        <InstallHint />
       </div>
     </main>
   );

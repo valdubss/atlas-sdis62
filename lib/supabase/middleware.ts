@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { buildCsp, makeNonce } from "@/lib/security/csp";
 
-const PUBLIC_PREFIXES = ["/login", "/auth/", "/offline", "/rattachement/", "/installer"];
+const PUBLIC_PREFIXES = ["/login", "/auth/", "/offline", "/rattachement/"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PREFIXES.some(

@@ -7,8 +7,6 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: APP_NAME,
     description: APP_TAGLINE,
     lang: "fr",
-    // Identité stable de l'application installée (Chrome) : ne pas changer
-    id: "/",
     start_url: "/",
     scope: "/",
     display: "standalone",
