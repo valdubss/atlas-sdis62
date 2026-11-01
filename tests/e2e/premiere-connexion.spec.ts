@@ -6,7 +6,7 @@ import { adminClient, completeOnboarding, loadEnv } from "./helpers";
 /**
  * Première connexion par matricule (réglage auth_first_access = "registry") :
  *  1. matricule absent du référentiel, ou date de naissance différente → même refus, rien ne part ;
- *  2. matricule + adresse personnelle → code à six chiffres « envoyé » sur l'adresse personnelle
+ *  2. matricule + adresse personnelle → code « envoyé » sur l'adresse personnelle
  *     (capturé dans EMAIL_CAPTURE_DIR, repris dans l'objet) → saisi → accueil ;
  *  3. accueil en un écran : « Bienvenue Prénom Nom », statut repris de la liste, centre
  *     obligatoire (centre de test sans chef), mot de passe → directement le fil ;
@@ -30,7 +30,7 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
   let userId: string | null = null;
   let centerId: string | null = null;
 
-  /** Dernier e-mail capturé pour l'adresse personnelle : code à six chiffres lu dans l'objet. */
+  /** Dernier e-mail capturé pour l'adresse personnelle : code (6 à 10 chiffres) lu dans l'objet. */
   const lastCode = (after: number) => {
     const file = fs
       .readdirSync(dir)
@@ -40,7 +40,7 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
     expect(file, "e-mail capturé").toBeTruthy();
     const mail = JSON.parse(fs.readFileSync(path.join(dir, file!), "utf8")) as { to: string; subject: string; text: string };
     expect(mail.to).toBe(personal);
-    const code = mail.subject.match(/\b(\d{6})\b/)?.[1];
+    const code = mail.subject.match(/\b(\d{6,10})\b/)?.[1];
     expect(code, "code dans l'objet").toBeTruthy();
     return code!;
   };

@@ -13,7 +13,7 @@ const codeInitial: LoginState = { status: "idle" };
 
 /**
  * Première connexion par matricule : matricule, date de naissance et adresse personnelle, puis le code à six
- * chiffres reçu sur l'adresse personnelle (proposé par le clavier, autocomplete one-time-code). Le serveur vérifie le matricule dans le
+ * chiffres (6 à 10 selon le réglage Supabase, 8 en production) reçu sur l'adresse personnelle (proposé par le clavier, autocomplete one-time-code). Le serveur vérifie le matricule dans le
  * référentiel avant tout envoi ; un matricule inconnu est refusé ici même.
  */
 export function FirstAccess({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -31,7 +31,7 @@ export function FirstAccess({ open, onClose }: { open: boolean; onClose: () => v
               <div className="space-y-1">
                 <p className="text-[17px] font-semibold tracking-[-0.02em] text-text-1">Code envoyé</p>
                 <p className="text-[15px] text-text-2">
-                  Regardez la boîte <span className="text-text-1">{state.email}</span> (et ses indésirables) : le code à six chiffres est dans l&apos;objet de l&apos;e-mail. Valable quinze minutes.
+                  Regardez la boîte <span className="text-text-1">{state.email}</span> (et ses indésirables) : le code est dans l&apos;objet de l&apos;e-mail. Valable quinze minutes.
                 </p>
               </div>
             </div>
@@ -44,8 +44,8 @@ export function FirstAccess({ open, onClose }: { open: boolean; onClose: () => v
                 inputMode="numeric"
                 pattern="[0-9]*"
                 autoComplete="one-time-code"
-                maxLength={6}
-                placeholder="Code à 6 chiffres"
+                maxLength={10}
+                placeholder="Code reçu"
                 aria-label="Code reçu par e-mail"
                 autoFocus
                 className={cn("h-12 w-full rounded-[12px] bg-bg-1 px-3.5 text-center text-[22px] tracking-[0.3em] text-text-1 outline-none ring-1 ring-transparent focus:ring-glass-edge", codeState.status === "error" && "ring-red")}

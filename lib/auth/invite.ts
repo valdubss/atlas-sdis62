@@ -50,11 +50,11 @@ export async function sendLoginEmailFor(email: string): Promise<{ ok: true } | {
 /**
  * E-mails de compte envoyés par ATLAS lui-même (Resend ou SMTP) : invitation
  * d'un nouvel agent, nouveau lien de connexion, réinitialisation du mot de passe.
- * Le lien et le code à six chiffres viennent de l'API d'administration Supabase ;
+ * Le lien et le code (6 à 10 chiffres, réglage « Email OTP length » de Supabase) viennent de l'API d'administration Supabase ;
  * l'e-mail part par notre transport, sans dépendre du SMTP de Supabase.
  * Renvoie false si aucun transport n'est configuré (l'appelant prévient l'admin).
  */
-export async function sendAccountEmail(kind: LinkKind, email: string, opts: { firstName?: string; by?: string; /** Code à six chiffres repris dans l'objet (lisible sans ouvrir l'e-mail) */ codeInSubject?: boolean } = {}): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function sendAccountEmail(kind: LinkKind, email: string, opts: { firstName?: string; by?: string; /** Code repris dans l'objet (lisible sans ouvrir l'e-mail) */ codeInSubject?: boolean } = {}): Promise<{ ok: true } | { ok: false; error: string }> {
   const admin = createAdminClient();
   const base = siteUrl();
   // Première connexion et mot de passe oublié arrivent sur l'écran qui fait choisir le mot de passe

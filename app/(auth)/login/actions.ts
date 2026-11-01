@@ -21,7 +21,7 @@ export type FirstAccessState = { status: "idle" } | { status: "sent"; email: str
 
 /**
  * Première connexion par matricule (réglage « registry ») : adresse SDIS + matricule + adresse
- * personnelle, vérifiés dans le référentiel ; le code à six chiffres part sur l'adresse
+ * personnelle, vérifiés dans le référentiel ; le code (6 à 10 chiffres selon le réglage Supabase) part sur l'adresse
  * personnelle et la feuille passe à sa saisie (verifyEmailCode).
  */
 export async function requestFirstAccessAction(_prev: FirstAccessState, formData: FormData): Promise<FirstAccessState> {
@@ -113,12 +113,13 @@ export async function sendMagicLink(
 }
 
 /**
- * Connexion par le code à six chiffres reçu dans le même e-mail que le lien.
+ * Connexion par le code reçu dans le même e-mail que le lien (6 à 10 chiffres selon le réglage Supabase).
  * Utile quand la messagerie « ouvre » les liens avant l'agent (passerelles de
  * sécurité) ou quand l'e-mail est lu sur un autre appareil.
  */
 export async function verifyEmailCode(_prev: LoginState, formData: FormData): Promise<LoginState> {
   const code = String(formData.get("code") ?? "").replace(/\D/g, "");
+  if (code.length < 6 || code.length > 10) return { status: "error", message: "Saisissez le code reçu par e-mail (il est aussi dans l'objet)." };
   const next = safeNext(formData.get("next") as string | null);
   // Mode « registry », mot de passe oublié : l'identifiant saisi est résolu ici, l'adresse du compte
   // ne transite pas par le navigateur

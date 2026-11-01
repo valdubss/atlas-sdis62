@@ -211,7 +211,7 @@ where key = 'allowed_emails';
   (10 caractères minimum).
 - **Première connexion ou mot de passe oublié** : l'agent saisit son adresse et reçoit un
   e-mail d'ATLAS (expéditeur, objet et contenu d'ATLAS, jamais de Supabase) avec un lien
-  et un code à six chiffres. Le lien, ou le code saisi sur l'écran de connexion, ouvre
+  et un code (6 à 10 chiffres selon le réglage Supabase, 8 en production). Le lien, ou le code saisi sur l'écran de connexion, ouvre
   l'écran d'accueil où il renseigne prénom, nom et **choisit son mot de passe**. Tant
   qu'un compte n'a pas de mot de passe, le proxy le renvoie vers cet écran
   (`profiles.password_set_at`, recopié dans le jeton `password_set`, migration `0038`).
@@ -244,7 +244,7 @@ l'adresse personnelle de l'agent.
    (`rate_limit_events`, bucket `first_access`).
 3. Le compte est créé avec **l'adresse personnelle pour identité** (elle est d'abord inscrite
    dans `agents_registry.personal_email`, que la fonction `is_allowed_email` accepte), nom et
-   prénom repris de la liste, puis ATLAS envoie le **code à six chiffres** (repris dans l'objet
+   prénom repris de la liste, puis ATLAS envoie le **code** (8 chiffres en production, repris dans l'objet
    de l'e-mail) par son transport : `SMTP_HOST` ou `RESEND_API_KEY` **obligatoire** dans ce
    mode. L'agent saisit le code dans la même fenêtre.
 4. L'accueil (`/bienvenue`) tient sur **un seul écran** : « Bienvenue Prénom Nom », statut
@@ -851,7 +851,7 @@ $$);
 ## 7i. Comptes, rattachement validé, co-rédacteurs, événements de centre (v3, lot comptes)
 
 - **Connexion** : l'écran propose d'abord l'e-mail professionnel (@sdis62.fr). L'agent reçoit
-  un e-mail avec un lien **et un code à six chiffres** à saisir dans l'app : le code marche
+  un e-mail avec un lien **et un code** à saisir dans l'app : le code marche
   même si la passerelle de messagerie a déjà « ouvert » le lien, ou si l'e-mail est lu sur un
   autre appareil. Le mot de passe reste une option (facultatif à l'accueil, modifiable dans le
   profil). Si `RESEND_API_KEY` (ou `SMTP_HOST`) est défini, l'e-mail part par le transport
@@ -879,7 +879,8 @@ $$);
   envoyer une réinitialisation de mot de passe, désactiver, exporter, supprimer (anonymisation,
   migration 0029 pour les commentaires).
 - **Réglages Supabase Auth** (tableau de bord) : changement de mot de passe sécurisé activé,
-  longueur minimale 10 (comme l'app), code e-mail à six chiffres valable quinze minutes.
+  longueur minimale 10 (comme l'app), code e-mail valable quinze minutes (« Email OTP length » :
+  8 chiffres en production ; l'app accepte 6 à 10).
   « Prevent use of leaked passwords » demande le plan Pro.
 - **RGPD** (migration 0032) : `export_user_data` couvre messagerie, stories, retours,
   rattachement, notifications, consultations, appareils ; `anonymize_user_data` traite chaque

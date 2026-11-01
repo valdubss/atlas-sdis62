@@ -20,7 +20,7 @@ const input = "h-11 w-full rounded-[10px] bg-bg-1 px-3.5 text-[15px] text-text-1
  * Deux modes de première connexion (réglage administrateur) :
  *  - « link » : e-mail professionnel, lien (et code) reçu pour définir le mot de passe ;
  *  - « registry » : adresse SDIS + matricule + adresse personnelle vérifiés dans le référentiel,
- *    code à six chiffres reçu sur l'adresse personnelle, mot de passe choisi à l'accueil ;
+ *    code reçu sur l'adresse personnelle, mot de passe choisi à l'accueil ;
  *    connexion ensuite par e-mail (personnelle ou SDIS) ou matricule.
  *    « Mot de passe oublié » : e-mail ou matricule → code sur l'adresse personnelle.
  */
@@ -41,7 +41,7 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
       <div className="space-y-1">
         <p className="text-[22px] font-semibold tracking-[-0.02em] text-text-1">E-mail envoyé</p>
         <p className="text-[15px] text-text-2">
-          Sur <span className="text-text-1">{sent.display ?? sent.email}</span> : touchez le lien pour définir votre mot de passe{mailFromApp ? ", ou saisissez ici le code à six chiffres (il est aussi dans l'objet de l'e-mail)" : ""}. Valable {mailFromApp ? "quinze minutes" : "une heure"}.
+          Sur <span className="text-text-1">{sent.display ?? sent.email}</span> : touchez le lien pour définir votre mot de passe{mailFromApp ? ", ou saisissez ici le code reçu (il est aussi dans l'objet de l'e-mail)" : ""}. Valable {mailFromApp ? "quinze minutes" : "une heure"}.
         </p>
       </div>
       {mailFromApp && (
@@ -54,8 +54,8 @@ export function LoginForm({ next, auth, mailFromApp = true }: { next: string; do
             inputMode="numeric"
             pattern="[0-9]*"
             autoComplete="one-time-code"
-            maxLength={6}
-            placeholder="Code à 6 chiffres"
+            maxLength={10}
+            placeholder="Code reçu"
             aria-label="Code reçu par e-mail"
             autoFocus
             className={cn(input, "text-center text-[22px] tracking-[0.3em]", codeState.status === "error" && "ring-red")}

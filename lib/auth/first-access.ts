@@ -14,7 +14,7 @@ import { MATRICULE_RE, normalizeMatricule } from "@/lib/auth/first-access-public
  *     même que le matricule soit inconnu, sans date ou avec une autre date (pas de sondage) ;
  *  3. le compte est créé avec l'adresse personnelle pour identité (tous les codes et liens y
  *     partent ; l'adresse est inscrite dans le référentiel pour passer le contrôle des domaines),
- *     nom et prénom repris de la liste, puis un e-mail d'ATLAS envoie le code à six chiffres ;
+ *     nom et prénom repris de la liste, puis un e-mail d'ATLAS envoie le code (6 à 10 chiffres selon le réglage Supabase) ;
  *  4. le code ouvre la session : un seul écran d'accueil (centre validé par le chef de centre,
  *     mot de passe, statut s'il manque dans la liste), puis l'agent arrive directement dans le fil.
  *     Connexions suivantes : e-mail (personnelle ou SDIS) ou matricule.

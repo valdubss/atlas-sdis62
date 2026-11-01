@@ -8,7 +8,7 @@ const admin = adminClient(env);
 /**
  * Parcours de bout en bout d'un compte : un agent @sdis62.fr inconnu arrive par
  * le lien de connexion (le compte est créé comme le fait l'écran de connexion),
- * passe l'accueil, voit le fil ; le code à six chiffres du même e-mail est accepté ;
+ * passe l'accueil, voit le fil ; le code du même e-mail est accepté ;
  * un administrateur change son rôle dans Studio → Utilisateurs et crée un compte.
  * (L'envoi de l'e-mail lui-même dépend du transport configuré : Resend en production.)
  */
@@ -48,10 +48,10 @@ test("parcours comptes : nouvel agent par lien et code, accueil, fil ; administr
     await expect(page.getByRole("article", { name: `Bienvenue ${stamp}` })).toBeVisible({ timeout: 20_000 });
     await expect.poll(async () => (await admin.from("profiles").select("onboarded_at, last_name").eq("id", newId!).single()).data?.last_name, { timeout: 10_000 }).toBe(`Agent ${stamp}`);
 
-    // --- 3. Code à six chiffres (celui de l'e-mail) accepté --------------------------------
+    // --- 3. Code de l'e-mail accepté --------------------------------
     const { data: link } = await admin.auth.admin.generateLink({ type: "magiclink", email: newEmail });
     const otp = link?.properties?.email_otp;
-    expect(otp).toMatch(/^\d{6}$/);
+    expect(otp).toMatch(/^\d{6,10}$/);
     const anon = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, { auth: { persistSession: false } });
     const verified = await anon.auth.verifyOtp({ email: newEmail, token: otp!, type: "email" });
     expect(verified.error).toBeNull();
