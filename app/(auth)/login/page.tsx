@@ -19,6 +19,9 @@ const ERRORS: Record<string, string> = {
   sso: "La connexion Microsoft a échoué. Réessayez, ou utilisez votre adresse e-mail.",
   mode: "Ce mode de connexion est désactivé.",
 };
+const INFOS: Record<string, string> = {
+  supprime: "Votre compte et vos données ont été supprimés.",
+};
 
 // Photo d'intervention plein écran (public/login-bg.jpg), détectée au démarrage du serveur.
 const BG_FILE = "login-bg.jpg";
@@ -28,8 +31,8 @@ const HAS_BG = existsSync(path.join(process.cwd(), "public", BG_FILE));
  * Écran de connexion « affiche » : photo assombrie à 55 %, logo en haut à gauche,
  * champ et bouton en verre en bas. Aucune tagline.
  */
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; erreur?: string }> }) {
-  const { next = "/", erreur } = await searchParams;
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; erreur?: string; info?: string }> }) {
+  const { next = "/", erreur, info } = await searchParams;
   const domains = getAllowedDomains();
   const auth = await getAuthSettings();
 
@@ -58,6 +61,11 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           {erreur && ERRORS[erreur] && (
             <p role="alert" className="mb-4 text-[15px] text-red-text">
               {ERRORS[erreur]}
+            </p>
+          )}
+          {info && INFOS[info] && (
+            <p role="status" className="mb-4 text-[15px] text-text-1">
+              {INFOS[info]}
             </p>
           )}
           <LoginForm mailFromApp={appMailConfigured()} next={next} domains={domains} auth={auth} />

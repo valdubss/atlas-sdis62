@@ -11,10 +11,12 @@ import { adminClient, completeOnboarding, loadEnv } from "./helpers";
  *  3. accueil en un écran : « Bienvenue Prénom Nom », statut repris de la liste, centre
  *     obligatoire (centre de test sans chef), mot de passe → directement le fil ;
  *  4. connexion par matricule, puis par adresse SDIS indicative ;
- *  5. mot de passe oublié par matricule : code sur l'adresse personnelle, affichée masquée.
+ *  5. mot de passe oublié par matricule : code sur l'adresse personnelle, affichée masquée ;
+ *  6. l'agent supprime lui-même son compte depuis Profil (mot SUPPRIMER) : profil et compte
+ *     retirés, matricule de nouveau libre dans la liste, écran de connexion avec le message.
  * Le réglage est remis à sa valeur initiale, le centre et le compte supprimés.
  */
-test("première connexion par matricule : refus, code, accueil, connexion, mot de passe oublié", async ({ page }) => {
+test("première connexion par matricule : refus, code, accueil, connexion, mot de passe oublié, suppression", async ({ page }) => {
   const env = loadEnv();
   const captureDir = env.EMAIL_CAPTURE_DIR;
   test.skip(!captureDir, "EMAIL_CAPTURE_DIR absent du fichier d'environnement (capture des e-mails)");
@@ -144,6 +146,22 @@ test("première connexion par matricule : refus, code, accueil, connexion, mot d
     await page.waitForURL((u) => u.pathname === "/", { timeout: 20_000 });
     await page.goto("/auth/deconnexion", { waitUntil: "networkidle" }).catch(() => {});
     await login(page, personal, resetPassword);
+
+    // --- 6. Suppression du compte par l'agent lui-même -------------------------------------
+    await page.goto("/profil", { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Supprimer mon compte" }).click();
+    const confirmButton = page.getByRole("button", { name: "Supprimer définitivement" });
+    await expect(confirmButton).toBeDisabled();
+    await page.getByLabel(/Écrivez SUPPRIMER/).fill("supprimer");
+    await expect(confirmButton).toBeEnabled();
+    await confirmButton.click();
+    await page.waitForURL(/\/login\?info=supprime/, { timeout: 20_000 });
+    await expect(page.getByText("Votre compte et vos données ont été supprimés.")).toBeVisible();
+    expect((await admin.from("profiles").select("id").eq("id", userId).maybeSingle()).data).toBeNull();
+    expect((await admin.auth.admin.getUserById(userId)).data.user).toBeNull();
+    const { data: freed } = await admin.from("agents_registry").select("personal_email, activated_at").eq("matricule", matricule).single();
+    expect(freed).toMatchObject({ personal_email: null, activated_at: null });
+    userId = null;
   } finally {
     await admin.from("app_settings").upsert({ key: "auth_first_access", value: before?.value ?? "link" });
     await admin.from("agents_registry").delete().eq("matricule", matricule);

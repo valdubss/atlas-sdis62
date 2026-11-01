@@ -50,8 +50,10 @@ export default function AProposPage() {
           <p>
             Les données sont hébergées dans l&apos;Union européenne et conservées pendant la durée de votre engagement au SDIS,
             puis supprimées avec votre compte. Vous disposez d&apos;un droit d&apos;accès, de rectification, d&apos;effacement et
-            d&apos;opposition : vous pouvez demander l&apos;export ou la suppression de votre compte auprès du service communication
-            ou du délégué à la protection des données du SDIS 62, et saisir la CNIL si vous estimez vos droits non respectés.
+            d&apos;opposition : vous pouvez supprimer votre compte vous-même à tout moment (Profil → « Supprimer mon compte » :
+            profil, photo, adresses, réglages et traces effacés aussitôt ; commentaires et messages conservés sans votre nom),
+            demander l&apos;export de vos données auprès du service communication ou du délégué à la protection des données du
+            SDIS 62, et saisir la CNIL si vous estimez vos droits non respectés.
           </p>
         </div>
       </section>

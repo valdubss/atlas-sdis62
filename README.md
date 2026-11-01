@@ -351,7 +351,11 @@ Points clés :
   (10 commentaires / 5 min, 60 réactions / min, 5 signalements / h).
 - `audit_log` est alimenté automatiquement (publications, stories, modération,
   changements de rôle, référentiels) et n'est ni modifiable ni supprimable via l'API.
-- Fonctions RGPD : `export_user_data(uuid)` et `anonymize_user_data(uuid)` (admin).
+- Fonctions RGPD : `export_user_data(uuid)` et `anonymize_user_data(uuid)` (admin, ou le serveur
+  avec la clé service pour **Profil → « Supprimer mon compte »** : l'agent efface lui-même son
+  compte après avoir écrit SUPPRIMER ; profil, photo, ligne de la liste des agents et compte de
+  connexion retirés, commentaires et messages conservés sans auteur, retour à `/login?info=supprime`).
+  Un administrateur ne peut pas se supprimer lui-même.
 - **Contenus de centre** : un post ou un événement rattaché à un centre (`scope = 'center'`)
   n'apparaît jamais dans le fil départemental. Le seul chemin vers le fil est
   « Publier aussi dans le fil » (`promote_center_post`), qui crée une publication

@@ -16,6 +16,7 @@ import { HomeScreenRow } from "@/components/pwa/HomeScreenPrompt";
 import { ThemeToggle } from "@/components/profile/ThemeToggle";
 import { Activity } from "lucide-react";
 import { signOut } from "./actions";
+import { DeleteAccount } from "./DeleteAccount";
 
 export const metadata: Metadata = { title: "Profil" };
 
@@ -200,6 +201,10 @@ export default async function ProfilPage() {
             Se déconnecter
           </Button>
         </form>
+      </div>
+
+      <div className="rounded-[16px] bg-bg-1">
+        <DeleteAccount />
       </div>
     </div>
   );

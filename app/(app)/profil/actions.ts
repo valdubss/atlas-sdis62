@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { profileSchema } from "@/lib/validation/profile";
 import { setPasswordSchema } from "@/lib/validation/auth";
+import { getStorage } from "@/lib/storage";
 
 export type ProfileState =
   | { status: "idle" }
@@ -91,6 +92,47 @@ export async function setPassword(
   await supabase.auth.refreshSession();
 
   return { status: "saved" };
+}
+
+export type DeleteAccountState = { status: "idle" } | { status: "error"; message: string };
+
+/**
+ * Profil → « Supprimer mon compte » : l'agent efface lui-même son compte. Mêmes étapes que la
+ * suppression par un administrateur (anonymize_user_data : traces effacées, commentaires et
+ * messages conservés sans auteur, profil retiré), puis la photo, la ligne de la liste des
+ * agents (matricule libre pour une nouvelle première connexion) et le compte de connexion.
+ * Un administrateur ne peut pas se supprimer lui-même (il en faut toujours un).
+ */
+export async function deleteOwnAccount(_prev: DeleteAccountState, formData: FormData): Promise<DeleteAccountState> {
+  if (String(formData.get("delete_confirm") ?? "").trim().toUpperCase() !== "SUPPRIMER") return { status: "error", message: "Écrivez SUPPRIMER pour confirmer." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const { data: me } = await supabase.from("profiles").select("role, matricule, avatar_key").eq("id", user.id).maybeSingle();
+  if (me?.role === "admin") return { status: "error", message: "Un administrateur ne peut pas supprimer son propre compte : demandez à un autre administrateur." };
+
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { status: "error", message: "Suppression indisponible pour le moment. Contactez le service communication." };
+  }
+
+  const { error: rpcError } = await admin.rpc("anonymize_user_data", { p_user_id: user.id });
+  if (rpcError) return { status: "error", message: "Suppression impossible. Réessayez ; si le problème persiste, contactez le service communication." };
+
+  // Le matricule redevient libre pour une nouvelle première connexion
+  if (me?.matricule) await admin.from("agents_registry").update({ personal_email: null, activated_at: null }).eq("matricule", me.matricule);
+  if (me?.avatar_key) await getStorage().deleteObjects([me.avatar_key]).catch(() => {});
+  // Le profil n'existe plus : même si cet appel échouait, la session serait fermée au prochain passage
+  await admin.auth.admin.deleteUser(user.id);
+
+  await supabase.auth.signOut({ scope: "local" });
+  redirect("/login?info=supprime");
 }
 
 export async function signOut() {
