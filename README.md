@@ -236,7 +236,8 @@ l'adresse personnelle de l'agent.
    jour). Table `agents_registry`, lisible uniquement par les administrateurs et le serveur.
 2. Sur l'écran de connexion, « Première connexion » demande l'adresse SDIS, le matricule et
    l'adresse personnelle. Un matricule absent de la liste est refusé immédiatement, rien ne
-   part. Limite : 5 demandes par matricule et 10 par appareil par heure
+   part. Limite : 5 demandes par matricule et 60 par adresse IP par heure (une caserne
+   partage une seule adresse publique)
    (`rate_limit_events`, bucket `first_access`).
 3. Le compte est créé avec **l'adresse personnelle pour identité** (elle est d'abord inscrite
    dans `agents_registry.personal_email`, que la fonction `is_allowed_email` accepte), nom et

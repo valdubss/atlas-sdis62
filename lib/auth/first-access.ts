@@ -65,9 +65,11 @@ export async function requestFirstAccess(input: FirstAccessInput, clientKey = ""
   if (!appMailConfigured()) return { ok: false, error: "L'envoi d'e-mails n'est pas configuré sur ce déploiement : contactez le service communication." };
 
   const admin = createAdminClient();
-  // Garde-fou : 5 demandes par matricule et par heure, 10 par appareil
+  // Garde-fou : 5 demandes par matricule et par heure, 60 par adresse IP (une caserne entière
+  // partage souvent la même adresse publique : les inscriptions groupées sur le wifi du centre
+  // ne doivent pas se bloquer entre elles ; le plafond par matricule protège chaque agent)
   const since = new Date(Date.now() - 60 * 60_000).toISOString();
-  for (const [seed, max] of [[`m:${matricule}`, 5], [`c:${clientKey || matricule}`, 10]] as const) {
+  for (const [seed, max] of [[`m:${matricule}`, 5], [`c:${clientKey || matricule}`, 60]] as const) {
     const { count } = await admin.from("rate_limit_events").select("bucket", { count: "exact", head: true }).eq("user_id", bucketId(seed)).eq("bucket", "first_access").gte("created_at", since);
     if ((count ?? 0) >= max) return { ok: false, error: "Trop de demandes. Patientez une heure avant de réessayer." };
   }
